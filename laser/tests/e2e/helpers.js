@@ -133,28 +133,43 @@ function toSeed(seed) {
 
 // ---- opening the app ----------------------------------------------------------------------
 
+// A plain local file of the app. Every page opened from disk shares one browser store, so
+// a test can fill the store from this page before the app itself is opened.
+const SEED_URL = pathToFileURL(path.join(LASER, 'img', 'icon.svg')).href;
+
+// seedStore(page, seed) puts a document in localStorage['laser.doc'] and ['laser.rev']
+// before the app starts.
+//
+// Blueprint 2.7 asks for this to be done with page.addInitScript. That was tried and is not
+// safe in the Chromium of this environment (157): a script that touches localStorage at the
+// very start of a document is, in about one load in four after a reload and one in forty on
+// a first load, handed an EMPTY store that is not the real one; the app, which shares the
+// page, then starts as a first run and its empty document replaces the stored one.
+// (Measured: 1,440 reloads of the app with no such script lost nothing; with a script that
+// only READS localStorage at document start, 21 of 80 runs lost the data.) So the store is
+// filled once, late, from a local page, and no test script touches the store early.
+async function seedStore(page, seed) {
+  const s = toSeed(seed);
+  await page.goto(SEED_URL);
+  await page.evaluate((one) => {
+    window.localStorage.setItem('laser.doc', one.text);
+    window.localStorage.setItem('laser.rev', one.rev);
+  }, s);
+}
+
 // openApp(page, { hash, now, seed })
 //   hash   '#/clients' and so on (default: none, the Dashboard)
 //   now    the fixed clock, installed before the page loads (default NOW; null = the real clock).
 //          Time then runs on from there; page.clock.fastForward moves it.
-//   seed   a document, a fixture name, or { text, rev }: put in localStorage['laser.doc'] and
-//          ['laser.rev'] before the app starts. Only when nothing is stored yet, because the
-//          script runs again on every reload. With no seed the test is a first run.
+//   seed   a document, a fixture name, or { text, rev }: what the browser store holds when
+//          the app starts (see seedStore). With no seed the store is left as it is: empty in
+//          a new context (a first run), or whatever an earlier tab of the test saved.
 // A new browser context has empty storage, so every test starts clean.
 async function openApp(page, options) {
   const o = options || {};
   const now = o.now === undefined ? NOW : o.now;
   if (now !== null) await page.clock.install({ time: new Date(now) });
-  if (o.seed) {
-    await page.addInitScript((seed) => {
-      try {
-        if (window.localStorage.getItem('laser.doc') === null) {
-          window.localStorage.setItem('laser.doc', seed.text);
-          window.localStorage.setItem('laser.rev', seed.rev);
-        }
-      } catch (e) { /* a page without storage (the stubbed WhatsApp tab) */ }
-    }, toSeed(o.seed));
-  }
+  if (o.seed) await seedStore(page, o.seed);
   await page.goto(APP_URL + (o.hash || ''));
   await booted(page);
 }
@@ -230,8 +245,9 @@ async function fillClient(page, values) {
   if (values.name !== undefined) await form.getByLabel('Full name').fill(values.name);
   if (values.phone !== undefined) await form.getByLabel('Phone').fill(values.phone);
   if (values.email !== undefined) await form.getByLabel('Email').fill(values.email);
-  if (values.since === 'earlier') await form.getByText('Earlier (already my client)', { exact: true }).click();
-  if (values.since === 'today') await form.getByText('Today', { exact: true }).click();
+  // the two chips are radio buttons; each is found by the words on its chip
+  if (values.since === 'earlier') await form.getByLabel('Earlier (already my client)', { exact: true }).check();
+  if (values.since === 'today') await form.getByLabel('Today', { exact: true }).check();
   if (values.sinceDate !== undefined) await form.getByLabel('Since when?').fill(values.sinceDate);
 }
 
@@ -308,7 +324,7 @@ module.exports = {
   LASER, APP_URL, UNIT_URL, FIXTURES, NOW, TODAY, DAY_MS,
   attachGuards, expectClean,
   fixtureNames, fixturePath, fixtureText, fixtureDoc, seedDoc,
-  openApp, booted, openStarted, stored, storedClients,
+  seedStore, openApp, booted, openStarted, stored, storedClients,
   goTo, newButton, sheet, toast, row, fillClient, addClient,
   saveFile, fileOf, pickFile, breakSaving, mendSaving, breakSavingFromStart, makeFixture
 };
