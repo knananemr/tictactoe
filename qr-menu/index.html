@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>Menu</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-controls="drawer" aria-expanded="false">
+      <span class="burger" aria-hidden="true"><i></i><i></i><i></i></span>
+    </button>
+    <a class="brand" id="brand" href="#home"></a>
+    <button class="lang-btn" id="langBtn"></button>
+  </header>
+
+  <div class="backdrop" id="backdrop" hidden></div>
+
+  <nav class="drawer" id="drawer" aria-hidden="true" inert>
+    <div class="drawer-head">
+      <span class="drawer-brand" id="drawerBrand"></span>
+      <button class="icon-btn close" id="drawerClose">✕</button>
+    </div>
+    <div class="drawer-links" id="drawerLinks"></div>
+  </nav>
+
+  <main id="main">
+    <section class="view" id="view-home" hidden></section>
+    <section class="view" id="view-menu" hidden>
+      <div class="menu-layout">
+        <aside class="side-cats" id="sideCats"></aside>
+        <div class="menu-main">
+          <div class="search-wrap">
+            <input type="search" id="search" class="search" autocomplete="off">
+          </div>
+          <div class="chips" id="chips"></div>
+          <div id="sections"></div>
+        </div>
+      </div>
+    </section>
+    <section class="view" id="view-about" hidden></section>
+  </main>
+
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-hidden="true" inert>
+    <button class="icon-btn close sheet-close" id="sheetClose">✕</button>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
