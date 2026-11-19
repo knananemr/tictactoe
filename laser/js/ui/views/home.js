@@ -14,6 +14,8 @@
   const icons = L.ui.icons;
   const router = L.ui.router;
   const actions = L.ui.actions;
+  const practice = L.core.practice;
+  const parts = L.ui.parts;
 
   // The three statements of 3.9: title, the one line, the full paragraph behind "More".
   const STATEMENTS = [
@@ -159,23 +161,121 @@
     </section>`;
   }
 
+  // ---- To do, Today, Next 7 days ---------------------------------------------------------
+
+  function reminderRow(r, today) {
+    const a = r.appointment;
+    const p = r.person;
+    return html`<li class="row" data-row="${'remind-' + a.id}"${r.tone === 'urgent' ? html` data-tone="urgent"` : ''}>
+      <a class="row__title" href="${parts.clientHref(p.id)}" dir="auto">${p.name}</a>
+      <div class="row__sub"><span class="row__fact">Appointment ${parts.dayWords(a.date, today).toLowerCase()} at ${a.time}</span></div>
+      ${c.badge(r.tone, r.word)}
+      <div class="row__actions">
+        <button class="btn btn--primary" type="button" data-action="send.open" data-kind="${r.kind}" data-person="${p.id}" data-id="${a.id}">Send reminder</button>
+      </div>
+    </li>`;
+  }
+
+  function rebookRow(r) {
+    const p = r.person;
+    return html`<li class="row" data-row="${'rebook-' + p.id}"${r.tone === 'urgent' ? html` data-tone="urgent"` : ''}>
+      <a class="row__title" href="${parts.clientHref(p.id)}" dir="auto">${p.name}</a>
+      <div class="row__sub"><span class="row__fact">Ask for the next session. Last visit ${dates.format(r.lastVisit, 'short')}</span></div>
+      ${c.badge(r.tone, r.word)}
+      <div class="row__actions">
+        <button class="btn btn--secondary" type="button" data-action="send.open" data-kind="rebook" data-person="${p.id}">${r.asked ? 'Ask again' : 'Message'}</button>
+        <button class="btn btn--secondary" type="button" data-action="session.book" data-person="${p.id}">Book</button>
+      </div>
+    </li>`;
+  }
+
+  function leadRow(p, tone) {
+    return html`<li class="row" data-row="${'lead-' + p.id}"${tone.tone === 'urgent' ? html` data-tone="urgent"` : ''}>
+      <a class="row__title" href="${router.href('/leads')}" dir="auto">${p.name}</a>
+      <div class="row__sub"><span class="row__fact" dir="auto">${p.leadInterest || 'Lead'}</span></div>
+      ${c.badge(tone.tone, tone.word)}
+      <div class="row__actions">
+        <button class="btn btn--secondary" type="button" data-action="send.open" data-kind="lead" data-person="${p.id}">Message</button>
+      </div>
+    </li>`;
+  }
+
+  // Everything that needs the owner today, most urgent first.
+  function todoCard(state, today) {
+    const rows = [];
+    practice.needsOutcome(state, today).forEach(function (row) { rows.push(parts.appointmentRow(row, state, today)); });
+    practice.reminders(state).forEach(function (r) { rows.push(reminderRow(r, today)); });
+    practice.rebook(state, today).forEach(function (r) {
+      if (r.tone === 'urgent' || r.tone === 'important') rows.push(rebookRow(r));
+    });
+    practice.leads(state).forEach(function (p) {
+      const tone = practice.leadTone(p, today);
+      if (tone.tone === 'urgent' || tone.tone === 'important') rows.push(leadRow(p, tone));
+    });
+    return html`<section class="card card--flush" data-card="todo">
+      <header class="card__head"><h2 class="card__title">To do</h2>${rows.length ? html`<span class="card__meta">${rows.length}</span>` : ''}</header>
+      ${rows.length ? html`<ul class="rows">${rows}</ul>` : html`<p class="quiet">${c.badge('done', 'All caught up')}</p>`}
+    </section>`;
+  }
+
+  function todayCard(state, today) {
+    const rows = practice.onDay(state, today);
+    const done = rows.filter(function (r) { return r.appointment.status === 'done'; }).length;
+    const meta = rows.length ? done + ' of ' + rows.length + ' done, ' + parts.cash(practice.receivedOn(state, today), state) + ' received' : '';
+    return html`<section class="card card--flush" data-card="today">
+      <header class="card__head"><h2 class="card__title">Today</h2>${meta ? html`<span class="card__meta">${meta}</span>` : ''}</header>
+      ${parts.list(rows.map(function (row) { return parts.appointmentRow(row, state, today, { showDay: false }); }), 'No appointments today.')}
+    </section>`;
+  }
+
+  function weekCard(state, today) {
+    const rows = practice.upcoming(state, dates.addDays(today, 1), dates.addDays(today, 7));
+    return html`<section class="card card--flush" data-card="week">
+      <header class="card__head"><h2 class="card__title">Next 7 days</h2><a class="card__meta link" href="${router.href('/schedule')}">All appointments</a></header>
+      ${parts.list(rows.map(function (row) { return parts.appointmentRow(row, state, today); }), 'Nothing booked for the next 7 days.')}
+    </section>`;
+  }
+
+  function quickCard() {
+    return html`<section class="card" data-card="quick">
+      <header class="card__head"><h2 class="card__title">Add</h2></header>
+      <div class="quick">
+        <button class="btn btn--primary" type="button" data-action="session.add">Treatment</button>
+        <button class="btn btn--primary" type="button" data-action="session.book">Appointment</button>
+        <button class="btn btn--secondary" type="button" data-action="client.new">Client</button>
+        <button class="btn btn--secondary" type="button" data-action="lead.new">Lead</button>
+      </div>
+    </section>`;
+  }
+
   // ---- the view --------------------------------------------------------------------------
 
   function render(state) {
     const started = selectors.gettingStarted(state);
-    const counts = selectors.counts(state);
     const status = selectors.backupStatus(state);
-    const cards = [];
-    if (started.showWelcome) cards.push(welcomeCard());
-    else if (started.showChecklist) cards.push(checklistCard(started));
-    if (started.showCheckBackup) cards.push(checkBackupCard());
-    // With no card to show, the backup line takes the wide column, so that it is never
-    // left alone beside an empty one.
-    const main = cards.length ? cards : [backupLine(status)];
-    const side = cards.length ? backupLine(status) : '';
+    const today = dates.today();
+    const month = practice.month(state, dates.monthKey(today));
+    const leads = practice.leads(state).filter(function (p) { return practice.leadTone(p, today).open; });
+    const fresh = leads.filter(function (p) { return p.leadStatus === 'new'; }).length;
+    const main = [];
+    const side = [];
+    if (started.showWelcome) {
+      main.push(welcomeCard());
+      side.push(backupLine(status));
+    } else {
+      if (started.showChecklist) main.push(checklistCard(started));
+      if (started.showCheckBackup) main.push(checkBackupCard());
+      main.push(todoCard(state, today), todayCard(state, today), weekCard(state, today));
+      side.push(quickCard(), backupLine(status));
+    }
     return html`<div class="page" data-view="home">
-      <p class="date-line">${dates.format(dates.today(), 'long')}</p>
-      ${c.summary([{ key: 'clients', label: 'Clients', value: counts.clients.toLocaleString('en'), href: router.href('/clients') }])}
+      <p class="date-line">${dates.format(today, 'long')}</p>
+      ${c.summary([
+        { key: 'today', label: 'Today', value: practice.onDay(state, today).length.toLocaleString('en'), note: 'appointments', href: router.href('/schedule') },
+        { key: 'received', label: 'Received in ' + dates.format(today, 'month').split(' ')[0], value: parts.cash(month.receivedMinor, state), note: c.plural(month.treatments, 'treatment'), href: router.href('/schedule/done') },
+        { key: 'clients', label: 'Active clients', value: practice.activeClients(state).length.toLocaleString('en'), note: month.newClients + ' new this month', href: router.href('/clients/summary') },
+        { key: 'leads', label: 'Open leads', value: leads.length.toLocaleString('en'), note: fresh + ' new', href: router.href('/leads') }
+      ])}
       <div class="dash">
         <div class="dash__main">${main}</div>
         <div class="dash__side">${side}</div>

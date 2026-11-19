@@ -408,7 +408,9 @@
   function render(state) {
     return html`<div class="page page--narrow" data-view="settings">
       ${moneyCard(state)}
+      ${L.views.practiceSettings.pricesCard(state)}
       ${messagesCard(state)}
+      ${L.views.practiceSettings.textsCard(state)}
       ${backupCard(state)}
       ${deviceCard()}
       ${coloursCard()}

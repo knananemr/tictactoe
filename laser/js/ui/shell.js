@@ -76,13 +76,13 @@
         <header class="topbar">
           <h1 class="topbar__title" tabindex="-1" data-region="title"></h1>
           <div class="topbar__actions">
-            <button class="btn btn--primary topbar__new" type="button" data-action="client.new">${icons.icon('plus')}New</button>
+            <button class="btn btn--primary topbar__new" type="button" data-action="new.here">${icons.icon('plus')}New</button>
             <a class="btn btn--icon topbar__gear" href="${router.href('/settings')}" aria-label="Settings">${icons.icon('settings')}</a>
           </div>
         </header>
         <main class="view" id="view" tabindex="-1" data-region="view"></main>
       </div>
-      <button class="fab" type="button" aria-label="New client" data-action="client.new">${icons.icon('plus')}</button>
+      <button class="fab" type="button" aria-label="New" data-action="new.here">${icons.icon('plus')}</button>
     </div>`;
   }
 
@@ -419,6 +419,13 @@
       if (view) view.focus();
     });
     actions.on('client.new', function () { router.openSheet('client', null); });
+    // the New button and the floating + add what the page is about
+    actions.on('new.here', function () {
+      const name = router.current().name;
+      if (name === 'leads') L.forms.leadForm.open(null);
+      else if (name === 'schedule') L.forms.sessionForm.open({ mode: 'book' });
+      else router.openSheet('client', null);
+    });
     // a row's name is a link that opens the edit form by itself; the name is registered so
     // that the focus can return to the row and tests can find it
     actions.on('client.open', function () {});

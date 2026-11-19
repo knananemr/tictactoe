@@ -1,0 +1,271 @@
+/* app.css: the pieces added with the schedule, client pages, leads and progress.
+   Only tokens from tokens.css are used: no new colours, radii or shadows. */
+
+/* ---------- Tabs: the views of one screen ---------- */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.tabs__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-block-size: var(--tap);
+  padding-inline: var(--s-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: var(--fw-medium);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.tabs__item[aria-current="page"] {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+}
+.tabs__count {
+  min-inline-size: 22px;
+  padding-inline: var(--s-1);
+  border-radius: var(--r-pill);
+  background: var(--important-solid);
+  color: var(--important-on-solid);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  line-height: 22px;
+  text-align: center;
+}
+@media (hover: hover) {
+  .tabs__item:hover { background: var(--primary-soft); }
+}
+
+.toolbar--split {
+  justify-content: space-between;
+}
+
+/* ---------- Tiles: a few figures side by side ---------- */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+@media (min-width: 768px) {
+  .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.tile {
+  display: grid;
+  align-content: start;
+  gap: var(--s-1);
+  min-inline-size: 0;
+  padding: var(--s-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+.tile__label,
+.tile__note {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-tight);
+}
+.tile__value {
+  overflow-wrap: anywhere;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--lh-tight);
+}
+
+/* ---------- Small pieces ---------- */
+.quiet {
+  margin: 0;
+  padding: var(--s-4);
+  color: var(--text-2);
+}
+.section-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+}
+.btn[aria-disabled="true"] {
+  opacity: .5;
+  pointer-events: none;
+}
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  justify-self: start;
+  min-block-size: var(--tap);
+  color: var(--primary-ink);
+  font-weight: var(--fw-medium);
+  text-decoration: none;
+}
+.back__icon { transform: rotate(90deg); }
+.quick {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+
+/* ---------- Forms ---------- */
+.input--area {
+  min-block-size: 88px;
+  padding-block: var(--s-2);
+  resize: vertical;
+  font-family: inherit;
+}
+.field__static {
+  margin: 0;
+  font-weight: var(--fw-semibold);
+}
+.more__fields { margin-block-start: var(--s-3); }
+.picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.pick {
+  min-block-size: var(--tap);
+  padding-inline: var(--s-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+}
+.pick:active { background: var(--primary-soft); }
+@media (hover: hover) {
+  .pick:hover { border-color: var(--primary); background: var(--primary-soft); }
+}
+.send-ways {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+
+/* ---------- Schedule ---------- */
+.month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+.month-nav__title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  text-align: center;
+}
+
+/* ---------- Client page ---------- */
+.profile {
+  display: grid;
+  gap: var(--s-4);
+}
+.profile__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+}
+.profile__name {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-semibold);
+}
+.note-box {
+  display: flex;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border: 1px solid var(--important-border);
+  border-radius: var(--r-lg);
+  background: var(--important-bg);
+  color: var(--important-text);
+}
+.note-box p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.note-box .icon { flex: none; }
+.facts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-3) var(--s-6);
+  margin: 0;
+}
+@media (min-width: 640px) {
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.facts__item { min-inline-size: 0; }
+.facts dt {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: var(--fw-medium);
+}
+
+/* ---------- Progress ---------- */
+.chart {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+}
+.chart__bar { fill: var(--sky); }
+.chart__bar--now { fill: var(--primary); }
+.chart__value {
+  fill: var(--text);
+  font-size: 13px;
+  font-weight: var(--fw-semibold);
+}
+.chart__label {
+  fill: var(--text-2);
+  font-size: 13px;
+}
+@media (max-width: 639.98px) {
+  .chart__value { display: none; }
+}
+.invest {
+  display: grid;
+  gap: var(--s-3);
+}
+.invest__line { margin: 0; }
+.table-wrap { overflow-x: auto; }
+.table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.table th,
+.table td {
+  padding: var(--s-3) var(--s-2);
+  border-block-end: 1px solid var(--border);
+  text-align: start;
+  white-space: nowrap;
+}
+.table thead th {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+.table tbody th { font-weight: var(--fw-medium); }
+.table .num { text-align: end; }
+.table tbody tr:last-child > * { border-block-end: 0; }
+
+/* A card's header may wrap, so a long second part never pushes the page wider. */
+.card__head { flex-wrap: wrap; }
+.card__meta {
+  min-inline-size: 0;
+  white-space: normal;
+}

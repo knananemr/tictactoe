@@ -15,6 +15,10 @@
   const overlay = L.ui.overlay;
   const router = L.ui.router;
   const actions = L.ui.actions;
+  const dates = L.core.dates;
+  const schema = L.core.schema;
+  const practice = L.core.practice;
+  const parts = L.ui.parts;
 
   let query = '';   // what is typed in the search field
 
@@ -48,7 +52,7 @@
       : html`<button class="btn btn--secondary btn--icon" type="button" disabled aria-label="${'Copy number of ' + name}" data-contact="copy">${icons.icon('copy')}</button>`;
 
     return html`<li class="row" data-row="${person.id}">
-      <a class="row__title" href="${router.sheetHref('client', person.id)}" dir="auto" data-action="client.open" data-id="${person.id}">${name}</a>
+      <a class="row__title" href="${parts.clientHref(person.id)}" dir="auto" data-action="client.open" data-id="${person.id}">${name}</a>
       ${facts.length ? html`<div class="row__sub">${facts}</div>` : ''}
       <div class="row__actions">
         ${contactButton('call', tel, 'Call ' + name, 'phone')}
@@ -66,7 +70,23 @@
     </li>`;
   }
 
+  // One line of the Summary list: how many sessions, what was paid in total, last and next visit.
+  function summaryRow(person, state, today) {
+    const st = practice.stats(state, person.id, today);
+    const facts = [html`<span class="row__fact">${c.plural(st.sessions, 'session')}</span>`];
+    if (st.lastVisit) facts.push(html`<span class="row__fact">Last ${dates.format(st.lastVisit, 'short')}</span>`);
+    if (st.next) facts.push(html`<span class="row__fact">Next ${dates.format(st.next.date, 'short')}</span>`);
+    return html`<li class="row" data-row="${person.id}">
+      <a class="row__title" href="${parts.clientHref(person.id)}" dir="auto" data-action="client.open" data-id="${person.id}">${person.name}</a>
+      <div class="row__sub">${facts}</div>
+      ${person.clientStatus !== 'active' ? c.badge('neutral', schema.label('clientStatus', person.clientStatus)) : ''}
+      <span class="row__amount">${parts.cash(st.paidMinor, state)}</span>
+    </li>`;
+  }
+
   // ---- the list --------------------------------------------------------------------------
+
+  let summary = false;   // the Summary list is shown instead of Contacts
 
   function listHtml(state) {
     const all = selectors.clients(state);
@@ -89,8 +109,9 @@
         })
       });
     }
+    const today = dates.today();
     return html`<ul class="rows rows--cards">${found.map(function (person) {
-      return row(person, state.settings);
+      return summary ? summaryRow(person, state, today) : row(person, state.settings);
     })}</ul>`;
   }
 
@@ -105,8 +126,18 @@
     return html`<p class="small muted" data-hint="country-code">Add your country code in <a class="link" href="${router.href('/settings/messages')}">Settings</a> to message by WhatsApp</p>`;
   }
 
-  function render(state) {
-    return html`<div class="page" data-view="clients">
+  function render(state, route) {
+    const sub = route ? route.sub : null;
+    if (sub && sub !== 'summary' && sub !== 'contacts') return L.views.clientPage.render(state, sub);
+    summary = sub === 'summary';
+    return html`<div class="page" data-view="clients" data-tab="${summary ? 'summary' : 'contacts'}">
+      ${parts.tabs({
+        label: 'Clients', current: summary ? 'summary' : 'contacts',
+        items: [
+          { key: 'contacts', label: 'Contacts', href: router.href('/clients') },
+          { key: 'summary', label: 'Sessions and payments', href: router.href('/clients/summary') }
+        ]
+      })}
       <div class="toolbar">
         <div class="search">
           <label class="sr-only" for="q">Search name, phone or email</label>

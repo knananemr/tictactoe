@@ -21,8 +21,15 @@
 
   const SHEET = 'client';
   const DELETED = 'Client deleted';     // the commit label the Undo toast belongs to
-  const INPUTS = { name: 'f-name', phone: 'f-phone', email: 'f-email', sinceDate: 'f-since' };
-  const ORDER = ['name', 'phone', 'email', 'sinceDate'];
+  const INPUTS = {
+    name: 'f-name', phone: 'f-phone', email: 'f-email', sinceDate: 'f-since',
+    hairColor: 'f-hair', hairThickness: 'f-thick', notes: 'f-notes',
+    intervalWeeks: 'f-weeks', priorSessions: 'f-prior', priorPaid: 'f-priorpaid'
+  };
+  const ORDER = ['name', 'phone', 'email', 'notes', 'sinceDate', 'intervalWeeks', 'priorSessions', 'priorPaid'];
+  // the profile fields: kept as text while the form is open
+  const PROFILE = ['hairColor', 'hairThickness', 'notes', 'intervalWeeks', 'priorSessions', 'priorPaid'];
+  const money = L.core.money;
 
   let open = null;   // { id, base, saved } while the form is on screen
 
@@ -38,39 +45,54 @@
   // What the form shows when nothing was typed: the stored record, or an empty new client.
   function baseValues(person, state, since) {
     if (!person) {
-      return { name: '', phone: '', email: '', since: since === 'earlier' ? 'earlier' : 'today', sinceDate: '' };
+      return {
+        name: '', phone: '', email: '', since: since === 'earlier' ? 'earlier' : 'today', sinceDate: '',
+        hairColor: '', hairThickness: '', notes: '', intervalWeeks: '', priorSessions: '', priorPaid: ''
+      };
     }
     const choice = schema.clientSince.toChoice(person.clientSince, state);
     return {
       name: person.name, phone: person.phone, email: person.email,
-      since: choice.choice, sinceDate: choice.date
+      since: choice.choice, sinceDate: choice.date,
+      hairColor: person.hairColor || '', hairThickness: person.hairThickness || '', notes: person.notes,
+      intervalWeeks: person.intervalWeeks === null ? '' : String(person.intervalWeeks),
+      priorSessions: person.priorSessions ? String(person.priorSessions) : '',
+      priorPaid: person.priorPaidMinor
+        ? money.formatNumber(person.priorPaidMinor, state.settings.currencyDecimals, { short: true }) : ''
     };
   }
 
   // A stored draft is only screen state, but it is still checked before it is shown.
   function draftValues(values, base) {
     const since = values.since === 'today' || values.since === 'earlier' ? values.since : base.since;
-    return {
+    const out = {
       name: text(values.name), phone: text(values.phone), email: text(values.email),
       since: since, sinceDate: dates.isDate(values.sinceDate) ? values.sinceDate : ''
     };
+    PROFILE.forEach(function (name) {
+      out[name] = typeof values[name] === 'string' ? values[name] : base[name];
+    });
+    return out;
   }
 
   function read() {
     const form = formEl();
     const since = form.querySelector('input[name="since"]:checked');
-    return {
+    const out = {
       name: input('name').value,
       phone: input('phone').value,
       email: input('email').value,
       since: since ? since.value : 'today',
       sinceDate: input('sinceDate').value
     };
+    PROFILE.forEach(function (name) { out[name] = input(name).value; });
+    return out;
   }
 
   function differs(values, base) {
     if (values.name !== base.name || values.phone !== base.phone || values.email !== base.email) return true;
     if (values.since !== base.since) return true;
+    if (PROFILE.some(function (name) { return values[name] !== base[name]; })) return true;
     return values.since === 'earlier' && values.sinceDate !== base.sinceDate;
   }
 
@@ -132,6 +154,16 @@
     </fieldset>`;
   }
 
+  function options(list, selected) {
+    return html`<option value="">Not set</option>${list.map(function (item) {
+      return item.value === selected
+        ? html`<option value="${item.value}" selected>${item.label}</option>`
+        : html`<option value="${item.value}">${item.label}</option>`;
+    })}`;
+  }
+
+  function wholeNumber(text) { return /^\d+$/.test(text.trim()) ? +text.trim() : NaN; }
+
   function sheetHtml(o) {
     const v = o.values;
     const editing = !!o.id;
@@ -158,7 +190,39 @@
               id: 'f-email', label: 'Email',
               control: html`<input class="input" id="f-email" name="email" type="email" dir="auto" autocomplete="off" autocapitalize="none" spellcheck="false" value="${v.email}">`
             })}
+            <div class="fields fields--2">
+              ${c.field({
+                id: 'f-hair', label: 'Hair colour',
+                control: html`<select class="input" id="f-hair" name="hairColor">${options(schema.lists.hairColor, v.hairColor)}</select>`
+              })}
+              ${c.field({
+                id: 'f-thick', label: 'Hair thickness',
+                control: html`<select class="input" id="f-thick" name="hairThickness">${options(schema.lists.hairThickness, v.hairThickness)}</select>`
+              })}
+            </div>
+            ${c.field({
+              id: 'f-notes', label: 'Special notes', hint: 'Shown in yellow on the client page.',
+              control: html`<textarea class="input input--area" id="f-notes" name="notes" dir="auto" rows="3">${v.notes}</textarea>`
+            })}
             ${sinceHtml(v, o.today)}
+            <details class="more" data-key="client-more"${(v.intervalWeeks || v.priorSessions || v.priorPaid) ? html` open` : ''}>
+              <summary class="more__toggle">More${icons.icon('chevron')}</summary>
+              <div class="fields more__fields">
+                ${c.field({
+                  id: 'f-weeks', label: 'Weeks between sessions', extra: 'field--short',
+                  hint: 'Leave empty for the usual ' + o.settings.rebookWeeks + ' weeks.',
+                  control: html`<input class="input num" id="f-weeks" name="intervalWeeks" type="text" inputmode="numeric" autocomplete="off" value="${v.intervalWeeks}">`
+                })}
+                ${c.field({
+                  id: 'f-prior', label: 'Sessions done before using Laser', extra: 'field--short',
+                  control: html`<input class="input num" id="f-prior" name="priorSessions" type="text" inputmode="numeric" autocomplete="off" value="${v.priorSessions}">`
+                })}
+                ${c.field({
+                  id: 'f-priorpaid', label: 'Paid in total before using Laser', extra: 'field--short',
+                  control: html`<input class="input num" id="f-priorpaid" name="priorPaid" type="text" inputmode="decimal" autocomplete="off" value="${v.priorPaid}">`
+                })}
+              </div>
+            </details>
           </div>
           ${editing ? html`<div class="sheet__end">
             <button class="btn btn--ghost-danger" type="button" data-action="client.delete" data-id="${o.id}">Delete client</button>
@@ -264,6 +328,18 @@
     if (name === 'name') return schema.check.personName(values.name.trim());
     if (name === 'phone') return schema.check.phone(values.phone.trim());
     if (name === 'email') return schema.check.email(values.email.trim());
+    if (name === 'notes') return schema.check.notes(values.notes.trim());
+    if (name === 'intervalWeeks') {
+      if (values.intervalWeeks.trim() === '') return null;
+      return schema.check.intervalWeeks(wholeNumber(values.intervalWeeks)) ? 'Use a number from 1 to 26' : null;
+    }
+    if (name === 'priorSessions') {
+      if (values.priorSessions.trim() === '') return null;
+      return schema.check.priorSessions(wholeNumber(values.priorSessions)) ? 'Use a number from 0 to 999' : null;
+    }
+    if (name === 'priorPaid') {
+      return money.parse(values.priorPaid, store.get().settings.currencyDecimals).error;
+    }
     if (values.since !== 'earlier') return null;
     const el = input('sinceDate');
     if (el && el.validity && el.validity.badInput) return 'Enter a valid date';
@@ -311,6 +387,8 @@
       if (message && !firstBad) firstBad = name;
     });
     if (firstBad) {
+      const hidden = input(firstBad).closest('details');
+      if (hidden) hidden.open = true;
       input(firstBad).focus();
       return;
     }
@@ -319,17 +397,20 @@
       phone: values.phone.trim(),
       email: values.email.trim(),
       clientSince: schema.clientSince.fromChoice(
-        values.since, values.since === 'earlier' ? values.sinceDate : '', state, today)
+        values.since, values.since === 'earlier' ? values.sinceDate : '', state, today),
+      hairColor: values.hairColor || null,
+      hairThickness: values.hairThickness || null,
+      notes: values.notes.trim(),
+      intervalWeeks: values.intervalWeeks.trim() === '' ? null : wholeNumber(values.intervalWeeks),
+      priorSessions: values.priorSessions.trim() === '' ? 0 : wholeNumber(values.priorSessions),
+      priorPaidMinor: money.parse(values.priorPaid, state.settings.currencyDecimals).minor || 0
     };
     let savedId = id;
     const result = store.commit(id ? 'Client changed' : 'Client added', function (draft, ctx) {
       if (id) {
         const person = draft.people.find(function (p) { return p.id === id; });
         if (!person) return;
-        person.name = record.name;
-        person.phone = record.phone;
-        person.email = record.email;
-        person.clientSince = record.clientSince;
+        Object.assign(person, record);
         ctx.touch(person);
       } else {
         const person = schema.newPerson(record, { now: ctx.now });
@@ -374,6 +455,8 @@
     });
     if (!L.ui.shell.explain(result)) return;      // out of date or not saved: the banner says so
     if (open && open.id === id) finish();
+    const route = router.current();
+    if (route.name === 'clients' && route.sub === id) router.go(router.href('/clients'), { replace: true });
     overlay.toast(html`<bdi>${name}</bdi> was deleted.`, {
       undoOf: DELETED,
       action: { label: 'Undo', run: function () { store.undo(); } }
