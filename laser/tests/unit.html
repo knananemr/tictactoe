@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Laser unit tests</title>
+  <style>
+    body { font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: #17202b; background: #f2f7fc; margin: 0; padding: 24px 16px; }
+    main { max-width: 860px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    .note { color: #4a5868; margin: 0 0 16px; }
+    .summary { font-weight: 600; padding: 12px 16px; border-radius: 10px; border: 1px solid #c9d6e3; background: #fff; }
+    .summary.pass { color: #14532d; background: #e8f6ec; border-color: #7cc08f; }
+    .summary.fail { color: #7f1d1d; background: #fdecec; border-color: #e58a8a; }
+    .tests { list-style: none; margin: 16px 0 0; padding: 0; background: #fff; border: 1px solid #dbe4ee; border-radius: 10px; }
+    .tests li { padding: 6px 16px; border-top: 1px solid #edf1f6; }
+    .tests li:first-child { border-top: 0; }
+    .mark { display: inline-block; min-width: 44px; font-weight: 600; font-size: 13px; }
+    li.pass .mark { color: #14532d; }
+    li.fail .mark, li.fail .name { color: #7f1d1d; }
+    .why { margin: 4px 0 4px 44px; white-space: pre-wrap; font-size: 13px; color: #7f1d1d; }
+  </style>
+</head>
+<body>
+  <main id="results">
+    <h1>Laser unit tests</h1>
+    <p class="note">This page is safe to open: it uses its own test storage and never touches your clients.</p>
+    <p id="summary" class="summary">Running the tests ...</p>
+  </main>
+
+  <!-- ns.js, then the harness (which moves storage to the test prefix), then the other core files -->
+  <script defer src="../js/core/ns.js"></script>
+  <script defer src="unit/harness.js"></script>
+  <script defer src="../js/core/util.js"></script>
+  <script defer src="../js/core/dates.js"></script>
+  <script defer src="../js/core/money.js"></script>
+  <script defer src="../js/core/phone.js"></script>
+  <script defer src="../js/core/links.js"></script>
+  <script defer src="../js/core/schema.js"></script>
+  <script defer src="../js/core/migrations.js"></script>
+  <script defer src="../js/core/storage.js"></script>
+  <script defer src="../js/core/store.js"></script>
+  <script defer src="../js/core/selectors.js"></script>
+  <script defer src="../js/core/backup.js"></script>
+
+  <script defer src="unit/util.test.js"></script>
+  <script defer src="unit/dates.test.js"></script>
+  <script defer src="unit/money.test.js"></script>
+  <script defer src="unit/phone.test.js"></script>
+  <script defer src="unit/links.test.js"></script>
+  <script defer src="unit/schema.test.js"></script>
+  <script defer src="unit/migrations.test.js"></script>
+  <script defer src="unit/storage.test.js"></script>
+  <script defer src="unit/store.test.js"></script>
+  <script defer src="unit/selectors.test.js"></script>
+  <script defer src="unit/backup.test.js"></script>
+</body>
+</html>

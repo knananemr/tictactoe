@@ -1,0 +1,51 @@
+/* tokens.css: custom properties only. This is the block of blueprint section 6.1, unchanged.
+   Any colour change must be re-run through the contrast script before it ships (6.2). */
+:root{
+  /* Brand blues + surfaces */
+  --bg:#F2F7FC;            /* page tint */
+  --surface:#FFFFFF;       /* cards, panels, bars */
+  --surface-sunken:#EAF2F9;/* table head, disabled field, chart track */
+  --primary:#1570C2;       /* filled buttons, active nav, chart bars */
+  --primary-hover:#105FA8;
+  --primary-active:#0C4E8C;
+  --primary-ink:#1263AE;   /* blue TEXT/links/icons, incl. on blue tints */
+  --primary-soft:#DDEDFB;  /* selected nav item, secondary button fill */
+  --primary-soft-hover:#CBE3F8;
+  --sky:#8CC6F0;           /* decorative only: past-month bars, toast action */
+  --border:#D3E1EE;        /* decorative hairlines, card edges */
+  --border-strong:#71899F; /* input/checkbox/segmented outlines (3:1) */
+  --focus-ring:#1570C2;
+
+  /* Text */
+  --text:#0F2437; --text-2:#44596D; --text-3:#566B80;
+  --text-disabled:#8FA1B3; --text-on-primary:#FFFFFF;
+
+  /* Status: tint bg / border / dark text / solid */
+  --important-bg:#FFF4CC; --important-border:#B07A00; --important-text:#5F4100;
+  --important-solid:#FFCB3D; --important-on-solid:#3A2800;
+  --done-bg:#E2F5E9; --done-border:#2B8A57; --done-text:#14532D; --done-solid:#1E7A48;
+  --urgent-bg:#FDE7E5; --urgent-border:#D13B30; --urgent-text:#8A1C15;
+  --urgent-solid:#C2302A; --urgent-solid-hover:#A32620;
+  --info-bg:#E4F0FB; --info-border:#4487C4; --info-text:#0D4A80;
+  --neutral-bg:#EDF1F5; --neutral-border:#76899B; --neutral-text:#394B5D;
+  --toast-bg:#0F2437; --scrim:rgba(15,36,55,.45);
+
+  /* Type */
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --fs-xs:12px; --fs-sm:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:22px; --fs-kpi:28px;
+  --lh-tight:1.2; --lh-body:1.5;
+  --fw-regular:400; --fw-medium:500; --fw-semibold:600; --fw-bold:700;
+
+  /* Space (4px base), radii, shadows, sizes */
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px; --s-12:48px;
+  --r-sm:6px; --r-md:10px; --r-lg:14px; --r-xl:20px; --r-pill:999px;
+  --shadow-1:0 1px 2px rgba(15,36,55,.06),0 1px 3px rgba(15,36,55,.08);
+  --shadow-2:0 4px 12px rgba(15,36,55,.10);
+  --shadow-3:0 12px 32px rgba(15,36,55,.18);
+  --tap:44px; --tap-lg:48px; --sidebar-w:240px; --tabbar-h:56px; --content-max:1200px;
+
+  /* Additions for this blueprint: sizes, layers and motion only. No new colours. */
+  --topbar-h:56px; --fab:56px; --panel-w:440px; --modal-w:420px; --row-h:52px; --badge-h:24px; --bar:4px;
+  --z-nav:10; --z-fab:20; --z-overlay:30; --z-toast:40;
+  --dur-fast:120ms; --dur:200ms; --ease:cubic-bezier(.2,.8,.2,1);
+}

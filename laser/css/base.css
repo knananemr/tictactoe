@@ -1,0 +1,283 @@
+/* base.css: reset, body type, links, focus ring, utility classes, the boot message,
+   reduced motion. Colours, sizes and radii come from tokens.css only. */
+
+/* ---------- Reset ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* the theme is light only: native controls (date picker, tick box) stay light too */
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  min-block-size: 100vh;
+  min-block-size: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-body);
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-size: inherit;
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+}
+
+ul[class],
+ol[class] {
+  padding: 0;
+  list-style: none;
+}
+
+button,
+input,
+select,
+textarea {
+  margin: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+
+button {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+img,
+svg {
+  max-inline-size: 100%;
+}
+
+summary {
+  cursor: pointer;
+}
+
+/* The hidden attribute always wins, whatever display a component sets. */
+[hidden] {
+  display: none !important;
+}
+
+/* ---------- Links ---------- */
+
+a {
+  color: var(--primary-ink);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* ---------- Focus ring (every interactive element, 6.4) ---------- */
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ---------- Icons ----------
+   <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"> ...paths... </svg>
+   The size and the 1.75px line come from here, so icons.js needs only the paths.
+   A filled part carries its own attributes: <circle fill="currentColor" stroke="none">.
+   Sizes: .icon (20px), .icon--sm (14px), .icon--lg (24px). */
+
+.icon {
+  display: inline-block;
+  flex: none;
+  inline-size: 20px;
+  block-size: 20px;
+  vertical-align: middle;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon--sm {
+  inline-size: 14px;
+  block-size: 14px;
+}
+
+.icon--lg {
+  inline-size: 24px;
+  block-size: 24px;
+}
+
+/* ---------- Type helpers (6.3) ---------- */
+
+.section-title {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+}
+
+.caption {
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+
+.small {
+  font-size: var(--fs-sm);
+}
+
+.muted {
+  color: var(--text-2);
+}
+
+.strong {
+  font-weight: var(--fw-semibold);
+}
+
+/* Money, counts, dates and times */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.text-end {
+  text-align: end;
+}
+
+.truncate {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Layout helpers ---------- */
+
+/* Children one under another with an even gap. */
+.stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-4);
+}
+
+.stack--sm {
+  gap: var(--s-2);
+}
+
+.stack--lg {
+  gap: var(--s-6);
+}
+
+/* Children side by side; they wrap, they never scroll sideways. */
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.cluster--between {
+  justify-content: space-between;
+}
+
+/* For a screen reader only. */
+.sr-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Stops the page behind an open sheet or modal from scrolling.
+   Put it on <html>; layout.css also does it by itself where :has() exists. */
+.no-scroll {
+  overflow: hidden;
+}
+
+/* ---------- "Laser did not start" (2.3) ----------
+   Plain text. Hidden for the first 2 seconds; main.js removes it on boot.
+   If the scripts never run, the owner reads this instead of a blank page. */
+
+.boot-fail {
+  inline-size: calc(100% - var(--s-8));
+  max-inline-size: 520px;
+  margin-block: var(--s-12);
+  margin-inline: auto;
+  padding: var(--s-6);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  visibility: hidden;
+  animation: boot-fail-show 1ms linear 2s forwards;
+}
+
+.boot-fail h1 {
+  margin-block-end: var(--s-2);
+  font-size: var(--fs-xl);
+}
+
+@keyframes boot-fail-show {
+  to {
+    visibility: visible;
+  }
+}
+
+/* ---------- Reduced motion (2.6) ----------
+   Transitions and slide-ins are removed. The delay of .boot-fail is kept on purpose:
+   only durations are shortened, so the message still waits 2 seconds. */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

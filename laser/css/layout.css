@@ -1,0 +1,408 @@
+/* layout.css: the page skeleton. Navigation (sidebar on a laptop, tab bar on a phone),
+   top bar, floating + button, banner area, content grid, where overlays and toasts sit,
+   and the breakpoints of blueprint 6.5. Logical properties only (T6).
+
+   Breakpoints
+     below 640px     one column, tab bar, floating +, three-line rows, full-height sheets
+     640 to 1023px   tab bar stays; rows on one line; sheets become a side panel
+     768px and up    tables (none in step 1)
+     1024px and up   sidebar, "+ New" in the top bar, content capped at --content-max
+
+   What goes inside #app
+
+   <div class="shell">
+     <a class="skip-link" href="#view">Skip to content</a>
+     <div class="navbar">
+       <div class="navbar__brand">
+         <img class="navbar__logo" src="img/icon.svg" alt="" width="28" height="28">
+         <span class="navbar__name">Laser</span>
+       </div>
+       <nav class="nav" aria-label="Main">
+         <a class="nav__item" href="#/home" aria-current="page">
+           <span class="nav__icon"><svg class="icon" ...></svg></span>
+           <span class="nav__label">Home</span>
+           <span class="nav__pill">2</span>              (only when there are red rows)
+         </a>
+         ... Schedule, Clients, Leads, Progress
+       </nav>
+       <div class="navbar__foot">
+         <p class="navbar__status">Backed up 3 days ago</p>
+         <a class="nav__item" href="#/settings">
+           <span class="nav__icon"><svg class="icon" ...></svg></span>
+           <span class="nav__label">Settings</span>
+         </a>
+       </div>
+     </div>
+     <div class="shell__main">
+       <div class="banners"> ...zero or more .banner (components.css)... </div>
+       <header class="topbar">
+         <h1 class="topbar__title" tabindex="-1">Dashboard</h1>
+         <div class="topbar__actions">
+           <button class="btn btn--primary topbar__new" type="button"><svg class="icon" ...></svg>New</button>
+           <a class="btn btn--icon topbar__gear" href="#/settings" aria-label="Settings"><svg class="icon" ...></svg></a>
+         </div>
+       </header>
+       <main class="view" id="view" tabindex="-1">
+         <div class="page"> ...the view... </div>
+       </main>
+     </div>
+     <button class="fab" type="button" aria-label="New client"><svg class="icon" ...></svg></button>
+   </div>
+
+   One .navbar serves both layouts: below 1024px it is the bottom tab bar (brand and foot
+   are hidden, Settings is the gear in the top bar); from 1024px it is the sidebar.
+   .topbar__new shows from 1024px; .topbar__gear and .fab show below 1024px.
+
+   #overlay-root holds at most one .overlay (sheet or modal, components.css).
+   #toast-root holds at most one .toast (components.css). */
+
+/* ---------- Shell ---------- */
+
+.shell {
+  --gutter: var(--s-4);
+  min-block-size: 100vh;
+  min-block-size: 100dvh;
+}
+
+.shell__main {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 100vh;
+  min-block-size: 100dvh;
+}
+
+.skip-link {
+  position: absolute;
+  inset-block-start: var(--s-2);
+  inset-inline-start: var(--s-2);
+  z-index: var(--z-toast);
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--tap);
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+  color: var(--primary-ink);
+  font-weight: var(--fw-semibold);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* ---------- Navigation: bottom tab bar (below 1024px) ---------- */
+
+.navbar {
+  position: fixed;
+  z-index: var(--z-nav);
+  inset-inline: 0;
+  inset-block-end: 0;
+  padding-block-end: env(safe-area-inset-bottom);
+  border-block-start: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.navbar__brand,
+.navbar__foot {
+  display: none;
+}
+
+.nav {
+  display: flex;
+  block-size: var(--tabbar-h);
+  max-inline-size: 640px;
+  margin-inline: auto;
+}
+
+/* ---------- Top bar ---------- */
+
+.topbar {
+  position: sticky;
+  z-index: var(--z-nav);
+  inset-block-start: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-block-size: var(--topbar-h);
+  padding-inline: max(var(--gutter), calc((100% - var(--content-max)) / 2 + var(--gutter)));
+  border-block-end: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.topbar__title {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar__title:focus {
+  outline: none;
+}
+
+.topbar__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.topbar .topbar__new {
+  display: none;
+}
+
+/* The gear's glyph lines up with the content edge; its 44px target reaches past it. */
+.topbar__gear {
+  margin-inline-end: calc(var(--s-2) * -1);
+}
+
+/* ---------- Banner area (above the top bar, full width) ---------- */
+
+.banners {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- The view ---------- */
+
+.view {
+  flex: 1 1 auto;
+  padding-block-start: var(--s-4);
+  /* room for the tab bar and the floating + button under the last line */
+  padding-block-end: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--fab) + var(--s-8));
+}
+
+.view:focus {
+  outline: none;
+}
+
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-4);
+  inline-size: 100%;
+  max-inline-size: var(--content-max);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* A reading-width page (Settings, placeholder pages). It keeps the same start edge. */
+.page--narrow > * {
+  max-inline-size: 720px;
+}
+
+/* A page with no navigation around it ("older than your data", 3.4):
+   <div class="solo"> <div class="card"> <div class="empty"> ... </div> </div> </div> */
+.solo {
+  inline-size: calc(100% - var(--s-8));
+  max-inline-size: 560px;
+  margin-block: var(--s-12);
+  margin-inline: auto;
+}
+
+/* ---------- Content grids ---------- */
+
+/* Dashboard (7.2): one column on a phone; from 1024px a wider column and a narrower one.
+   <div class="dash">
+     <div class="dash__main"> ...cards... </div>
+     <div class="dash__side"> ...cards... </div>
+   </div> */
+.dash,
+.dash__main,
+.dash__side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--s-4);
+}
+
+/* Card grid: one column on a phone, two from 640px.
+   <div class="grid grid--2"> ...cards... </div> */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-4);
+}
+
+/* ---------- Floating + button (below 1024px) ---------- */
+
+.fab {
+  position: fixed;
+  z-index: var(--z-fab);
+  inset-inline-end: var(--s-4);
+  inset-block-end: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s-4));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--fab);
+  block-size: var(--fab);
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  box-shadow: var(--shadow-2);
+  color: var(--text-on-primary);
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.fab .icon {
+  inline-size: 24px;
+  block-size: 24px;
+}
+
+.fab:hover {
+  background: var(--primary-hover);
+}
+
+.fab:active {
+  background: var(--primary-active);
+}
+
+/* ---------- Where overlays and toasts sit ---------- */
+
+/* The page behind an open sheet or modal does not scroll. */
+html:has(#overlay-root > .overlay) {
+  overflow: hidden;
+}
+
+/* Hidden while a sheet or modal is open (6.4). */
+html:has(#overlay-root > .overlay) .fab {
+  display: none;
+}
+
+/* Bottom centre, above the tab bar and the floating + button. */
+#toast-root {
+  position: fixed;
+  z-index: var(--z-toast);
+  inset-inline: 0;
+  inset-block-end: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--fab) + var(--s-6));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  padding-inline: var(--s-4);
+  pointer-events: none;
+}
+
+/* With a sheet or modal open there is no tab bar or + button to clear. */
+html:has(#overlay-root > .overlay) #toast-root {
+  inset-block-end: calc(env(safe-area-inset-bottom) + var(--s-4));
+}
+
+/* ---------- 640px and wider ---------- */
+
+@media (min-width: 640px) {
+  .grid--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------- 1024px and wider: sidebar ---------- */
+
+@media (min-width: 1024px) {
+  .shell {
+    --gutter: var(--s-6);
+  }
+
+  .shell__main {
+    margin-inline-start: var(--sidebar-w);
+  }
+
+  .navbar {
+    inset-block: 0;
+    inset-inline: 0 auto;
+    display: flex;
+    flex-direction: column;
+    inline-size: var(--sidebar-w);
+    padding-block: var(--s-4);
+    padding-inline: var(--s-3);
+    border-block-start: 0;
+    border-inline-end: 1px solid var(--border);
+    overflow-y: auto;
+  }
+
+  .navbar__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    min-block-size: var(--tap);
+    margin-block-end: var(--s-4);
+    padding-inline: var(--s-3);
+  }
+
+  .navbar__logo {
+    flex: none;
+    inline-size: 28px;
+    block-size: 28px;
+  }
+
+  .navbar__name {
+    font-size: var(--fs-lg);
+    font-weight: var(--fw-semibold);
+    line-height: var(--lh-tight);
+  }
+
+  .nav {
+    flex-direction: column;
+    gap: var(--s-1);
+    block-size: auto;
+    max-inline-size: none;
+    margin-inline: 0;
+  }
+
+  .navbar__foot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    margin-block-start: auto;
+    padding-block-start: var(--s-4);
+  }
+
+  .navbar__status {
+    padding-inline: var(--s-3);
+    font-size: var(--fs-xs);
+    color: var(--text-2);
+  }
+
+  .topbar .topbar__new {
+    display: inline-flex;
+  }
+
+  .topbar .topbar__gear,
+  .fab {
+    display: none;
+  }
+
+  .view {
+    padding-block: var(--s-6) var(--s-12);
+  }
+
+  .page {
+    gap: var(--s-5);
+  }
+
+  .dash {
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+    gap: var(--s-5);
+  }
+
+  .dash__main,
+  .dash__side,
+  .grid {
+    gap: var(--s-5);
+  }
+
+  #toast-root {
+    inset-block-end: var(--s-6);
+    padding-inline-start: calc(var(--sidebar-w) + var(--s-4));
+  }
+
+  html:has(#overlay-root > .overlay) #toast-root {
+    inset-block-end: var(--s-6);
+  }
+}

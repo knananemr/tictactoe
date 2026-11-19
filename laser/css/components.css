@@ -1,0 +1,2319 @@
+/* components.css: the components step 1 shows (blueprint 6.4). Each later component is
+   added with the first screen that uses it. Every block starts with the exact markup
+   it expects. Colours, sizes, radii and shadows come from tokens.css only; logical
+   properties only (T6); no rule here needs a style attribute.
+
+   Contents
+     1  Tones               9  Chips                  17  Banner
+     2  Navigation items   10  Segmented control      18  Empty state
+     3  Card               11  Form field             19  Overflow menu
+     4  Summary strip      12  Search field           20  Welcome card, "More"
+     5  List row           13  Overlay and scrim      21  Getting-started checklist
+     6  Badge              14  Sheet / side panel     22  Backup line
+     7  Button, text link  15  Modal                  23  Colour key
+     8  Button groups      16  Toast                  24  Storage meter, date line */
+
+/* ==========================================================================
+   1  Tones
+   Any status element carries data-tone="urgent|important|done|info|neutral" (2.6).
+   The attribute sets four local values that the components below read.
+   "solid" is the colour of the 4px row bar (5.4).
+   ========================================================================== */
+
+[data-tone="urgent"] {
+  --tone-bg: var(--urgent-bg);
+  --tone-border: var(--urgent-border);
+  --tone-text: var(--urgent-text);
+  --tone-solid: var(--urgent-solid);
+}
+
+[data-tone="important"] {
+  --tone-bg: var(--important-bg);
+  --tone-border: var(--important-border);
+  --tone-text: var(--important-text);
+  --tone-solid: var(--important-solid);
+}
+
+[data-tone="done"] {
+  --tone-bg: var(--done-bg);
+  --tone-border: var(--done-border);
+  --tone-text: var(--done-text);
+  --tone-solid: var(--done-solid);
+}
+
+[data-tone="info"] {
+  --tone-bg: var(--info-bg);
+  --tone-border: var(--info-border);
+  --tone-text: var(--info-text);
+  --tone-solid: var(--info-border);
+}
+
+[data-tone="neutral"] {
+  --tone-bg: var(--neutral-bg);
+  --tone-border: var(--neutral-border);
+  --tone-text: var(--neutral-text);
+  --tone-solid: var(--neutral-border);
+}
+
+/* ==========================================================================
+   2  Navigation items
+   Used inside .navbar > .nav and .navbar__foot (layout.css). One markup for both
+   layouts: icon above a 12px label in the tab bar, icon beside the label in the sidebar.
+
+   <a class="nav__item" href="#/home" aria-current="page">
+     <span class="nav__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true">...</svg></span>
+     <span class="nav__label">Home</span>
+     <span class="nav__pill">2</span>          optional: the red count pill, Home only
+   </a>
+
+   The active item carries aria-current="page"; the others have no aria-current.
+   ========================================================================== */
+
+.nav__item {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  min-inline-size: var(--tap-lg);
+  padding-inline: var(--s-1);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-tight);
+  text-decoration: none;
+}
+
+.nav__item:focus-visible {
+  outline-offset: -2px;
+  border-radius: var(--r-md);
+}
+
+.nav__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav__label {
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav__item[aria-current="page"] {
+  color: var(--primary-ink);
+  font-weight: var(--fw-semibold);
+}
+
+.nav__pill {
+  min-inline-size: 18px;
+  block-size: 18px;
+  padding-inline: var(--s-1);
+  border-radius: var(--r-pill);
+  background: var(--urgent-solid);
+  color: var(--text-on-primary);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 18px;
+  text-align: center;
+}
+
+@media (max-width: 1023.98px) {
+  .nav__icon {
+    inline-size: 56px;
+    block-size: 28px;
+    border-radius: var(--r-pill);
+    transition: background-color var(--dur-fast) var(--ease);
+  }
+
+  .nav__item[aria-current="page"] .nav__icon {
+    background: var(--primary-soft);
+  }
+
+  /* on the corner of the icon */
+  .nav__pill {
+    position: absolute;
+    inset-block-start: var(--s-1);
+    inset-inline-start: calc(50% + 6px);
+    box-shadow: 0 0 0 2px var(--surface);
+  }
+}
+
+@media (min-width: 1024px) {
+  .nav__item {
+    flex: none;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--s-3);
+    min-block-size: var(--tap);
+    padding-inline: var(--s-3);
+    border-radius: var(--r-md);
+    font-size: var(--fs-md);
+    transition: background-color var(--dur-fast) var(--ease);
+  }
+
+  .nav__item:hover {
+    background: var(--bg);
+  }
+
+  .nav__item[aria-current="page"] {
+    background: var(--primary-soft);
+  }
+
+  /* the 3px bar on the inline-start edge */
+  .nav__item[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    inset-block: var(--s-2);
+    inset-inline-start: 0;
+    inline-size: 3px;
+    border-radius: var(--r-pill);
+    background: var(--primary);
+  }
+
+  .nav__pill {
+    margin-inline-start: auto;
+  }
+}
+
+/* ==========================================================================
+   3  Card
+
+   <section class="card">
+     <header class="card__head">                 optional
+       <h2 class="card__title">Getting started</h2>
+       <span class="card__meta">1 of 2</span>    optional: or one .btn.btn--ghost, or a link
+     </header>
+     ...content; use .stack (base.css) for an even gap between blocks...
+   </section>
+
+   .card--flush  no padding, for a card whose content is a .rows list:
+   <section class="card card--flush">
+     <header class="card__head"> ... </header>   optional
+     <ul class="rows"> ... </ul>
+   </section>
+   A card never clips its content (an open overflow menu may reach outside it).
+   ========================================================================== */
+
+.card {
+  padding: var(--s-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+
+.card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-block-size: var(--s-6);
+  margin-block-end: var(--s-3);
+}
+
+.card__title {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+}
+
+.card__meta {
+  flex: none;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* a card the address can point at (Settings sections) stops below the sticky top bar */
+.card[id] {
+  scroll-margin-block-start: calc(var(--topbar-h) + var(--s-4));
+}
+
+.card--flush {
+  padding: 0;
+}
+
+.card--flush > .card__head {
+  margin-block-end: 0;
+  padding: var(--s-4);
+  padding-block-end: var(--s-2);
+}
+
+.card--flush > .rows {
+  border-radius: inherit;
+}
+
+@media (min-width: 1024px) {
+  .card {
+    padding: var(--s-5);
+  }
+
+  .card--flush {
+    padding: 0;
+  }
+
+  .card--flush > .card__head {
+    padding: var(--s-5);
+    padding-block-end: var(--s-2);
+  }
+}
+
+/* ==========================================================================
+   4  Summary strip (Home)
+   One card with up to four figures side by side; 2 x 2 below 360px. No status colour.
+
+   <nav class="summary" aria-label="Summary">
+     <a class="summary__item" href="#/clients">
+       <span class="summary__label">Clients</span>
+       <span class="summary__value">12</span>
+       <span class="summary__note">2 new</span>   optional second line
+     </a>
+     ... up to four ...
+   </nav>
+   ========================================================================== */
+
+.summary {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--border);
+  box-shadow: var(--shadow-1);
+}
+
+/* label, number and second line sit on shared rows, so the numbers line up
+   even when one label needs two lines */
+.summary__item {
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  row-gap: 0;
+  min-inline-size: 0;
+  min-block-size: var(--tap-lg);
+  padding: var(--s-3);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.summary__item:hover {
+  background: var(--bg);
+}
+
+.summary__item:focus-visible {
+  outline-offset: -2px;
+}
+
+.summary__label,
+.summary__note {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-tight);
+  color: var(--text-2);
+}
+
+.summary__label {
+  align-self: end;
+  padding-block-end: var(--s-1);
+}
+
+.summary__value {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--lh-tight);
+}
+
+.summary__note {
+  padding-block-start: var(--s-1);
+}
+
+/* on a phone a column is as wide as its words need, so a long label wraps less */
+@media (max-width: 639.98px) {
+  .summary {
+    grid-auto-columns: auto;
+  }
+
+  .summary__label,
+  .summary__note {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 359.98px) {
+  .summary {
+    grid-template-rows: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row;
+  }
+
+  /* a single figure, or the last of three, takes the full line */
+  .summary__item:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 640px) {
+  .summary__item {
+    padding-inline: var(--s-4);
+  }
+}
+
+@media (min-width: 1024px) {
+  .summary__item {
+    padding-inline: var(--s-5);
+  }
+}
+
+/* ==========================================================================
+   5  List row
+   Two layouts from one markup (6.4).
+     640px and wider: one line. Title over the secondary line, then badge, amount,
+                      the row's buttons and the overflow button.
+     below 640px:     three lines. 1: title and, at the end, the badge.
+                      2: the secondary line and, at the end, the amount.
+                      3: the buttons sharing the line equally, then the overflow button.
+                      A row with no .row__actions has two lines.
+   The whole row is tappable through .row__title; every other link or button inside
+   the row stays a target of its own.
+
+   <ul class="rows">                              inside a .card.card--flush
+     <li class="row" data-tone="urgent">          data-tone optional: draws the 4px bar
+       <a class="row__title" href="#/clients?sheet=client&amp;id=ID" dir="auto">Dana Levi</a>
+                                                  (or <button type="button" class="row__title" data-action="..." data-id="ID">)
+       <div class="row__sub">                     optional secondary line
+         <a class="row__fact num" href="tel:...">+972 541234567</a>      a link, or
+         <span class="row__fact" dir="auto">plain text</span>            plain text
+       </div>
+       <span class="badge" data-tone="urgent">...</span>                  optional (section 6)
+       <span class="row__amount">250</span>                               optional
+       <div class="row__actions">                                         optional
+         <a class="btn btn--secondary btn--icon" href="..." aria-label="Call Dana Levi">ICON</a>
+         <button class="btn btn--secondary btn--icon" type="button" disabled aria-label="...">ICON</button>
+         <button class="btn btn--secondary" type="button">Book</button>   a text button works too
+         <div class="menu-wrap"> ...overflow menu, section 19... </div>
+       </div>
+     </li>
+   </ul>
+
+   <ul class="rows rows--cards">  with no card around it: below 640px every row is a
+   card of its own (7.4); from 640px the list itself looks like one card.
+   With several .row__fact, the first never truncates; the others end in an ellipsis.
+   ========================================================================== */
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title badge"
+    "sub amount"
+    "actions actions";
+  align-items: center;
+  align-content: center;
+  min-block-size: var(--row-h);
+  padding-block: var(--s-3);
+  padding-inline: var(--s-4);
+}
+
+.row + .row {
+  border-block-start: 1px solid var(--border);
+}
+
+/* the 4px status bar on the inline-start edge */
+.row[data-tone]::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: var(--bar);
+  background: var(--tone-solid);
+}
+
+.rows > .row:first-child,
+.rows > .row:first-child::before {
+  border-start-start-radius: inherit;
+}
+
+.rows > .row:first-child {
+  border-start-end-radius: inherit;
+}
+
+.rows > .row:last-child,
+.rows > .row:last-child::before {
+  border-end-start-radius: inherit;
+}
+
+.rows > .row:last-child {
+  border-end-end-radius: inherit;
+}
+
+.card__head + .rows > .row:first-child,
+.card__head + .rows > .row:first-child::before {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
+.row__title {
+  grid-area: title;
+  justify-self: stretch;
+  min-inline-size: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-body);
+  text-align: start;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* the title's target covers the whole row */
+.row__title::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.row__title:focus-visible {
+  outline: none;
+}
+
+.row__title:focus-visible::after {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+  border-radius: var(--r-md);
+}
+
+.row__sub {
+  grid-area: sub;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-inline-size: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.row__fact {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row__fact:first-child:not(:only-child) {
+  flex-shrink: 0;
+}
+
+a.row__fact:hover {
+  color: var(--primary-ink);
+  text-decoration: underline;
+}
+
+.row > .badge {
+  grid-area: badge;
+  justify-self: end;
+  margin-inline-start: var(--s-3);
+}
+
+.row__amount {
+  grid-area: amount;
+  justify-self: end;
+  margin-inline-start: var(--s-3);
+  font-weight: var(--fw-medium);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: nowrap;
+}
+
+.row__actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-inline-size: 0;
+}
+
+/* everything interactive except the title sits above the title's row-wide target */
+.row :is(a, button, .menu-wrap):not(.row__title) {
+  position: relative;
+  z-index: 1;
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background: var(--bg);
+  }
+}
+
+@media (max-width: 639.98px) {
+  /* line 2: a link here is a full 44px target; its text stays close to the title */
+  a.row__fact {
+    display: inline-block;
+    min-block-size: var(--tap);
+    padding-block: var(--s-1) 0;
+    line-height: var(--lh-body);
+  }
+
+  .row__sub:has(> a.row__fact) {
+    align-items: flex-start;
+    margin-block-end: calc(var(--s-4) * -1);
+  }
+
+  /* with no amount beside it, line 2 may run under the badge */
+  .row:not(:has(> .row__amount)) > .row__sub {
+    grid-column: 1 / -1;
+  }
+
+  .row__actions {
+    margin-block-start: var(--s-3);
+  }
+
+  .row__actions > .btn {
+    flex: 1 1 0;
+    min-inline-size: var(--tap);
+  }
+
+  .row__actions > .menu-wrap {
+    flex: none;
+  }
+
+  .rows--cards {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-3);
+  }
+
+  .rows.rows--cards > .row {
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+  }
+
+  .rows.rows--cards > .row::before {
+    border-start-start-radius: var(--r-lg);
+    border-end-start-radius: var(--r-lg);
+  }
+}
+
+@media (min-width: 640px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    grid-template-areas:
+      "title badge amount actions"
+      "sub badge amount actions";
+  }
+
+  .row > .badge,
+  .row__amount,
+  .row__actions {
+    margin-inline-start: var(--s-4);
+  }
+
+  .row__sub {
+    gap: var(--s-4);
+  }
+
+  /* a row with no second line: the title sits in the middle of the row */
+  .row:not(:has(> .row__sub)) > .row__title {
+    grid-row: 1 / -1;
+  }
+
+  /* a taller target for a phone or email link, without moving the lines */
+  a.row__fact {
+    margin-block: calc(var(--s-1) * -1);
+    padding-block: var(--s-1);
+  }
+
+  .rows--cards {
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+  }
+}
+
+@media (min-width: 1024px) {
+  .row {
+    padding-inline: var(--s-5);
+  }
+}
+
+/* ==========================================================================
+   6  Badge
+   A status: always an icon and a word, at most about 16 characters (5.1).
+
+   <span class="badge" data-tone="urgent"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true">...</svg>Overdue 5 d</span>
+   <span class="badge badge--solid" data-tone="important"> ...same inside... </span>
+
+   data-tone: urgent | important | done | info | neutral (no data-tone looks neutral).
+   Icons by tone (5.1): alert circle, filled dot, check, clock, minus.
+   .badge--solid  yellow and red only, and only inside the Today and To do cards:
+                  dark text on --important-solid, white on --urgent-solid, no border.
+                  On done, info and neutral it changes nothing (there is no solid form).
+   ========================================================================== */
+
+.badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--s-1);
+  block-size: var(--badge-h);
+  padding-inline: var(--s-2);
+  border: 1px solid var(--tone-border);
+  border-radius: var(--r-pill);
+  background: var(--tone-bg);
+  color: var(--tone-text);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.badge:not([data-tone]) {
+  --tone-bg: var(--neutral-bg);
+  --tone-border: var(--neutral-border);
+  --tone-text: var(--neutral-text);
+}
+
+.badge .icon {
+  inline-size: 14px;
+  block-size: 14px;
+  stroke-width: 2;
+}
+
+.badge--solid[data-tone="important"] {
+  border-color: var(--important-solid);
+  background: var(--important-solid);
+  color: var(--important-on-solid);
+}
+
+.badge--solid[data-tone="urgent"] {
+  border-color: var(--urgent-solid);
+  background: var(--urgent-solid);
+  color: var(--text-on-primary);
+}
+
+/* ==========================================================================
+   7  Button and text link
+
+   <button class="btn btn--primary" type="button">Save</button>
+   <a class="btn btn--secondary" href="#/settings/backup">Back up now</a>
+   <button class="btn btn--secondary" type="button"><svg class="icon" ...></svg>Back up now</button>
+
+   Styles (add exactly one to .btn):
+     .btn--primary       the one main action of a view or sheet
+     .btn--secondary     row buttons and second actions
+     .btn--ghost         Cancel, quiet actions
+     .btn--ghost-danger  a destructive action outside a confirmation ("Delete client")
+     .btn--danger        the confirm button of a confirmation only
+   Shape (add to a style above, or use alone for a quiet icon button):
+     .btn--icon          44 x 44, icon only; it needs an aria-label
+     .btn--block         full width
+   Disabled: <button disabled>, or on a link aria-disabled="true" (and no href).
+   Height is 44px; on a phone a primary or danger button is 48px.
+
+   <button class="link" type="button">Discard</button>     a button that reads as a link
+   <a class="link" href="#/settings">Settings</a>
+   ========================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-inline-size: var(--tap);
+  min-block-size: var(--tap);
+  /* a label too long for its place wraps inside the button; it never pushes the page wider */
+  padding-block: var(--s-2);
+  padding-inline: var(--s-4);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--primary-ink);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.btn:hover {
+  background: var(--bg);
+}
+
+.btn--primary {
+  background: var(--primary);
+  color: var(--text-on-primary);
+}
+
+.btn--primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn--primary:active {
+  background: var(--primary-active);
+}
+
+.btn--secondary {
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+}
+
+.btn--secondary:hover,
+.btn--secondary:active {
+  background: var(--primary-soft-hover);
+}
+
+.btn--ghost {
+  color: var(--primary-ink);
+}
+
+.btn--ghost:active {
+  background: var(--primary-soft);
+}
+
+.btn--ghost-danger {
+  color: var(--urgent-text);
+}
+
+.btn--ghost-danger:hover,
+.btn--ghost-danger:active {
+  background: var(--urgent-bg);
+}
+
+.btn--danger {
+  background: var(--urgent-solid);
+  color: var(--text-on-primary);
+}
+
+.btn--danger:hover,
+.btn--danger:active {
+  background: var(--urgent-solid-hover);
+}
+
+.btn--icon {
+  inline-size: var(--tap);
+  padding: 0;
+}
+
+.btn--block {
+  inline-size: 100%;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  background: var(--surface-sunken);
+  color: var(--text-disabled);
+  cursor: default;
+  pointer-events: none;
+}
+
+@media (max-width: 639.98px) {
+  .btn--primary,
+  .btn--danger {
+    min-block-size: var(--tap-lg);
+  }
+}
+
+.link {
+  /* a 44px target around one line of text, without moving the lines around it */
+  margin-block: calc(var(--s-3) * -1);
+  padding-block: var(--s-3);
+  color: var(--primary-ink);
+  font-weight: var(--fw-medium);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.link:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* ==========================================================================
+   8  Button groups
+
+   <div class="actions"> <button class="btn btn--primary">Start</button> <button class="btn btn--secondary">I have a backup file</button> </div>
+
+   Buttons side by side; they wrap. Below 640px they share each line fully.
+   .actions--end  pushes them to the inline-end (from 640px).
+   ========================================================================== */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  /* neighbours share one height: on a phone a primary button is 48px */
+  align-items: stretch;
+  gap: var(--s-2);
+}
+
+@media (max-width: 639.98px) {
+  .actions > .btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (min-width: 640px) {
+  .actions--end {
+    justify-content: flex-end;
+  }
+}
+
+/* ==========================================================================
+   9  Chips
+   For picking one or several short options. They wrap; they never scroll sideways.
+
+   One choice (radio) or several (checkbox). The check icon is always in the markup;
+   it shows only on the selected chip.
+
+   <fieldset class="field">
+     <legend class="field__label">Client since</legend>
+     <div class="chips">
+       <label class="chip-option">
+         <input class="chip-option__input" type="radio" name="since" value="today" checked>
+         <span class="chip"><svg class="icon chip__check" viewBox="0 0 24 24" aria-hidden="true">...</svg>Today</span>
+       </label>
+       <label class="chip-option"> ... Earlier (already my client) ... </label>
+     </div>
+     <p class="field__hint">...</p>
+   </fieldset>
+
+   As a button (a filter or a suggestion):
+   <button class="chip" type="button" aria-pressed="true"><svg class="icon chip__check" ...></svg>All</button>
+   ========================================================================== */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.chip-option {
+  position: relative;
+  display: inline-flex;
+  max-inline-size: 100%;
+  cursor: pointer;
+}
+
+.chip-option__input {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  max-inline-size: 100%;
+  min-block-size: var(--tap);
+  padding-block: var(--s-1);
+  padding-inline: var(--s-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-tight);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.chip:hover,
+.chip-option:hover .chip {
+  background: var(--bg);
+}
+
+.chip__check {
+  display: none;
+  stroke-width: 2;
+}
+
+.chip[aria-pressed="true"],
+.chip-option__input:checked + .chip {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  font-weight: var(--fw-semibold);
+}
+
+.chip[aria-pressed="true"] .chip__check,
+.chip-option__input:checked + .chip .chip__check {
+  display: inline-block;
+}
+
+.chip-option__input:focus-visible + .chip {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   10  Segmented control
+   For 2 to 5 exclusive options. Full width on a phone. No white thumb: the selected
+   segment has the selected chip's look (6.4).
+
+   As a setting (radios):
+   <div class="segmented" role="radiogroup" aria-labelledby="ID-OF-ITS-LABEL">
+     <label class="segmented__option">
+       <input class="segmented__input" type="radio" name="whatsappOnComputer" value="browser" checked>
+       <span class="segmented__item">In the browser</span>
+     </label>
+     ... WhatsApp app, WhatsApp Web ...
+   </div>
+
+   As navigation between parts of a view (links):
+   <nav class="segmented" aria-label="Clients">
+     <a class="segmented__item" href="#/clients">Summary</a>
+     <a class="segmented__item" href="#/clients/contacts" aria-current="page">Contacts</a>
+   </nav>
+   (a <button class="segmented__item" aria-pressed="true"> works the same way)
+   ========================================================================== */
+
+.segmented {
+  display: flex;
+  inline-size: 100%;
+  min-block-size: var(--tap);
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.segmented__option {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  min-inline-size: 0;
+  cursor: pointer;
+}
+
+.segmented__input {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.segmented__item {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 0;
+  margin: var(--s-1);
+  padding-block: var(--s-1);
+  padding-inline: var(--s-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-tight);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+/* a link or button segment keeps a full-height target around its inset look */
+.segmented__item::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--s-1) * -1);
+}
+
+.segmented__item:hover,
+.segmented__option:hover .segmented__item {
+  color: var(--text);
+}
+
+.segmented__item[aria-current="page"],
+.segmented__item[aria-current="true"],
+.segmented__item[aria-pressed="true"],
+.segmented__input:checked + .segmented__item {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  font-weight: var(--fw-semibold);
+}
+
+.segmented__input:focus-visible + .segmented__item {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (min-width: 640px) {
+  .segmented {
+    inline-size: fit-content;
+    max-inline-size: 100%;
+  }
+
+  .segmented__option,
+  .segmented__item {
+    flex: 1 1 auto;
+  }
+
+  .segmented__item {
+    padding-inline: var(--s-4);
+    white-space: nowrap;
+  }
+}
+
+/* ==========================================================================
+   11  Form field
+   Label above, input 44px, then at most one error line and any hint lines.
+
+   <div class="field">
+     <label class="field__label" for="f-name">Full name <span class="field__req">required</span></label>
+     <input class="input" id="f-name" name="name" type="text" dir="auto" autocomplete="off"
+            aria-invalid="true" aria-describedby="f-name-error">
+     <p class="field__error" id="f-name-error"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true">...alert circle...</svg>Enter a name</p>
+     <p class="field__hint" data-partial="whatsapp">WhatsApp will use +972 541234567</p>
+   </div>
+
+   Error state: aria-invalid="true" on the input, plus the .field__error line.
+   No error: leave aria-invalid out and do not render .field__error.
+   .input also fits <select class="input"> and <input type="date|search|tel|email">.
+   .field--short  a short value (country code): the input is narrow.
+   .fields        an even gap between fields:   <div class="fields"> .field ... </div>
+   .fields--2     two fields side by side from 640px.
+
+   A choice group uses <fieldset class="field"> with <legend class="field__label"> (section 9).
+
+   A tick box:
+   <label class="check"><input class="check__input" type="checkbox" name="understood"><span>I understand this cannot be undone</span></label>
+   ========================================================================== */
+
+.fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-4);
+}
+
+.field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-1);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field__label {
+  padding: 0;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+
+legend.field__label {
+  margin-block-end: var(--s-1);
+}
+
+/* a field revealed inside a choice group ("Since when?") */
+.field > .field {
+  margin-block-start: var(--s-2);
+}
+
+.field__req {
+  margin-inline-start: var(--s-1);
+  color: var(--text-2);
+  font-weight: var(--fw-regular);
+}
+
+.input {
+  display: block;
+  inline-size: 100%;
+  min-block-size: var(--tap);
+  padding-block: 0;
+  padding-inline: var(--s-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  background-color: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-md);
+  line-height: var(--lh-body);
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.input::placeholder {
+  color: var(--text-3);
+  opacity: 1;
+}
+
+.input:hover {
+  border-color: var(--text-2);
+}
+
+.input:disabled {
+  border-color: var(--border);
+  background-color: var(--surface-sunken);
+  color: var(--text-disabled);
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--urgent-border);
+  box-shadow: inset 0 0 0 1px var(--urgent-border);
+}
+
+/* a select keeps one arrow, drawn without an image file */
+select.input {
+  padding-inline-end: var(--s-8);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-2) 50%),
+    linear-gradient(135deg, var(--text-2) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+[dir="rtl"] select.input {
+  background-position: 12px 50%, 18px 50%;
+}
+
+.field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-1);
+  color: var(--urgent-text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+
+.field__error .icon {
+  inline-size: 16px;
+  block-size: calc(var(--fs-sm) * var(--lh-body));
+}
+
+.field__hint {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.field--short .input {
+  max-inline-size: 160px;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  min-block-size: var(--tap);
+  padding-block: var(--s-3);
+  cursor: pointer;
+}
+
+.check__input {
+  flex: none;
+  inline-size: 20px;
+  block-size: 20px;
+  margin: 2px 0 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+@media (min-width: 640px) {
+  .fields--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+/* ==========================================================================
+   12  Search field (Clients)
+
+   <div class="toolbar">
+     <div class="search">
+       <label class="sr-only" for="q">Search name, phone or email</label>
+       <svg class="icon search__icon" viewBox="0 0 24 24" aria-hidden="true">...</svg>
+       <input class="input search__input" id="q" type="search" dir="auto" autocomplete="off"
+              placeholder="Search name, phone or email" data-action="clients.search">
+     </div>
+     ...later: the segmented control and filter chips...
+   </div>
+   ========================================================================== */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.search {
+  position: relative;
+  flex: 1 1 240px;
+  min-inline-size: 0;
+  max-inline-size: 440px;
+}
+
+.search__icon {
+  position: absolute;
+  inset-block-start: calc(50% - 10px);
+  inset-inline-start: var(--s-3);
+  color: var(--text-3);
+  pointer-events: none;
+}
+
+.search__input {
+  padding-inline-start: calc(var(--s-3) + 20px + var(--s-2));
+}
+
+.search__input::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+/* ==========================================================================
+   13  Overlay and scrim
+   The one child of #overlay-root while a sheet or a modal is open.
+
+   <div class="overlay">
+     <div class="overlay__scrim" data-action="overlay.close"></div>
+     ...one .sheet (section 14) or one .modal (section 15)...
+   </div>
+   ========================================================================== */
+
+.overlay {
+  position: fixed;
+  z-index: var(--z-overlay);
+  inset: 0;
+  display: flex;
+}
+
+.overlay__scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  animation: overlay-fade var(--dur) var(--ease);
+}
+
+@keyframes overlay-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes overlay-rise {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+@keyframes overlay-slide {
+  from {
+    transform: translateX(var(--overlay-from, 48px));
+    opacity: 0;
+  }
+}
+
+/* A sheet that replaces itself ("Save and add another") is simply there: it does not
+   slide in a second time.  <div class="overlay overlay--still"> */
+.overlay--still .overlay__scrim,
+.overlay--still .sheet {
+  animation: none;
+}
+
+/* ==========================================================================
+   14  Sheet / side panel (create and edit forms)
+   Below 640px a full-height sheet that rises from the bottom; from 640px a panel
+   --panel-w wide on the inline-end edge. The body scrolls; the footer stays in view.
+
+   <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+     <form class="sheet__form" novalidate data-action="client.save">
+       <header class="sheet__head">
+         <h2 class="sheet__title" id="sheet-title">New client</h2>
+         <button class="btn btn--icon" type="button" aria-label="Close" data-action="overlay.close"><svg class="icon" ...></svg></button>
+       </header>
+       <div class="sheet__body">
+         <p class="sheet__note">Restored what you were typing. <button class="link" type="button">Discard</button></p>   optional
+         <div class="fields"> ...fields (section 11)... </div>
+         <div class="sheet__end"> <button class="btn btn--ghost-danger" type="button">Delete client</button> </div>   optional, edit only
+       </div>
+       <footer class="sheet__foot">
+         <button class="btn btn--ghost" type="button" data-action="overlay.close">Cancel</button>
+         <button class="btn btn--secondary sheet__alt" type="submit" name="again" value="1">Save and add another</button>   optional
+         <button class="btn btn--primary" type="submit">Save</button>
+       </footer>
+     </form>
+   </section>
+
+   Keep this order in the footer: Cancel, the optional .sheet__alt, then the primary.
+   Without a form, .sheet__head, .sheet__body and .sheet__foot may sit directly in .sheet.
+   ========================================================================== */
+
+.sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  inline-size: 100%;
+  block-size: 100%;
+  background: var(--surface);
+  box-shadow: var(--shadow-3);
+  animation: overlay-rise var(--dur) var(--ease);
+}
+
+.sheet__form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-block-size: 0;
+}
+
+.sheet__head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-block-size: var(--topbar-h);
+  padding-inline: var(--s-4) var(--s-2);
+  border-block-end: 1px solid var(--border);
+}
+
+.sheet__title {
+  min-inline-size: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+}
+
+.sheet__body {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--s-4);
+  min-block-size: 0;
+  padding: var(--s-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sheet__note {
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--info-bg);
+  color: var(--info-text);
+  font-size: var(--fs-sm);
+}
+
+.sheet__end {
+  padding-block-start: var(--s-4);
+  border-block-start: 1px solid var(--border);
+}
+
+.sheet__end > .btn {
+  /* the label lines up with the fields above it */
+  margin-inline-start: calc(var(--s-4) * -1);
+}
+
+.sheet__foot {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  padding-block-end: calc(var(--s-3) + env(safe-area-inset-bottom));
+  border-block-start: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.sheet__foot > .btn {
+  padding-inline: var(--s-3);
+}
+
+/* Cancel's word lines up with the fields above it */
+.sheet__foot > .btn--ghost:first-child {
+  margin-inline-start: calc(var(--s-3) * -1);
+}
+
+.sheet__foot > .btn--primary {
+  flex: 1 1 auto;
+}
+
+@media (max-width: 639.98px) {
+  /* three buttons: Cancel and the second action share a line, Save has its own */
+  .sheet__foot > .sheet__alt {
+    flex: 1 1 0;
+    min-inline-size: 0;
+  }
+
+  .sheet__foot:has(> .sheet__alt) > .btn--primary {
+    flex-basis: 100%;
+  }
+}
+
+@media (min-width: 640px) {
+  .sheet {
+    inline-size: var(--panel-w);
+    max-inline-size: 100%;
+    margin-inline-start: auto;
+    animation-name: overlay-slide;
+  }
+
+  [dir="rtl"] .sheet {
+    --overlay-from: -48px;
+  }
+
+  .sheet__head {
+    padding-inline: var(--s-5) var(--s-3);
+  }
+
+  .sheet__body {
+    padding: var(--s-5);
+  }
+
+  .sheet__foot {
+    padding-inline: var(--s-5);
+  }
+
+  .sheet__foot > .btn--ghost:first-child {
+    margin-inline-end: auto;
+  }
+
+  .sheet__foot > .btn--primary {
+    flex: 0 1 auto;
+    min-inline-size: calc(var(--tap) * 2);
+  }
+}
+
+/* ==========================================================================
+   15  Modal (confirmations and short decisions only)
+   From 640px a centred box, at most --modal-w wide; below 640px a bottom sheet.
+
+   <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-text">
+     <h2 class="modal__title" id="modal-title">Load a backup</h2>
+     <div class="modal__body" id="modal-text">
+       <p>One or two sentences.</p>
+       <p class="modal__fine">An optional quieter paragraph (the list of small fixes).</p>
+     </div>
+     <footer class="modal__foot">
+       <button class="btn btn--ghost" type="button" data-action="overlay.close">Cancel</button>
+       <button class="btn btn--danger" type="button" data-action="import.confirm">Replace my data</button>
+     </footer>
+   </section>
+   ========================================================================== */
+
+.modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  inline-size: 100%;
+  max-block-size: calc(100% - var(--s-6));
+  margin-block-start: auto;
+  padding: var(--s-5) var(--s-4);
+  padding-block-end: calc(var(--s-4) + env(safe-area-inset-bottom));
+  border-start-start-radius: var(--r-xl);
+  border-start-end-radius: var(--r-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-3);
+  animation: overlay-rise var(--dur) var(--ease);
+}
+
+.modal__title {
+  flex: none;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+}
+
+.modal__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-3);
+  min-block-size: 0;
+  /* the body scrolls, so it clips: this ring of space keeps the focus outline of a field
+     inside it whole, and the margins give the space back */
+  margin: var(--s-2) calc(var(--s-1) * -1) calc(var(--s-1) * -1);
+  padding: var(--s-1);
+  overflow-y: auto;
+}
+
+.modal__fine {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.modal__foot {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  margin-block-start: var(--s-5);
+}
+
+@media (max-width: 639.98px) {
+  .modal__foot > .btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (min-width: 640px) {
+  .modal {
+    max-inline-size: var(--modal-w);
+    max-block-size: calc(100% - var(--s-12));
+    margin: auto;
+    padding: var(--s-6);
+    border-radius: var(--r-xl);
+  }
+}
+
+/* ==========================================================================
+   16  Toast
+   One at a time, inside #toast-root (layout.css puts it bottom centre, above the tab
+   bar and the floating + button).
+
+   <div class="toast">
+     <span class="toast__text">Dana Levi was deleted.</span>
+     <button class="toast__action" type="button" data-action="toast.undo">Undo</button>   optional
+   </div>
+
+   data-tone="done" on .toast: the green toast right after a backup that counts (5.2).
+   ========================================================================== */
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  max-inline-size: min(480px, 100%);
+  min-block-size: var(--tap-lg);
+  padding-block: var(--s-1);
+  padding-inline: var(--s-4) var(--s-1);
+  border-radius: var(--r-md);
+  background: var(--toast-bg);
+  box-shadow: var(--shadow-2);
+  color: var(--text-on-primary);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  pointer-events: auto;
+  animation: overlay-rise var(--dur) var(--ease);
+}
+
+.toast__text {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  padding-block: var(--s-2);
+  padding-inline-end: var(--s-3);
+}
+
+.toast__action {
+  flex: none;
+  min-inline-size: var(--tap);
+  min-block-size: var(--tap);
+  padding-inline: var(--s-3);
+  border-radius: var(--r-sm);
+  color: var(--sky);
+  font-weight: var(--fw-bold);
+  text-align: center;
+}
+
+.toast__action:hover {
+  text-decoration: underline;
+}
+
+.toast__action:focus-visible {
+  outline-color: var(--sky);
+  outline-offset: -2px;
+}
+
+.toast[data-tone="done"] {
+  background: var(--done-solid);
+}
+
+.toast[data-tone="done"] .toast__action {
+  color: var(--text-on-primary);
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   17  Banner
+   Inside .banners, above the top bar, the full width of the content column.
+   Tint fill, status edge, dark status text, an icon, one sentence, one button
+   (the failed-save banner has two).
+
+   <div class="banner" data-tone="important" role="status">
+     <svg class="icon banner__icon" viewBox="0 0 24 24" aria-hidden="true">...</svg>
+     <p class="banner__text">You have changes from the last 8 days that are not in a backup file.</p>
+     <div class="banner__actions">
+       <button class="btn" type="button" data-action="backup.now">Back up now</button>
+     </div>
+   </div>
+
+   data-tone: urgent (use role="alert") | important | info. Buttons inside take the
+   banner's tone by themselves: write plain class="btn".
+   ========================================================================== */
+
+.banner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon text"
+    ". actions";
+  align-items: start;
+  gap: var(--s-2) var(--s-3);
+  padding-block: var(--s-3);
+  padding-inline: max(var(--gutter), calc((100% - var(--content-max)) / 2 + var(--gutter)));
+  border-block-end: 1px solid var(--tone-border);
+  background: var(--tone-bg);
+  color: var(--tone-text);
+}
+
+.banner:not([data-tone]) {
+  --tone-bg: var(--info-bg);
+  --tone-border: var(--info-border);
+  --tone-text: var(--info-text);
+}
+
+.banner__icon {
+  grid-area: icon;
+}
+
+.banner__text {
+  grid-area: text;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+
+.banner__actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.banner__actions .btn {
+  border-color: var(--tone-border);
+  background: var(--surface);
+  color: var(--tone-text);
+  font-size: var(--fs-sm);
+}
+
+.banner__actions .btn:hover {
+  box-shadow: inset 0 0 0 1px var(--tone-border);
+}
+
+@media (min-width: 640px) {
+  .banner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "icon text actions";
+    align-items: center;
+  }
+}
+
+/* The red banner repeated at the top of an open sheet (a full-height sheet hides the page
+   and the banners above it). Here it is a box of its own, with its buttons under the text.
+   <div class="sheet__notice" data-partial="notice"> ...one .banner... </div> */
+.sheet__notice .banner {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon text"
+    ". actions";
+  align-items: start;
+  padding-inline: var(--s-3);
+  border: 1px solid var(--tone-border);
+  border-radius: var(--r-md);
+}
+
+/* ==========================================================================
+   18  Empty state
+   Also the layout of a placeholder page (7.10). Text starts at the start edge;
+   nothing is centred (6.3). Put it inside a .card.
+
+   <div class="empty">
+     <div class="empty__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true">...</svg></div>
+     <div class="empty__body">
+       <h2 class="empty__title">Schedule</h2>                 optional (placeholder pages)
+       <p class="empty__text">No clients yet.</p>
+       <p class="empty__note">Arrives in step 3</p>           optional
+       <div class="actions"> <button class="btn btn--primary" type="button">Add your first client</button> </div>   optional
+     </div>
+   </div>
+   ========================================================================== */
+
+.empty {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: var(--s-4);
+  padding-block: var(--s-4);
+}
+
+.empty__icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 88px;
+  block-size: 88px;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+}
+
+.empty__icon .icon {
+  inline-size: 48px;
+  block-size: 48px;
+  stroke-width: 1.5;
+}
+
+.empty__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: var(--s-2);
+  max-inline-size: 480px;
+}
+
+.empty__title {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+}
+
+.empty__text {
+  color: var(--text);
+}
+
+.empty__note {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+
+.empty__body > .actions {
+  justify-self: stretch;
+  margin-block-start: var(--s-2);
+}
+
+@media (min-width: 640px) {
+  .empty {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--s-6);
+    padding: var(--s-4);
+  }
+}
+
+/* ==========================================================================
+   19  Overflow menu (three dots)
+   The menu sits next to its button, so it needs no script to place it. It opens under
+   the button, at the inline-end; in the last two rows of a list of four or more it
+   opens upwards by itself. Render .menu only while open (or keep it with hidden).
+
+   <div class="menu-wrap">
+     <button class="btn btn--icon" type="button" aria-haspopup="menu" aria-expanded="true"
+             aria-label="More for Dana Levi" data-action="menu.toggle" data-id="ID"><svg class="icon" ...></svg></button>
+     <div class="menu" role="menu">
+       <button class="menu__item" type="button" role="menuitem" data-action="client.edit" data-id="ID">Edit</button>
+       <button class="menu__item menu__item--danger" type="button" role="menuitem" data-action="client.delete" data-id="ID">Delete client</button>
+     </div>
+   </div>
+
+   .menu--up  forces it to open upwards.
+   A .menu__item may start with an icon: <svg class="icon" ...></svg>Edit
+   ========================================================================== */
+
+.menu-wrap {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+/* an open menu lies over the rows and buttons that follow it */
+.menu-wrap:has(> .menu:not([hidden])) {
+  z-index: var(--z-overlay);
+}
+
+.row .menu-wrap:has(> .menu:not([hidden])) {
+  z-index: var(--z-overlay);
+}
+
+.menu {
+  position: absolute;
+  z-index: var(--z-overlay);
+  inset-block-start: calc(100% + var(--s-1));
+  inset-inline-end: 0;
+  display: grid;
+  min-inline-size: 200px;
+  padding: var(--s-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+  animation: overlay-fade var(--dur-fast) var(--ease);
+}
+
+.menu--up,
+.rows > .row:nth-last-child(-n + 2):nth-child(n + 4) .menu {
+  inset-block-start: auto;
+  inset-block-end: calc(100% + var(--s-1));
+}
+
+.menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-block-size: var(--tap);
+  padding-inline: var(--s-3);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  text-align: start;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.menu__item:hover {
+  background: var(--bg);
+}
+
+.menu__item:focus-visible {
+  outline-offset: -2px;
+}
+
+.menu__item--danger {
+  color: var(--urgent-text);
+}
+
+.menu__item--danger:hover {
+  background: var(--urgent-bg);
+}
+
+/* ==========================================================================
+   20  Welcome card, and the "More" disclosure
+
+   <section class="card welcome">
+     <h2 class="card__title">Welcome</h2>
+     <ol class="welcome__list">
+       <li class="welcome__item">
+         <h3 class="welcome__title">Where your data lives</h3>
+         <p class="welcome__text">Your clients are saved in this browser on this device only: ...</p>
+         <details class="more">
+           <summary class="more__toggle">More<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">...chevron down...</svg></summary>
+           <p class="more__body">Everything you type stays in this browser on this device. ...</p>
+         </details>
+       </li>
+       ... two more ...
+     </ol>
+     <p class="welcome__aside">Used Laser before and see nothing here? ...</p>
+     <div class="welcome__confirm">
+       <p class="welcome__confirm-text">Currency: Israeli new shekel (ILS). Country code: +972. Correct?</p>
+       <button class="link" type="button" data-action="welcome.change">Change</button>
+       (or, when the region is unknown or after Change:  <div class="fields fields--2"> two .field </div>)
+     </div>
+     <div class="actions">
+       <button class="btn btn--primary" type="button" data-action="welcome.start">Start</button>
+       <button class="btn btn--secondary" type="button" data-action="welcome.import">I have a backup file</button>
+     </div>
+   </section>
+
+   The three items number themselves. Settings > "How this app works" reuses
+   <ol class="welcome__list"> with the full texts in .welcome__text.
+
+   "More" needs no script: <details class="more"> opens and closes by itself. The same
+   look works on a button:  <button class="more__toggle" type="button" aria-expanded="false">More ICON</button>
+   followed by  <div class="more__body" hidden>...</div>
+   ========================================================================== */
+
+.welcome {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-4);
+}
+
+.welcome__list {
+  --marker: 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-4);
+  counter-reset: welcome;
+}
+
+.welcome__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--s-3);
+  row-gap: var(--s-1);
+  counter-increment: welcome;
+}
+
+.welcome__item::before {
+  content: counter(welcome);
+  display: grid;
+  grid-row: 1 / span 3;
+  place-items: center;
+  inline-size: var(--marker);
+  block-size: var(--marker);
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.welcome__item > * {
+  grid-column: 2;
+}
+
+.welcome__title {
+  /* as tall as the number beside it, so the two sit level */
+  display: flex;
+  align-items: center;
+  min-block-size: var(--marker);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+}
+
+.welcome__text {
+  color: var(--text);
+}
+
+.welcome__aside {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.welcome__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg);
+}
+
+.welcome__confirm-text {
+  flex: 1 1 200px;
+  min-inline-size: 0;
+  font-weight: var(--fw-medium);
+}
+
+.welcome__confirm > .fields {
+  flex: 1 1 100%;
+}
+
+.more__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-block-size: var(--tap);
+  /* the word lines up with the text above; the target is wider than the word */
+  margin-inline-start: calc(var(--s-2) * -1);
+  padding-inline: var(--s-2);
+  border-radius: var(--r-md);
+  color: var(--primary-ink);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  list-style: none;
+  user-select: none;
+}
+
+.more__toggle::-webkit-details-marker {
+  display: none;
+}
+
+.more__toggle:hover {
+  background: var(--bg);
+}
+
+.more__toggle .icon {
+  inline-size: 16px;
+  block-size: 16px;
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.more[open] > .more__toggle .icon,
+.more__toggle[aria-expanded="true"] .icon {
+  transform: rotate(180deg);
+}
+
+.more__body {
+  padding-block-end: var(--s-2);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+/* ==========================================================================
+   21  Getting-started checklist
+
+   <section class="card">
+     <header class="card__head">
+       <h2 class="card__title">Getting started</h2>
+       <span class="card__meta">1 of 2</span>
+     </header>
+     <ul class="checklist">
+       <li class="checklist__item" data-tone="done">
+         <span class="checklist__mark"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true">...check...</svg></span>
+         <div class="checklist__body">
+           <span class="checklist__text"><span class="sr-only">Done: </span>Add your first client.</span>
+         </div>
+       </li>
+       <li class="checklist__item">
+         <span class="checklist__mark"><svg class="icon" ...>...check...</svg></span>
+         <div class="checklist__body">
+           <span class="checklist__text">Save your first backup file and check it.</span>
+           <span class="checklist__note">Saved, not checked yet</span>                  optional second line
+         </div>
+         <button class="btn btn--secondary checklist__action" type="button">Back up now</button>   optional
+       </li>
+     </ul>
+   </section>
+
+   A ticked item carries data-tone="done"; an open item has no data-tone. The check icon
+   is always in the markup; it shows only when ticked.
+   ========================================================================== */
+
+.checklist {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.checklist__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "mark body action";
+  align-items: center;
+  column-gap: var(--s-3);
+  min-block-size: var(--row-h);
+  padding-block: var(--s-2);
+}
+
+.checklist__item + .checklist__item {
+  border-block-start: 1px solid var(--border);
+}
+
+.checklist__mark {
+  display: grid;
+  grid-area: mark;
+  place-items: center;
+  inline-size: var(--s-6);
+  block-size: var(--s-6);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: transparent;
+}
+
+.checklist__mark .icon {
+  inline-size: 16px;
+  block-size: 16px;
+  stroke-width: 2.5;
+}
+
+.checklist__item[data-tone="done"] .checklist__mark {
+  border-color: var(--done-solid);
+  background: var(--done-solid);
+  color: var(--text-on-primary);
+}
+
+.checklist__body {
+  display: grid;
+  grid-area: body;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.checklist__text {
+  font-weight: var(--fw-medium);
+}
+
+.checklist__item[data-tone="done"] .checklist__text {
+  color: var(--text-2);
+}
+
+.checklist__note {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.checklist__action {
+  grid-area: action;
+}
+
+@media (max-width: 639.98px) {
+  .checklist__item {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "mark body"
+      ". action";
+  }
+
+  .checklist__action {
+    justify-self: start;
+    margin-block: var(--s-2) var(--s-1);
+  }
+}
+
+/* ==========================================================================
+   22  Backup line (Home footer, 7.2 item 9)
+
+   <section class="card backup-line">
+     <p class="backup-line__text">Last backup: 3 days ago</p>
+        (after a backup today:  <span class="badge" data-tone="done">ICON Backed up today</span>  inside the p)
+     <button class="btn btn--secondary" type="button" data-action="backup.now">Back up now</button>
+   </section>
+   ========================================================================== */
+
+.backup-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.backup-line__text {
+  flex: 1 1 160px;
+  min-inline-size: 0;
+  font-weight: var(--fw-medium);
+}
+
+/* ==========================================================================
+   23  Colour key (Settings > Colours)
+
+   <dl class="colour-key">
+     <div class="colour-key__row">
+       <dt class="colour-key__badges">
+         <span class="badge" data-tone="urgent">ICON Late</span>
+         <span class="badge badge--solid" data-tone="urgent">ICON Late</span>      red and yellow only
+       </dt>
+       <dd class="colour-key__text">Red: late, act now</dd>
+     </div>
+     ... yellow, green, blue, grey ...
+   </dl>
+   ========================================================================== */
+
+.colour-key {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.colour-key__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-2);
+  padding-block: var(--s-3);
+}
+
+.colour-key__row + .colour-key__row {
+  border-block-start: 1px solid var(--border);
+}
+
+.colour-key__row:first-child {
+  padding-block-start: 0;
+}
+
+.colour-key__row:last-child {
+  padding-block-end: 0;
+}
+
+.colour-key__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+@media (min-width: 640px) {
+  .colour-key__row {
+    grid-template-columns: 240px minmax(0, 1fr);
+    align-items: center;
+    gap: var(--s-4);
+  }
+}
+
+/* ==========================================================================
+   24  Storage meter and date line
+
+   <progress class="meter" value="0.4" max="5">Using 0.4 of about 5 MB</progress>
+   Always with the same words as text beside it. Blue, never the browser's green.
+
+   <p class="date-line">Wednesday 18 November</p>            first line of the Dashboard
+   ========================================================================== */
+
+.meter {
+  display: block;
+  inline-size: 100%;
+  max-inline-size: 320px;
+  block-size: var(--s-2);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: var(--primary);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.meter::-webkit-progress-bar {
+  border-radius: var(--r-pill);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.meter::-webkit-progress-value {
+  border-radius: var(--r-pill);
+  background: var(--primary);
+}
+
+.meter::-moz-progress-bar {
+  border-radius: var(--r-pill);
+  background: var(--primary);
+}
+
+.date-line {
+  color: var(--text-2);
+  font-weight: var(--fw-medium);
+}

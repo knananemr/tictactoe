@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; base-uri 'none'; form-action 'none'">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Laser">
+  <meta name="theme-color" content="#F2F7FC">
+  <title>Laser</title>
+  <link rel="icon" href="img/icon.svg">
+  <link rel="apple-touch-icon" href="img/icon-180.png">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div id="boot-fail" class="boot-fail">
+    <h1>Laser did not start</h1>
+    <p>The app's files did not load. Open the file laser/index.html again. If you still see this message,
+       your data is not lost: do not clear your browser data, and contact your builder.</p>
+  </div>
+  <div id="app" hidden></div>
+  <div id="overlay-root"></div>
+  <div id="toast-root" role="status" aria-live="polite"></div>
+  <!-- ordered classic scripts, see blueprint 2.4 (the files of step 1) -->
+  <script defer src="js/core/ns.js"></script>
+  <script defer src="js/core/util.js"></script>
+  <script defer src="js/core/dates.js"></script>
+  <script defer src="js/core/money.js"></script>
+  <script defer src="js/core/phone.js"></script>
+  <script defer src="js/core/links.js"></script>
+  <script defer src="js/core/schema.js"></script>
+  <script defer src="js/core/migrations.js"></script>
+  <script defer src="js/core/storage.js"></script>
+  <script defer src="js/core/store.js"></script>
+  <script defer src="js/core/selectors.js"></script>
+  <script defer src="js/core/backup.js"></script>
+  <script defer src="js/ui/icons.js"></script>
+  <script defer src="js/ui/components.js"></script>
+  <script defer src="js/ui/overlay.js"></script>
+  <script defer src="js/ui/files.js"></script>
+  <script defer src="js/ui/actions.js"></script>
+  <script defer src="js/ui/router.js"></script>
+  <script defer src="js/ui/shell.js"></script>
+  <script defer src="js/ui/forms/personForm.js"></script>
+  <script defer src="js/ui/views/placeholder.js"></script>
+  <script defer src="js/ui/views/home.js"></script>
+  <script defer src="js/ui/views/clients.js"></script>
+  <script defer src="js/ui/views/settings.js"></script>
+  <script defer src="js/main.js"></script>
+</body>
+</html>

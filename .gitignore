@@ -2,3 +2,11 @@
 node_modules/
 .DS_Store
 *.log
+
+# Laser: backup files hold real client data and must never be committed
+laser-backup-*.json
+# Laser: output of the end-to-end tests
+laser/tests/test-results/
+laser/tests/playwright-report/
+/test-results/
+/playwright-report/

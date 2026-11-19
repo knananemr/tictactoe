@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Laser">
+  <rect width="512" height="512" rx="112" fill="#1570C2"/>
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round">
+    <path d="M112 112 288 288" stroke-width="44"/>
+    <path d="M366 318h42M318 366v42M352 352l30 30M352 284l28-28M284 352l-28 28" stroke-width="28"/>
+  </g>
+  <circle cx="318" cy="318" r="24" fill="#FFFFFF"/>
+</svg>
