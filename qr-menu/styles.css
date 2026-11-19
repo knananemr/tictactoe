@@ -28,6 +28,7 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 body.locked { overflow: hidden; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 35; background: var(--card); }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 a { color: inherit; text-decoration: none; }
 [hidden] { display: none !important; }
@@ -35,7 +36,7 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- Top bar ---------- */
 .topbar {
-  position: sticky; top: 0; z-index: 30;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
   height: var(--topbar-h);
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 8px;
@@ -73,7 +74,8 @@ a { color: inherit; text-decoration: none; }
   transform: translateX(-105%);
   transition: transform .28s var(--ease);
   display: flex; flex-direction: column;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 [dir="rtl"] .drawer { transform: translateX(105%); }
 .drawer.open { transform: none; }
@@ -156,7 +158,7 @@ a { color: inherit; text-decoration: none; }
 }
 .search:focus { border-color: var(--ink); }
 .chips {
-  position: sticky; top: var(--topbar-h); z-index: 20;
+  position: sticky; top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px)); z-index: 20;
   height: var(--chips-h);
   display: flex; align-items: center; gap: 8px;
   padding: 0 var(--pad);
@@ -173,7 +175,7 @@ a { color: inherit; text-decoration: none; }
 }
 .chip.active { background: var(--ink); color: var(--card); border-color: var(--ink); }
 .side-cats { display: none; }
-.cat-section { scroll-margin-top: calc(var(--topbar-h) + var(--chips-h)); }
+.cat-section { scroll-margin-top: calc(var(--topbar-h) + var(--chips-h) + env(safe-area-inset-top, 0px)); }
 .cat-section .section-title { margin-top: 12px; }
 .cat-section + .cat-section .section-title { margin-top: 28px; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 var(--pad); }
@@ -274,7 +276,7 @@ a { color: inherit; text-decoration: none; }
   .chips { display: none; }
   .side-cats {
     display: grid; gap: 2px;
-    position: sticky; top: var(--topbar-h);
+    position: sticky; top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
     padding: 24px 0 24px 0; padding-inline-start: var(--pad);
   }
   .side-cats button {

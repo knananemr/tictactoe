@@ -169,7 +169,7 @@
     document.querySelectorAll(".drawer-link").forEach(function (b) {
       b.classList.toggle("active", b.dataset.view === view);
     });
-    if (location.hash !== "#" + view) history.replaceState(null, "", "#" + view);
+    if (location.hash !== "#" + view) { try { history.replaceState(null, "", "#" + view); } catch (e) {} }
     var target = catId && view === "menu" ? $("cat-" + catId) : null;
     if (target) target.scrollIntoView({ block: "start" });
     else window.scrollTo(0, 0);
