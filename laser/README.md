@@ -4,9 +4,13 @@ A private dashboard for a solo laser hair removal practice. It runs in your brow
 file. There is no server, no account and no internet connection: nothing leaves your device
 unless you tap a send button.
 
-This copy is **step 1** of the plan in `docs/BLUEPRINT.md`: the real look, your contact
-list, and a backup file. Schedule, Leads and Progress show a page that says in which step
-they arrive.
+What it does: a Dashboard that sums up the day; clients with their hair details and
+special notes; treatments and what each client paid; a schedule with one-tap rebooking;
+a list of who to ask back after 4 weeks; leads; monthly progress; and reminder messages
+written for you, ready to send by WhatsApp, text message or email.
+
+The first plan is in `docs/BLUEPRINT.md`. The app was built simpler than that plan in
+places; where they differ, the app is right.
 
 ## For the owner
 
