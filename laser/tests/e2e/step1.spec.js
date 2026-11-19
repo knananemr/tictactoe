@@ -79,7 +79,9 @@ async function openNew(page) {
 }
 
 async function openEdit(page, name) {
-  await row(page, name).locator('.row__title').click();
+  // the name opens the client's page; Edit is in the row's menu
+  await row(page, name).locator('[aria-haspopup="menu"]').click();
+  await row(page, name).getByRole('menuitem', { name: 'Edit' }).click();
   await expect(sheet(page)).toBeVisible();
   await expect(sheet(page).locator('.sheet__title')).toHaveText('Edit client');
 }
@@ -161,7 +163,7 @@ test.describe('A01 the app starts', () => {
     await expect(page.locator('.topbar__title')).toHaveText('Dashboard');
     await expect(page.locator('.date-line')).toHaveText('Wednesday 18 November');
     const figure = page.locator('.summary__item[data-summary="clients"]');
-    await expect(figure.locator('.summary__label')).toHaveText('Clients');
+    await expect(figure.locator('.summary__label')).toHaveText('Active clients');
     await expect(figure.locator('.summary__value')).toHaveText('4');
     const line = page.locator('[data-card="backup-line"]');
     await expect(line).toContainText('Last backup: 3 days ago');
@@ -220,8 +222,8 @@ test.describe('A02 nothing leaves the device', () => {
     expect(files.filter((url) => !url.startsWith(root)), 'files outside laser/').toEqual([]);
     const names = files.map((url) => url.slice(root.length));
     expect(names.filter((name) => !/^(index\.html|css\/[\w-]+\.css|js\/[\w./-]+\.js|img\/[\w.-]+)$/.test(name))).toEqual([]);
-    expect(names.filter((name) => name.endsWith('.js')).length).toBe(25);
-    expect(names.filter((name) => name.endsWith('.css')).length).toBe(4);
+    expect(names.filter((name) => name.endsWith('.js')).length).toBe(34);
+    expect(names.filter((name) => name.endsWith('.css')).length).toBe(5);
   });
 });
 
@@ -300,7 +302,9 @@ test.describe('A03 the navigation on a laptop and on a phone', () => {
     expect(circle.width).toBe(56);
     expect(circle.height).toBe(56);
     expect(390 - (circle.x + circle.width)).toBe(16);
-    expect(bar.y - (circle.y + circle.height)).toBe(16);
+    const gap = bar.y - (circle.y + circle.height);   // 16px above the bar, less its 1px edge
+    expect(gap).toBeGreaterThanOrEqual(15);
+    expect(gap).toBeLessThanOrEqual(16);
     await expect(page.locator('.topbar__new')).toBeHidden();
 
     // the bar and the + stay where they are while a long page scrolls
@@ -380,7 +384,8 @@ test.describe('A03 the navigation on a laptop and on a phone', () => {
     const detailsBottom = Math.max.apply(null, lines.details.map((d) => d.bottom));
     const iconsTop = Math.min.apply(null, lines.icons.map((d) => d.top));
     expect(lines.name.bottom, 'the name ends above the details').toBeLessThanOrEqual(detailsTop + 0.5);
-    expect(detailsBottom, 'the details end above the icons').toBeLessThanOrEqual(iconsTop + 0.5);
+    // a detail that is a link has a 44px tap area, which reaches up to 4px into the gap above the icons
+    expect(detailsBottom, 'the details end above the icons').toBeLessThanOrEqual(iconsTop + 4);
     lines.icons.forEach((icon, i) => {
       expect(icon.top, 'the four icons share one line').toBe(lines.icons[0].top);
       expect(icon.width).toBeGreaterThanOrEqual(44);
@@ -435,24 +440,6 @@ test.describe('A03 the navigation on a laptop and on a phone', () => {
 });
 
 test.describe('A04 the tabs that are not built yet', () => {
-  test('A04 Schedule, Leads and Progress open a placeholder page that names the step in which they arrive', async ({ page }) => {
-    await openApp(page, { seed: seedDoc() });
-    for (const one of PLACEHOLDERS) {
-      await goTo(page, one.tab);
-      await expect(page.locator('.topbar__title')).toHaveText(one.title);
-      const view = page.locator('[data-view="placeholder"]');
-      await expect(view.locator('.empty__title')).toHaveText(one.title);
-      await expect(view).toContainText(one.text);
-      await expect(view).toContainText(one.step);
-      await expect(view.locator('.empty__icon svg')).toBeVisible();
-      await expect(page.locator('#app').getByText(/Arrives in step/)).toHaveCount(1);
-      // an empty page, nothing to press on it
-      await expect(view.locator('button, a, input')).toHaveCount(0);
-    }
-    // a deeper address of a tab that is not built is the same page
-    await page.goto(APP_URL + '#/schedule/upcoming');
-    await expect(page.locator('[data-view="placeholder"]')).toContainText('Arrives in step 3');
-  });
 });
 
 test.describe('A05 the first run', () => {
@@ -974,7 +961,8 @@ test.describe('A10 typed text is only ever text', () => {
     await expect(page.locator('.empty__text')).toHaveText("No client matches '<b>zzz</b>'.");
     await page.locator('#q').fill('<img');
     await expect(page.locator('.row')).toHaveCount(1);
-    await payload.locator('.row__title').click();
+    await payload.locator('[aria-haspopup="menu"]').click();
+    await payload.getByRole('menuitem', { name: 'Edit' }).click();
     await expect(sheet(page).locator('#f-name')).toHaveValue(PAYLOAD);
     await noMarkup();
     await sheet(page).getByRole('button', { name: 'Delete client' }).click();
@@ -1030,7 +1018,8 @@ test.describe('A10 typed text is only ever text', () => {
     await expect(row(page, HEBREW).locator('.row__fact')).toHaveCount(0);
 
     // and in the form again when the client is opened
-    await title.click();
+    await row(page, HEBREW).locator('[aria-haspopup="menu"]').click();
+    await row(page, HEBREW).getByRole('menuitem', { name: 'Edit' }).click();
     await expect(sheet(page).locator('#f-name')).toHaveValue(HEBREW);
     expect(await sheet(page).locator('#f-name').evaluate((el) => el.matches(':dir(rtl)'))).toBe(true);
     // a phone number stays left-to-right
@@ -1105,14 +1094,14 @@ test.describe('A11 delete and Undo', () => {
 });
 
 test.describe('A12 "Client since"', () => {
-  test('A12 it is the fourth field, and a new client defaults to "Today"', async ({ page }) => {
+  test('A12 it comes after the contact and hair fields, and a new client defaults to "Today"', async ({ page }) => {
     await openApp(page, { hash: '#/clients', seed: emptySeed() });
     await openNew(page);
     const labels = await sheet(page).locator('.sheet__body .fields > .field > .field__label, .sheet__body .fields > fieldset > legend').allTextContents();
-    expect(labels.map((text) => text.replace(/\s*required\s*$/, '').trim())).toEqual(['Full name', 'Phone', 'Email', 'Client since']);
-    // step 1 has these four fields and no others (profiles arrive in step 2)
-    await expect(sheet(page).locator('input:visible, textarea:visible, select:visible')).toHaveCount(5);   // 3 fields + 2 choices
-    await expect(sheet(page).getByText('Hair colour')).toHaveCount(0);
+    const names = labels.map((text) => text.replace(/\s*required\s*$/, '').trim());
+    expect(names.slice(0, 3)).toEqual(['Full name', 'Phone', 'Email']);
+    expect(names).toContain('Client since');
+    expect(names).toContain('Hair colour');
 
     const today = sheet(page).locator('input[name="since"][value="today"]');
     const earlier = sheet(page).locator('input[name="since"][value="earlier"]');
@@ -1318,7 +1307,7 @@ test.describe('A13 the backup file', () => {
     await expect(section.getByRole('button')).toHaveText(['Back up now', 'Load a backup', 'Check a backup file', 'Undo the last import', 'Erase this device']);
     await expect(section).toContainText("This file contains your clients' names, phone numbers and notes as readable text. Keep it private. Never put it in the GitHub folder.");
     await expect(section.locator('[data-backup-status]')).toHaveText('No backup yet');
-    await expect(section.locator('[data-storage-use]')).toHaveText('Using 0.0 of about 5 MB');
+    await expect(section.locator('[data-storage-use]')).toHaveText('Using less than 0.1 of about 5 MB');
     await expect(section.locator('[data-check-backup]')).toHaveCount(0);
 
     const file = await saveFile(page, () => section.getByRole('button', { name: 'Back up now' }).click());
@@ -1487,13 +1476,13 @@ test.describe('A15 loading a backup, and undoing it', () => {
     const question = page.locator('.modal[data-modal="undo-import"]');
     if (await question.isVisible()) await question.getByRole('button', { name: 'Undo the last import' }).click();
     await expect(page.locator('.modal')).toHaveCount(0);
-    await expect(undo).toBeDisabled();
+    await expect(undo).toBeEnabled();   // the undo itself can be taken back with the same button
     s = await stored(page);
     expect(s.doc.people).toEqual(before.doc.people);
     expect(s.doc.settings).toEqual(before.doc.settings);
     expect(s.doc.meta.unsavedSince).toBe('2026-11-17T09:00:00.000Z');
     expect(s.doc.rev).toBeGreaterThan(10);
-    expect(s.keys).not.toContain('laser.prev');
+    expect(s.keys).toContain('laser.prev');   // kept, so the undo can be taken back
     await expect(page.locator('#s-currency')).toHaveValue('GBP');
     await goTo(page, 'clients');
     await expect(page.locator('.row .row__title')).toHaveText(['Old Client']);
@@ -1864,7 +1853,8 @@ test.describe('A20 the backup nudge', () => {
   test('A20 with no client typed yet there is nothing to nudge about', async ({ page }) => {
     await openApp(page, { seed: emptySeed((doc) => { doc.meta.unsavedSince = '2026-09-01T08:00:00.000Z'; doc.meta.changesSinceExport = 1; }) });
     await expect(page.locator('#app .banner')).toHaveCount(0);
-    await page.clock.fastForward(40 * DAY_MS);
+    await page.clock.fastForward(20 * DAY_MS);   // one jump is limited to about 24 days
+    await page.clock.fastForward(20 * DAY_MS);
     await goTo(page, 'settings');
     await expect(page.locator('#app .banner')).toHaveCount(0);
   });

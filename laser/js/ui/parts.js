@@ -25,6 +25,12 @@
     return dates.format(date, 'short');
   }
 
+  // the same inside a sentence: "today", "tomorrow", "Thu 19 Nov"
+  function dayInSentence(date, today) {
+    const words = dayWords(date, today);
+    return /^(Today|Tomorrow|Yesterday)$/.test(words) ? words.toLowerCase() : words;
+  }
+
   function clientHref(id) { return router.href('/clients/' + id); }
 
   // tabs({ label, current, items: [{ key, label, href, count }] })
@@ -159,6 +165,7 @@
   L.ui.parts = {
     cash: cash,
     dayWords: dayWords,
+    dayInSentence: dayInSentence,
     clientHref: clientHref,
     tabs: tabs,
     tiles: tiles,

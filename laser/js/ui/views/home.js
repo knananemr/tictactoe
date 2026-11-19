@@ -168,7 +168,7 @@
     const p = r.person;
     return html`<li class="row" data-row="${'remind-' + a.id}"${r.tone === 'urgent' ? html` data-tone="urgent"` : ''}>
       <a class="row__title" href="${parts.clientHref(p.id)}" dir="auto">${p.name}</a>
-      <div class="row__sub"><span class="row__fact">Appointment ${parts.dayWords(a.date, today).toLowerCase()} at ${a.time}</span></div>
+      <div class="row__sub"><span class="row__fact">Appointment ${parts.dayInSentence(a.date, today)} at ${a.time}</span></div>
       ${c.badge(r.tone, r.word)}
       <div class="row__actions">
         <button class="btn btn--primary" type="button" data-action="send.open" data-kind="${r.kind}" data-person="${p.id}" data-id="${a.id}">Send reminder</button>
@@ -271,8 +271,8 @@
     return html`<div class="page" data-view="home">
       <p class="date-line">${dates.format(today, 'long')}</p>
       ${c.summary([
-        { key: 'today', label: 'Today', value: practice.onDay(state, today).length.toLocaleString('en'), note: 'appointments', href: router.href('/schedule') },
-        { key: 'received', label: 'Received in ' + dates.format(today, 'month').split(' ')[0], value: parts.cash(month.receivedMinor, state), note: c.plural(month.treatments, 'treatment'), href: router.href('/schedule/done') },
+        { key: 'today', label: 'Today', value: practice.onDay(state, today).length.toLocaleString('en'), note: 'visits', href: router.href('/schedule') },
+        { key: 'received', label: 'Received in ' + dates.format(dates.monthKey(today), 'monthShort'), value: parts.cash(month.receivedMinor, state), note: c.plural(month.treatments, 'treatment'), href: router.href('/schedule/done') },
         { key: 'clients', label: 'Active clients', value: practice.activeClients(state).length.toLocaleString('en'), note: month.newClients + ' new this month', href: router.href('/clients/summary') },
         { key: 'leads', label: 'Open leads', value: leads.length.toLocaleString('en'), note: fresh + ' new', href: router.href('/leads') }
       ])}

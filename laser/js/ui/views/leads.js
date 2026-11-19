@@ -19,7 +19,7 @@
     const intl = phone.toInternational(p.phone, state.settings.countryCode);
     if (p.phone) facts.push(html`<span class="row__fact num" dir="ltr">${intl ? phone.display(intl, state.settings.countryCode) : p.phone}</span>`);
     if (p.leadInterest) facts.push(html`<span class="row__fact" dir="auto">${p.leadInterest}</span>`);
-    if (p.followUpOn && t.open) facts.push(html`<span class="row__fact">Follow up ${parts.dayWords(p.followUpOn, today).toLowerCase()}</span>`);
+    if (p.followUpOn && t.open) facts.push(html`<span class="row__fact">Follow up ${parts.dayInSentence(p.followUpOn, today)}</span>`);
     if (!facts.length) facts.push(html`<span class="row__fact">Added ${dates.format(p.leadSince || today, 'short')}</span>`);
     const items = [];
     if (t.open) {

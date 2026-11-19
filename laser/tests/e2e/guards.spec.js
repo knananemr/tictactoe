@@ -51,25 +51,26 @@ function code(file) {
     .split('\n').map((line) => line.replace(/(^|\s)\/\/.*$/, '$1')).join('\n');
 }
 
-// The script order of blueprint 2.4, all steps. index.html loads the ones built so far.
+// The order in which index.html loads the scripts: each file after the ones it uses.
 const ORDER = [
-  'js/core/ns.js', 'js/core/util.js', 'js/core/dates.js', 'js/core/money.js', 'js/core/phone.js',
-  'js/core/links.js', 'js/core/schema.js', 'js/core/migrations.js', 'js/core/storage.js',
-  'js/core/store.js', 'js/core/selectors.js', 'js/core/templates.js', 'js/core/reminders.js',
-  'js/core/backup.js', 'js/core/demo.js', 'js/core/ics.js',
-  'js/ui/icons.js', 'js/ui/components.js', 'js/ui/overlay.js', 'js/ui/files.js', 'js/ui/actions.js',
-  'js/ui/router.js', 'js/ui/shell.js', 'js/ui/charts.js',
-  'js/ui/forms/personForm.js', 'js/ui/forms/sessionForm.js', 'js/ui/forms/paymentForm.js',
-  'js/ui/forms/sendSheet.js', 'js/ui/forms/leadForm.js',
-  'js/ui/views/placeholder.js', 'js/ui/views/home.js', 'js/ui/views/clients.js', 'js/ui/views/client.js',
-  'js/ui/views/schedule.js', 'js/ui/views/leads.js', 'js/ui/views/progress.js', 'js/ui/views/run.js',
-  'js/ui/views/settings.js', 'js/main.js'
+  'js/core/ns.js', 'js/core/util.js', 'js/core/dates.js',
+  'js/core/money.js', 'js/core/phone.js', 'js/core/links.js',
+  'js/core/schema.js', 'js/core/migrations.js', 'js/core/storage.js',
+  'js/core/store.js', 'js/core/selectors.js', 'js/core/backup.js',
+  'js/core/practice.js', 'js/ui/icons.js', 'js/ui/components.js',
+  'js/ui/overlay.js', 'js/ui/files.js', 'js/ui/actions.js',
+  'js/ui/router.js', 'js/ui/shell.js', 'js/ui/parts.js',
+  'js/ui/forms/personForm.js', 'js/ui/forms/sessionForm.js', 'js/ui/forms/sendSheet.js',
+  'js/ui/forms/leadForm.js', 'js/ui/views/home.js', 'js/ui/views/client.js',
+  'js/ui/views/clients.js', 'js/ui/views/schedule.js', 'js/ui/views/leads.js',
+  'js/ui/views/progress.js', 'js/ui/views/practiceSettings.js', 'js/ui/views/settings.js',
+  'js/main.js'
 ];
 
 test.describe('guards: static source checks (2.7)', () => {
   test('the source files are found', () => {
     expect(JS.length).toBeGreaterThan(20);
-    expect(CSS).toEqual(['css/base.css', 'css/components.css', 'css/layout.css', 'css/tokens.css']);
+    expect(CSS).toEqual(['css/app.css', 'css/base.css', 'css/components.css', 'css/layout.css', 'css/tokens.css']);
   });
 
   test('no module scripts, no dynamic import, no fetch, no XMLHttpRequest (they fail on file://)', () => {

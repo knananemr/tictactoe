@@ -214,7 +214,7 @@ async function storedClients(page) {
 
 const VIEW_OF = {
   home: 'home', clients: 'clients', settings: 'settings',
-  schedule: 'placeholder', leads: 'placeholder', progress: 'placeholder'
+  schedule: 'schedule', leads: 'leads', progress: 'progress'
 };
 
 // goTo(page, 'clients') taps the tab (sidebar on a laptop, bottom bar on a phone; Settings is

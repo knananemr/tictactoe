@@ -63,8 +63,9 @@
     days.forEach(function (day) {
       const words = parts.dayWords(day.date, today);
       const full = dates.format(day.date, 'long');
+      const near = words === 'Today' || words === 'Tomorrow';
       cards.push(c.card({
-        extra: 'card--flush', title: words === full ? full : words, meta: words === full ? '' : full,
+        extra: 'card--flush', title: near ? words : full, meta: near ? full : '',
         body: html`<ul class="rows">${day.rows.map(function (row) {
           return parts.appointmentRow(row, state, today, { showDay: false });
         })}</ul>`
