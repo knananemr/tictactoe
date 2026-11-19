@@ -265,6 +265,31 @@ async function pickFile(page, button, file) {
   await chooser.setFiles(file);
 }
 
+// ---- a save that fails ---------------------------------------------------------------------
+
+// Blueprint 2.7: a failed save is simulated from the test by replacing the browser's own
+// Storage.prototype.setItem with one that throws, as a full or blocked store does. The app
+// has no test hook.
+function throwingSetItem() {
+  if (!window.__realSetItem) window.__realSetItem = window.Storage.prototype.setItem;
+  window.Storage.prototype.setItem = function () {
+    throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+  };
+}
+
+// From now on, in this page, every write to the browser store fails.
+function breakSaving(page) { return page.evaluate(throwingSetItem); }
+
+// Writes work again.
+function mendSaving(page) {
+  return page.evaluate(() => {
+    if (window.__realSetItem) window.Storage.prototype.setItem = window.__realSetItem;
+  });
+}
+
+// Every write fails from the very first moment of every load of this page (call before openApp).
+function breakSavingFromStart(page) { return page.addInitScript(throwingSetItem); }
+
 // makeFixture(page, name) writes fixtures/<name>.json from the app's own example builder
 // with a fixed date (2.7). The example builder (demo.js) arrives in step 1b; the step 1
 // fixture was written by hand. Run once per step from a test tagged @fixture.
@@ -285,5 +310,5 @@ module.exports = {
   fixtureNames, fixturePath, fixtureText, fixtureDoc, seedDoc,
   openApp, booted, openStarted, stored, storedClients,
   goTo, newButton, sheet, toast, row, fillClient, addClient,
-  saveFile, fileOf, pickFile, makeFixture
+  saveFile, fileOf, pickFile, breakSaving, mendSaving, breakSavingFromStart, makeFixture
 };
