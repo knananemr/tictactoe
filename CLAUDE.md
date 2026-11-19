@@ -9,6 +9,7 @@ Personal projects workspace on macOS.
 - `laser/` — Laser, a private dashboard for a solo laser hair removal practice (open `laser/index.html`; plain HTML, CSS and JavaScript, no build step, no npm, no server)
   - The plan is `laser/docs/BLUEPRINT.md`; build one step at a time, in its order
   - Built so far: step 1 (the look, the contact list, backup by file). Next: step 1b
+  - How we build: small agent teams that read only what they need. The strongest model only for the hardest thinking (design, data-safety review), a middle model for building and fixing, a light model for tests
 
 ## GitHub
 - Repo: https://github.com/knananemr/tictactoe
