@@ -163,6 +163,10 @@
   margin-inline-end: calc(var(--s-2) * -1);
 }
 
+.topbar__gear[aria-current] {
+  background: var(--primary-soft);
+}
+
 /* ---------- Banner area (above the top bar, full width) ---------- */
 
 .banners {
@@ -195,6 +199,11 @@
 
 /* A reading-width page (Settings, placeholder pages). It keeps the same start edge. */
 .page--narrow > * {
+  max-inline-size: 720px;
+}
+
+/* An empty-state card on a full-width page is as wide as the placeholder card (V14). */
+.card--empty {
   max-inline-size: 720px;
 }
 
@@ -255,8 +264,10 @@
   block-size: 24px;
 }
 
-.fab:hover {
-  background: var(--primary-hover);
+@media (hover: hover) {
+  .fab:hover {
+    background: var(--primary-hover);
+  }
 }
 
 .fab:active {

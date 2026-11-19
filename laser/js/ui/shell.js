@@ -244,6 +244,12 @@
     const title = region('title');
     const view = viewFor(route);
     if (title.textContent !== view.title) title.textContent = view.title;
+    // below 1024px the gear is the way to Settings: it shows where the owner is
+    const gear = app().querySelector('.topbar__gear');
+    if (gear) {
+      if (route.name === 'settings') gear.setAttribute('aria-current', 'page');
+      else gear.removeAttribute('aria-current');
+    }
   }
 
   function renderView(state, route) {

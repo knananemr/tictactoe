@@ -156,11 +156,7 @@
   // ---- Backup ----------------------------------------------------------------------------
 
   function usageWords() {
-    const usage = storage.usage();
-    return {
-      text: 'Using ' + (usage.used / 1e6).toFixed(1) + ' of about 5 MB',
-      fraction: Math.min(1, usage.fraction)
-    };
+    return selectors.storageUse(storage.usage());
   }
 
   function backupCard(state) {
@@ -234,12 +230,17 @@
     const saved = prepared.savedOn ? 'saved ' + dates.format(prepared.savedOn, 'full') + ', ' : '';
     const text = 'This backup: ' + saved + countsLine(prepared.counts, true) +
       '. It will replace what is in this browser now (' + countsLine(prepared.currentCounts, false) + ').' +
-      (keepsOld ? ' You can undo this import in Settings > Backup.' : '');
+      (keepsOld ? ' You can undo this import in Settings > Backup.'
+        : ' Your current data is too large to keep a copy, so this import cannot be undone. Back up first.');
     overlay.modal({
       name: 'import', title: 'Load a backup', danger: true, confirmLabel: 'Replace my data',
       body: html`<p>${text}</p>${repairsLine(prepared.repairs)}`,
       onConfirm: function () {
         const result = backup.applyImport(prepared);
+        if (result.reason === 'prevFailed') {
+          overlay.toast('Nothing was loaded: this browser\'s storage is full, so a copy of your current data could not be kept.');
+          return;
+        }
         if (!result.ok) return;
         if (options && options.closeWelcome && !store.get().meta.welcomeDone) {
           store.commit('Welcome', function (draft) { draft.meta.welcomeDone = true; },
@@ -295,13 +296,18 @@
       L.ui.shell.render();
       return;
     }
+    const info = backup.undoInfo();
+    const what = info
+      ? 'This brings back ' + countsLine(info.kept, false) + ' from before the last import. It replaces what is in this browser now (' +
+        (info.current ? countsLine(info.current, false) : 'nothing') + ') and everything changed since. You can take this back with the same button.'
+      : 'This brings back the data from before the last import. It replaces what is in this browser now.';
     overlay.modal({
       name: 'undo-import', title: 'Undo the last import', danger: true, confirmLabel: 'Undo the last import',
-      body: html`<p>This brings back the data from before the last import. It replaces what is in this browser now.</p>`,
+      body: html`<p>${what}</p>`,
       onConfirm: function () {
         const result = backup.undoImport();
         if (result.ok && result.saved) overlay.toast('Import undone.');
-        // the kept copy is removed after the data was put back: draw the button again
+        // the kept copy now holds the data that was replaced: draw the button again
         L.ui.shell.render();
       }
     });

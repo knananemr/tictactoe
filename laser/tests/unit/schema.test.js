@@ -217,6 +217,12 @@
     ok(errorsAt(doc, 'meta', 'welcomeDone').length === 1);
     doc = baseDoc(); doc.rev = '3';
     ok(errorsAt(doc, 'root', 'rev').length === 1);
+    doc = baseDoc(); doc.rev = 9007199254740991;
+    ok(errorsAt(doc, 'root', 'rev').length === 1, 'a rev that can no longer count up (D03)');
+    doc = baseDoc(); doc.rev = 1e21;
+    ok(errorsAt(doc, 'root', 'rev').length === 1);
+    doc = baseDoc(); doc.rev = 1e12;
+    ok(errorsAt(doc, 'root', 'rev').length === 0);
     ok(schema.validate(null).length === 1);
     ok(schema.validate([]).length === 1);
     ok(schema.validate('text').length === 1);

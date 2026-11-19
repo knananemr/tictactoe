@@ -72,6 +72,7 @@
     const all = selectors.clients(state);
     if (!all.length) {
       return c.card({
+        extra: 'card--empty',
         body: c.empty({
           icon: 'users', text: 'No clients yet.',
           actions: html`<button class="btn btn--primary" type="button" data-action="client.new">Add your first client</button>`
@@ -81,6 +82,7 @@
     const found = selectors.search(all, query);
     if (!found.length) {
       return c.card({
+        extra: 'card--empty',
         body: c.empty({
           icon: 'search', text: html`No client matches '<bdi>${query.trim()}</bdi>'.`,
           actions: html`<button class="btn btn--secondary" type="button" data-action="clients.clearSearch">Clear search</button>`

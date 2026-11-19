@@ -180,6 +180,22 @@
     };
   }
 
+  // storageUse({ used, fraction }) -> { text, fraction } for the storage line of Settings >
+  // Backup (7.8). Below 0.05 MB the figure would read "0.0", which looks as if nothing is
+  // stored: it reads "less than 0.1" instead (V13), and the meter shows a sliver (2px of
+  // its 320px) whenever anything is stored.
+  const METER_MIN = 2 / 320;
+  function storageUse(usage) {
+    const used = usage && usage.used > 0 ? usage.used : 0;
+    const raw = usage && usage.fraction > 0 ? usage.fraction : 0;
+    const figure = used / 1e6;
+    return {
+      text: used > 0 && figure < 0.05 ? 'Using less than 0.1 of about 5 MB'
+        : 'Using ' + figure.toFixed(1) + ' of about 5 MB',
+      fraction: used > 0 ? Math.min(1, Math.max(METER_MIN, raw)) : 0
+    };
+  }
+
   L.core.selectors = {
     isLive: isLive,
     isClient: isClient,
@@ -189,6 +205,7 @@
     search: search,
     counts: counts,
     backupStatus: backupStatus,
-    gettingStarted: gettingStarted
+    gettingStarted: gettingStarted,
+    storageUse: storageUse
   };
 })(window.Laser);

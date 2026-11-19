@@ -372,6 +372,8 @@
   // ---- per-field checks (D22) ------------------------------------------------------------
   // Each takes the value as it would be stored and returns null (fine) or a short message.
 
+  // A revision above this cannot be real and would break the two-tab guard (D03).
+  const REV_MAX = 1e12;
   const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
   const EMAIL_RE = /^[^@\s]+@[^@\s]+$/;
   const COUNTRY_RE = /^\d{1,4}$/;
@@ -679,7 +681,7 @@
     }
     if (doc.app !== L.APP_ID) add('root', null, -1, 'app', 'This is not Laser data');
     if (doc.schemaVersion !== L.DATA_FORMAT) add('root', null, -1, 'schemaVersion', 'Wrong data format');
-    if (!isInt(doc.rev) || doc.rev < 0) add('root', null, -1, 'rev', 'Must be a whole number');
+    if (!isInt(doc.rev) || doc.rev < 0 || doc.rev > REV_MAX) add('root', null, -1, 'rev', 'Must be a whole number');
     if (!dates.isStamp(doc.createdAt)) add('root', null, -1, 'createdAt', 'Must be a date and time stamp');
 
     if (isRecord(doc.meta)) walk('meta', doc.meta, -1, META_FIELDS);

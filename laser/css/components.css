@@ -307,8 +307,10 @@
   transition: background-color var(--dur-fast) var(--ease);
 }
 
-.summary__item:hover {
-  background: var(--bg);
+@media (hover: hover) {
+  .summary__item:hover {
+    background: var(--bg);
+  }
 }
 
 .summary__item:focus-visible {
@@ -527,9 +529,11 @@
   flex-shrink: 0;
 }
 
-a.row__fact:hover {
-  color: var(--primary-ink);
-  text-decoration: underline;
+@media (hover: hover) {
+  a.row__fact:hover {
+    color: var(--primary-ink);
+    text-decoration: underline;
+  }
 }
 
 .row > .badge {
@@ -648,11 +652,33 @@ a.row__fact:hover {
     padding-block: var(--s-1);
   }
 
+  /* the focus ring stays inside the link, clear of the name above */
+  a.row__fact:focus-visible {
+    outline-offset: -2px;
+  }
+
+  /* the name in a right-to-left script sits at the end: its details follow it there */
+  .row__title:dir(rtl) + .row__sub {
+    justify-content: flex-end;
+  }
+
   .rows--cards {
     border: 1px solid var(--border);
     border-radius: var(--r-lg);
     background: var(--surface);
     box-shadow: var(--shadow-1);
+  }
+}
+
+/* on a touch screen the one-line layout gives the phone and email links a full 44px target
+   (6.5), with no overlap with the name's row-wide link */
+@media (min-width: 640px) and (pointer: coarse) {
+  a.row__fact {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--tap);
+    margin-block: 0;
+    padding-block: 0;
   }
 }
 
@@ -765,8 +791,10 @@ a.row__fact:hover {
   transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
 }
 
-.btn:hover {
-  background: var(--bg);
+@media (hover: hover) {
+  .btn:hover {
+    background: var(--bg);
+  }
 }
 
 .btn--primary {
@@ -774,8 +802,10 @@ a.row__fact:hover {
   color: var(--text-on-primary);
 }
 
-.btn--primary:hover {
-  background: var(--primary-hover);
+@media (hover: hover) {
+  .btn--primary:hover {
+    background: var(--primary-hover);
+  }
 }
 
 .btn--primary:active {
@@ -787,7 +817,12 @@ a.row__fact:hover {
   color: var(--primary-ink);
 }
 
-.btn--secondary:hover,
+@media (hover: hover) {
+  .btn--secondary:hover {
+    background: var(--primary-soft-hover);
+  }
+}
+
 .btn--secondary:active {
   background: var(--primary-soft-hover);
 }
@@ -804,7 +839,12 @@ a.row__fact:hover {
   color: var(--urgent-text);
 }
 
-.btn--ghost-danger:hover,
+@media (hover: hover) {
+  .btn--ghost-danger:hover {
+    background: var(--urgent-bg);
+  }
+}
+
 .btn--ghost-danger:active {
   background: var(--urgent-bg);
 }
@@ -814,7 +854,12 @@ a.row__fact:hover {
   color: var(--text-on-primary);
 }
 
-.btn--danger:hover,
+@media (hover: hover) {
+  .btn--danger:hover {
+    background: var(--urgent-solid-hover);
+  }
+}
+
 .btn--danger:active {
   background: var(--urgent-solid-hover);
 }
@@ -954,9 +999,11 @@ a.row__fact:hover {
   transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
 }
 
-.chip:hover,
-.chip-option:hover .chip {
-  background: var(--bg);
+@media (hover: hover) {
+  .chip:hover,
+  .chip-option:hover .chip {
+    background: var(--bg);
+  }
 }
 
 .chip__check {
@@ -1060,9 +1107,11 @@ a.row__fact:hover {
   inset: calc(var(--s-1) * -1);
 }
 
-.segmented__item:hover,
-.segmented__option:hover .segmented__item {
-  color: var(--text);
+@media (hover: hover) {
+  .segmented__item:hover,
+  .segmented__option:hover .segmented__item {
+    color: var(--text);
+  }
 }
 
 .segmented__item[aria-current="page"],
@@ -1182,8 +1231,10 @@ legend.field__label {
   opacity: 1;
 }
 
-.input:hover {
-  border-color: var(--text-2);
+@media (hover: hover) {
+  .input:hover {
+    border-color: var(--text-2);
+  }
 }
 
 .input:disabled {
@@ -1735,8 +1786,10 @@ select.input {
   font-size: var(--fs-sm);
 }
 
-.banner__actions .btn:hover {
-  box-shadow: inset 0 0 0 1px var(--tone-border);
+@media (hover: hover) {
+  .banner__actions .btn:hover {
+    box-shadow: inset 0 0 0 1px var(--tone-border);
+  }
 }
 
 @media (min-width: 640px) {
@@ -1818,6 +1871,7 @@ select.input {
 
 .empty__text {
   color: var(--text);
+  overflow-wrap: anywhere;   /* a long search term that matches nothing wraps */
 }
 
 .empty__note {
@@ -1910,8 +1964,10 @@ select.input {
   white-space: nowrap;
 }
 
-.menu__item:hover {
-  background: var(--bg);
+@media (hover: hover) {
+  .menu__item:hover {
+    background: var(--bg);
+  }
 }
 
 .menu__item:focus-visible {
@@ -1922,8 +1978,10 @@ select.input {
   color: var(--urgent-text);
 }
 
-.menu__item--danger:hover {
-  background: var(--urgent-bg);
+@media (hover: hover) {
+  .menu__item--danger:hover {
+    background: var(--urgent-bg);
+  }
 }
 
 /* ==========================================================================
@@ -2065,8 +2123,10 @@ select.input {
   display: none;
 }
 
-.more__toggle:hover {
-  background: var(--bg);
+@media (hover: hover) {
+  .more__toggle:hover {
+    background: var(--bg);
+  }
 }
 
 .more__toggle .icon {

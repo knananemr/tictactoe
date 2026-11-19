@@ -125,6 +125,8 @@
     expected.rev = 13;
     expected.meta.unsavedSince = null;
     expected.meta.backupCheckedAt = loaded.meta.backupCheckedAt;
+    expected.meta.changesSinceExport = 0;           // the file holds exactly this data (V02)
+    expected.meta.lastExportAt = dates.stamp(AT);   // the file's own exportedAt
     expected.meta.homeDevice = null;
     expected.meta.reopenedAt = null;
     expected.meta.persist = null;
@@ -304,9 +306,102 @@
     expected.rev = 52;
     eq(store.get(), expected, 'exactly the old data, with the revision still counting up');
     eq(JSON.parse(adapter.mem.doc), expected);
-    eq(adapter.mem.prev, null);
+    eq(JSON.parse(adapter.mem.prev).people.length, 5, 'the replaced data is kept, so the undo can be taken back');
+    eq(backup.canUndoImport(), true);
+  });
+
+  test('backup.undoImport: can itself be taken back; nothing is lost either way (D01)', function () {
+    const mine = schema.emptyDoc(AT);
+    mine.rev = 50;
+    const adapter = open(mine);
+    backup.applyImport(backup.prepareImport(fileOf(practice())));
+    store.commit('Add', function (draft) { draft.people.push(schema.newPerson({ name: 'Added Later' }, { now: AT })); });
+    const info = backup.undoInfo();
+    eq([info.kept.clients, info.current.clients], [0, 4], 'the question can say what comes back and what goes');
+    eq(backup.undoImport().ok, true);
+    eq(store.get().people.length, 0);
+    ok(JSON.parse(adapter.mem.prev).people.some(function (p) { return p.name === 'Added Later'; }), 'the replaced data is kept');
+    eq(backup.undoInfo().kept.clients, 4);
+    eq(backup.undoImport().ok, true);
+    eq(store.get().people.length, 6, 'undoing the undo brings everything back, including what was added later');
+    eq(store.get().people.filter(function (p) { return p.name === 'Added Later'; }).length, 1);
+  });
+
+  test('backup.undoInfo: null when no copy is kept', function () {
+    open(practice());
+    eq(backup.undoInfo(), null);
+  });
+
+  test('backup.applyImport: when the copy is too large, no older copy is left behind (D02)', function () {
+    const adapter = open(practice());
+    adapter.mem.prev = JSON.stringify(schema.emptyDoc(AT));   // a copy from an earlier import
+    adapter.savePrev = function () { return { ok: false, reason: 'tooLarge' }; };
+    const result = backup.applyImport(backup.prepareImport(fileOf(practice())));
+    eq([result.ok, result.saved, result.prevKept], [true, true, false]);
+    eq(adapter.mem.prev, null, 'an older copy would bring back the wrong data');
     eq(backup.canUndoImport(), false);
-    eq(backup.undoImport().reason, 'nothingToUndo');
+  });
+
+  test('backup.applyImport: when the copy cannot be written, nothing is loaded (D02)', function () {
+    const mine = schema.emptyDoc(AT);
+    mine.rev = 50;
+    mine.people.push(schema.newPerson({ name: 'Already Here' }, { now: AT }));
+    const adapter = open(mine);
+    adapter.savePrev = function () { return { ok: false, reason: 'failed' }; };
+    const before = store.get();
+    const result = backup.applyImport(backup.prepareImport(fileOf(practice())));
+    eq([result.ok, result.saved, result.reason, result.prevKept], [false, false, 'prevFailed', false]);
+    ok(store.get() === before);
+    eq(JSON.parse(adapter.mem.doc), mine, 'the stored data is unchanged');
+  });
+
+  // ---- what a loaded backup says about the last backup (V02) -------------------------------
+
+  test('backup.applyImport: the loaded file counts as the last backup, with 0 changes since', function () {
+    open(null);
+    const original = practice();
+    const sixDaysAgo = new Date(dates.now().getTime() - 6 * 86400000);
+    const result = backup.applyImport(backup.prepareImport(backup.buildFile(original, sixDaysAgo).text));
+    eq(result.ok, true);
+    eq(store.get().meta.lastExportAt, dates.stamp(sixDaysAgo));
+    eq(store.get().meta.changesSinceExport, 0);
+    eq(schema.validate(store.get()), []);
+  });
+
+  test('backup.applyImport: a later lastExportAt in the file is kept', function () {
+    open(null);
+    const original = practice();
+    const later = dates.stamp(new Date(dates.now().getTime() - 86400000));
+    original.meta.lastExportAt = later;
+    const fileTime = new Date(dates.now().getTime() - 3 * 86400000);
+    backup.applyImport(backup.prepareImport(backup.buildFile(original, fileTime).text));
+    eq(store.get().meta.lastExportAt, later);
+  });
+
+  test('backup.applyImport: a file stamped in the future counts as saved now, not later', function () {
+    open(null);
+    const nextYear = new Date(dates.now().getTime() + 365 * 86400000);
+    const before = dates.now().getTime();
+    backup.applyImport(backup.prepareImport(backup.buildFile(practice(), nextYear).text));
+    const ms = dates.stampMs(store.get().meta.lastExportAt);
+    ok(ms >= before && ms <= dates.now().getTime(), 'cut to now');
+  });
+
+  test('backup.applyImport: a file with no exportedAt leaves lastExportAt alone', function () {
+    open(null);
+    const original = practice();
+    backup.applyImport(backup.prepareImport(JSON.stringify(original)));
+    eq(store.get().meta.lastExportAt, null);
+    eq(store.get().meta.changesSinceExport, 0);
+  });
+
+  test('backup.prepareImport: refuses a revision too large to count up from (D03)', function () {
+    [9007199254740991, 1e21].forEach(function (rev) {
+      const doc = practice();
+      doc.rev = rev;
+      const result = backup.prepareImport(fileOf(doc));
+      eq([result.ok, result.code], [false, 'invalid'], String(rev));
+    });
   });
 
   test('backup.applyImport: refused while the tab cannot save; nothing changes', function () {

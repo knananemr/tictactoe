@@ -213,4 +213,14 @@
     d.people[0].deletedAt = dates.stamp(AT);
     eq(selectors.gettingStarted(d).items[0].done, false, 'a deleted person does not count');
   });
+  test('selectors.storageUse: a small figure reads "less than 0.1", with a sliver of meter (V13)', function () {
+    const sel = L.core.selectors;
+    eq(sel.storageUse({ used: 12000, fraction: 12000 / 5200000 }),
+      { text: 'Using less than 0.1 of about 5 MB', fraction: 2 / 320 });
+    eq(sel.storageUse({ used: 49999, fraction: 49999 / 5200000 }).text, 'Using less than 0.1 of about 5 MB');
+    eq(sel.storageUse({ used: 50000, fraction: 50000 / 5200000 }).text, 'Using 0.1 of about 5 MB');
+    eq(sel.storageUse({ used: 400000, fraction: 0.4 / 5.2 }), { text: 'Using 0.4 of about 5 MB', fraction: 0.4 / 5.2 });
+    eq(sel.storageUse({ used: 0, fraction: 0 }), { text: 'Using 0.0 of about 5 MB', fraction: 0 });
+    eq(sel.storageUse({ used: 6e6, fraction: 1.2 }).fraction, 1);
+  });
 })(window.Laser);

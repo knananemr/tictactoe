@@ -121,7 +121,13 @@
   // -> { ok, saved, reason, errors, rev, prevKept }
   //   the fields of store.commit's result, plus
   //   prevKept  true when the old data was kept and "Undo the last import" will work
-  //             (false when the old data was too large for the fallback copy)
+  //             (false when the old data was too large for the fallback copy; then no
+  //             older copy is left either)
+  //   reason 'prevFailed': the copy of the old data could not be written (storage full), so
+  //             nothing was loaded
+  // The loaded file counts as the last backup (a deviation from 3.7 step 5): the file exists
+  // and holds exactly this data, so lastExportAt becomes its exportedAt (cut to now when it
+  // lies in the future, kept when the doc's own value is later) and changesSinceExport 0.
   function applyImport(prepared) {
     if (!prepared || prepared.ok !== true || !prepared.doc) {
       return { ok: false, saved: false, reason: 'invalid', errors: [], rev: null, prevKept: false };
@@ -132,8 +138,26 @@
       return { ok: false, saved: false, reason: reason, errors: [], rev: current ? current.rev : null, prevKept: false };
     }
     const kept = store.adapter().savePrev(JSON.stringify(store.get()));
+    if (!kept || !kept.ok) {
+      if (kept && kept.reason === 'tooLarge') {
+        store.adapter().clearPrev();   // an older copy would bring back the wrong data
+      } else {
+        const current = store.get();
+        return { ok: false, saved: false, reason: 'prevFailed', errors: [], rev: current ? current.rev : null, prevKept: false };
+      }
+    }
     const doc = util.clone(prepared.doc);
     doc.meta.unsavedSince = null;
+    doc.meta.changesSinceExport = 0;
+    const nowMs = dates.now().getTime();
+    const fileMs = dates.stampMs(prepared.exportedAt);
+    if (!isNaN(fileMs)) {
+      const fileStamp = fileMs > nowMs ? dates.stamp() : prepared.exportedAt;
+      const own = dates.stampMs(doc.meta.lastExportAt);
+      if (doc.meta.lastExportAt === null || isNaN(own) || own < dates.stampMs(fileStamp)) {
+        doc.meta.lastExportAt = fileStamp;
+      }
+    }
     doc.meta.backupCheckedAt = dates.stamp();   // loading a backup made by this app proves it reads
     const result = store.replace(doc, { label: 'Backup loaded' });
     if (!result.ok) store.adapter().clearPrev();   // nothing was loaded, so there is nothing to undo
@@ -146,9 +170,26 @@
     return store.adapter().loadPrev() !== null;
   }
 
-  // undoImport() brings back the data as it was before the last import and removes the kept
-  // copy. Same result shape as store.commit; reason 'nothingToUndo' when no copy is kept,
-  // 'invalid' when the copy cannot be read.
+  // undoInfo() -> { kept, current } counts of the kept copy and of the data now, or null when
+  // no readable copy is kept. For the question before "Undo the last import".
+  function undoInfo() {
+    const text = store.adapter().loadPrev();
+    if (text === null || text === undefined) return null;
+    let doc;
+    try {
+      doc = L.core.migrations.migrate(JSON.parse(text));
+    } catch (e) {
+      return null;
+    }
+    schema.normalize(doc);
+    const current = store.get();
+    return { kept: selectors.counts(doc), current: current ? selectors.counts(current) : null };
+  }
+
+  // undoImport() brings back the data as it was before the last import. The data it replaces
+  // becomes the kept copy, so the undo can itself be taken back (when that copy cannot be
+  // written, no copy is left). Same result shape as store.commit; reason 'nothingToUndo' when
+  // no copy is kept, 'invalid' when the copy cannot be read.
   function undoImport() {
     const current = store.get();
     const rev = current ? current.rev : null;
@@ -163,8 +204,12 @@
       return { ok: false, saved: false, reason: 'invalid', errors: [], rev: rev };
     }
     schema.normalize(doc);
+    const replaced = JSON.stringify(current);
     const result = store.replace(doc, { label: 'Import undone' });
-    if (result.ok && result.saved) store.adapter().clearPrev();
+    if (result.ok && result.saved) {
+      const kept = current ? store.adapter().savePrev(replaced) : null;
+      if (!kept || !kept.ok) store.adapter().clearPrev();
+    }
     return result;
   }
 
@@ -221,6 +266,7 @@
     prepareImport: prepareImport,
     applyImport: applyImport,
     canUndoImport: canUndoImport,
+    undoInfo: undoInfo,
     undoImport: undoImport,
     checkFile: checkFile,
     markSaved: markSaved,
