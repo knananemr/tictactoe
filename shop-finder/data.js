@@ -9,23 +9,23 @@
  *   lat, lng              – location, used for "near me"
  *   hours                 – 7 entries, Sunday first: ["09:00","19:00"] or null (closed)
  *   services              – [{ name, price, minutes }]
- *   photos                – image paths / data URLs (empty = category colour with the emoji)
+ *   photos                – image paths / data URLs (empty = category colour with the category icon)
  *
- * Category fields: id, emoji, color (awning colour), name,
+ * Category fields: id, emoji (unused), color (no-photo placeholder colour), name,
  *   keywords – extra words people search with (not shown)
  */
 window.APP_NAME = { en: "Nearby", he: "קרוב אליי" };
 window.CURRENCY = "₪";
 
 window.CATEGORIES = [
-  { id: "barber",  emoji: "💈", color: "#b3261e", name: { en: "Barber",        he: "מספרת גברים" }, keywords: { en: "barbershop barber shop haircut men", he: "מספרה מספרות ספר ספרים תספורת גברים" } },
-  { id: "hair",    emoji: "💇", color: "#7a3e65", name: { en: "Hair salon",    he: "עיצוב שיער" }, keywords: { en: "hairdresser hair salon haircut stylist colour color", he: "מספרה מספרות ספרית מעצבת שיער סלון תספורת נשים" } },
-  { id: "nails",   emoji: "💅", color: "#b4466b", name: { en: "Nails",         he: "ציפורניים" }, keywords: { en: "nail salon manicure pedicure gel", he: "מניקור פדיקור ציפורן לק" } },
-  { id: "beauty",  emoji: "✨", color: "#8a6a4c", name: { en: "Beauty clinic", he: "קוסמטיקה" }, keywords: { en: "beautician cosmetics facial skin laser clinic", he: "קוסמטיקאית טיפולי פנים עור לייזר קליניקה" } },
-  { id: "dental",  emoji: "🦷", color: "#1f6f7c", name: { en: "Dental",        he: "מרפאת שיניים" }, keywords: { en: "dentist dental clinic teeth tooth hygienist", he: "רופא שיניים רופאת מרפאה מרפאות שן שיננית" } },
-  { id: "physio",  emoji: "🩺", color: "#2f6b4a", name: { en: "Physiotherapy", he: "פיזיותרפיה" }, keywords: { en: "physio physiotherapist rehab clinic back pain", he: "פיזיו פיזיותרפיסט פיזיותרפיסטית שיקום מרפאה מרפאות" } },
-  { id: "massage", emoji: "💆", color: "#5b4b8a", name: { en: "Massage & spa", he: "עיסוי וספא" }, keywords: { en: "massage spa therapist", he: "עיסוי עיסויים מסאז מסאזים ספא מעסה" } },
-  { id: "tattoo",  emoji: "🖋️", color: "#2b2b2b", name: { en: "Tattoo",        he: "קעקועים" }, keywords: { en: "tattoo tattoos ink piercing", he: "קעקוע קעקועים טאטו" } }
+  { id: "barber",  emoji: "💈", color: "#4B3ACF", name: { en: "Barber",        he: "מספרת גברים" }, keywords: { en: "barbershop barber shop haircut men", he: "מספרה מספרות ספר ספרים תספורת גברים" } },
+  { id: "hair",    emoji: "💇", color: "#7A3FD0", name: { en: "Hair salon",    he: "עיצוב שיער" }, keywords: { en: "hairdresser hair salon haircut stylist colour color", he: "מספרה מספרות ספרית מעצבת שיער סלון תספורת נשים" } },
+  { id: "nails",   emoji: "💅", color: "#C0398F", name: { en: "Nails",         he: "ציפורניים" }, keywords: { en: "nail salon manicure pedicure gel", he: "מניקור פדיקור ציפורן לק" } },
+  { id: "beauty",  emoji: "✨", color: "#9A4CCB", name: { en: "Beauty clinic", he: "קוסמטיקה" }, keywords: { en: "beautician cosmetics facial skin laser clinic", he: "קוסמטיקאית טיפולי פנים עור לייזר קליניקה" } },
+  { id: "dental",  emoji: "🦷", color: "#2F6FD6", name: { en: "Dental",        he: "מרפאת שיניים" }, keywords: { en: "dentist dental clinic teeth tooth hygienist", he: "רופא שיניים רופאת מרפאה מרפאות שן שיננית" } },
+  { id: "physio",  emoji: "🩺", color: "#1F8A8A", name: { en: "Physiotherapy", he: "פיזיותרפיה" }, keywords: { en: "physio physiotherapist rehab clinic back pain", he: "פיזיו פיזיותרפיסט פיזיותרפיסטית שיקום מרפאה מרפאות" } },
+  { id: "massage", emoji: "💆", color: "#5961DD", name: { en: "Massage & spa", he: "עיסוי וספא" }, keywords: { en: "massage spa therapist", he: "עיסוי עיסויים מסאז מסאזים ספא מעסה" } },
+  { id: "tattoo",  emoji: "🖋️", color: "#23233F", name: { en: "Tattoo",        he: "קעקועים" }, keywords: { en: "tattoo tattoos ink piercing", he: "קעקוע קעקועים טאטו" } }
 ];
 
 (function () {

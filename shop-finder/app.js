@@ -183,7 +183,7 @@
   };
 
   /* ------------------------------------------------------------ icons */
-  const svg = (d, cls) => `<svg${cls ? ` class="${cls}"` : ""} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${d}</svg>`;
+  const svg = (d, cls) => `<svg${cls ? ` class="${cls}"` : ""} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${d}</svg>`;
   const ICON = {
     search: svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', "search-icon"),
     locate: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/>'),
@@ -199,8 +199,42 @@
     camera: svg('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>'),
     edit: svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>'),
     trash: svg('<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>'),
-    copy: svg('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>')
+    copy: svg('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>'),
+    grid: svg('<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/>'),
+    clock: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'),
+    pin: svg('<path d="M12 21s-6.5-5.8-6.5-11a6.5 6.5 0 0 1 13 0c0 5.2-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>'),
+    chevron: svg('<path d="m9.5 6 6 6-6 6"/>', "flip"),
+    arrow: svg('<path d="M5 12h14M13 6l6 6-6 6"/>', "flip"),
+    store: svg('<path d="M4.5 10.5v9h15v-9"/><path d="M3.5 6 5 3.5h14L20.5 6v1.2a2.6 2.6 0 0 1-4.3 2 2.6 2.6 0 0 1-4.2 0 2.6 2.6 0 0 1-4.2 0 2.6 2.6 0 0 1-4.3-2z"/><path d="M10 19.5V15h4v4.5"/>'),
+    check: svg('<path d="m5 12.5 4.5 4.5L19 7.5"/>'),
+    info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.7v.1"/>'),
+    alert: svg('<path d="M12 3.8 2.8 20h18.4z"/><path d="M12 10v4.5M12 17.3v.1"/>'),
+    lock: svg('<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>'),
+    leaf: svg('<path d="M12 21v-9"/><path d="M12 13c-4.5 0-7-2.6-7-7 4.5 0 7 2.6 7 7zM12 15.5c0-4.5 2.6-7.5 7-7.5 0 4.5-2.6 7.5-7 7.5z"/>'),
+    // categories
+    scissors: svg('<circle cx="6.5" cy="6.5" r="2.8"/><circle cx="6.5" cy="17.5" r="2.8"/><path d="M8.7 8.3 20 18M8.7 15.7 20 6"/>'),
+    dryer: svg('<path d="M10 4a5 5 0 0 0 0 10h3.5l6.5 2.2V5.8L13.5 4z"/><circle cx="10" cy="9" r="1.8"/><path d="M9.5 14 11 20.5h2.6L13 14"/>'),
+    polish: svg('<path d="M10 3h4v5h-4z"/><rect x="6.5" y="8" width="11" height="13" rx="3"/><path d="M10 12.5v4.5"/>'),
+    lotus: svg('<path d="M12 19c-2.8-1.8-4.3-4.5-4.3-7.6 0-2.6 1.8-5 4.3-6.6 2.5 1.6 4.3 4 4.3 6.6 0 3.1-1.5 5.8-4.3 7.6z"/><path d="M12 19c-4.3 0-7.8-2.4-8.8-6.6 1.5-.5 3.1-.4 4.5.1M12 19c4.3 0 7.8-2.4 8.8-6.6-1.5-.5-3.1-.4-4.5.1"/>'),
+    tooth: svg('<path d="M12 5.6C10.5 4.3 8.8 3.7 7 4.1 4.6 4.6 3.6 7.1 4.2 9.6c.5 2 1.4 3.4 1.8 5.5.4 2.2.8 4.9 2.3 4.9 1.6 0 1.7-3.2 2.2-4.7.3-.9.8-1.3 1.5-1.3s1.2.4 1.5 1.3c.5 1.5.6 4.7 2.2 4.7 1.5 0 1.9-2.7 2.3-4.9.4-2.1 1.3-3.5 1.8-5.5.6-2.5-.4-5-2.8-5.5-1.8-.4-3.5.2-5 1.5z"/>'),
+    dumbbell: svg('<rect x="5" y="6.5" width="3.2" height="11" rx="1.3"/><rect x="15.8" y="6.5" width="3.2" height="11" rx="1.3"/><path d="M2.8 9.8v4.4M21.2 9.8v4.4M8.2 12h7.6"/>'),
+    stones: svg('<ellipse cx="12" cy="18" rx="8" ry="2.7"/><ellipse cx="12" cy="12.6" rx="5.8" ry="2.3"/><ellipse cx="12" cy="7.9" rx="3.8" ry="1.9"/><path d="M12 6c0-1.6.9-2.6 2.6-3"/>'),
+    nib: svg('<path d="M12 21 7.2 13.2 9.3 6h5.4l2.1 7.2z"/><path d="M12 21v-7.2"/><circle cx="12" cy="12.4" r="1.4"/><path d="M9 6V3.2h6V6"/>')
   };
+  const CAT_ICON = { barber: "scissors", hair: "dryer", nails: "polish", beauty: "lotus", dental: "tooth", physio: "dumbbell", massage: "stones", tattoo: "nib" };
+  const catIcon = cat => ICON[CAT_ICON[cat && cat.id]] || ICON.store;
+  // the striped awning in the small shop illustrations (white and lavender stripes, scalloped edge)
+  function awningSvg(cls) {
+    const n = 6, top = [16, 104], bot = [6, 114], y0 = 12, y1 = 40;
+    let d = '<rect x="12" y="5" width="96" height="9" rx="4.5" fill="#C9CBFA"/>';
+    for (let i = 0; i < n; i++) {
+      const tl = top[0] + (top[1] - top[0]) * i / n, tr = top[0] + (top[1] - top[0]) * (i + 1) / n;
+      const bl = bot[0] + (bot[1] - bot[0]) * i / n, br = bot[0] + (bot[1] - bot[0]) * (i + 1) / n;
+      const fill = i % 2 ? "#C9CBFA" : "#FFFFFF";
+      d += `<path d="M${tl.toFixed(2)} ${y0}H${tr.toFixed(2)}L${br} ${y1}A${(br - bl) / 2} ${(br - bl) / 2} 0 0 1 ${bl} ${y1}z" fill="${fill}"/>`;
+    }
+    return `<svg class="${cls}" viewBox="0 0 120 52" aria-hidden="true" focusable="false">${d}</svg>`;
+  }
 
   /* ------------------------------------------------------------ storage */
   const store = {
@@ -282,8 +316,8 @@
   const L = () => TEXT[lang];
   function tx(v) { return (v && typeof v === "object") ? (v[lang] || v.en || v.he || "") : (typeof v === "string" ? v : ""); }
 
-  const CATEGORIES = (window.CATEGORIES || []).map(c => Object.assign({}, c, { color: HEX_RE.test(c.color) ? c.color : "#5b5348" }));
-  const OTHER = { id: "", emoji: "🏪", color: "#5b5348", name: { en: "Other", he: "אחר" } };
+  const CATEGORIES = (window.CATEGORIES || []).map(c => Object.assign({}, c, { color: HEX_RE.test(c.color) ? c.color : "#5B5B7A" }));
+  const OTHER = { id: "", emoji: "🏪", color: "#5B5B7A", name: { en: "Other", he: "אחר" } };
   const category = id => CATEGORIES.find(c => c.id === id) || OTHER;
 
   // Coerce any stored shop into a safe, complete shape (or drop it).
@@ -444,18 +478,25 @@
     const summary = [shop.mine && !preview ? t.yours : "", tx(cat.name), (st.open ? t.open : t.closed) + ", " + stateDetail(st), hasDist ? formatDistance(dist) : "", price !== null ? t.from + money(price) : ""].filter(Boolean).join(" · ");
     return `
       <${tag} class="card"${linkAttrs} style="--c:${cat.color};--i:${Math.min(i, 12)}">
-        <div class="awning" aria-hidden="true"></div>
-        <div class="window" aria-hidden="true">
-          ${photo ? `<img src="${esc(photo)}" alt="" loading="lazy" decoding="async">` : `<span class="emoji">${esc(cat.emoji)}</span>`}
-          ${shop.mine && !preview ? `<span class="pill mine">${esc(t.yours)}</span>` : ""}
+        <div class="card-media">
+          <div class="window${photo ? " has-photo" : ""}" aria-hidden="true">
+            ${photo ? `<img src="${esc(photo)}" alt="" loading="lazy" decoding="async">` : `<span class="ph-icon">${catIcon(cat)}</span>`}
+            ${shop.mine && !preview ? `<span class="pill mine">${esc(t.yours)}</span>` : ""}
+          </div>
+          <div class="card-top">
+            <span class="badge" aria-hidden="true">${catIcon(cat)}</span>
+            <h3 id="${uid}-n"><bdi${langAttr(name)}>${esc(name)}</bdi></h3>
+            <span class="card-cat">${esc(tx(cat.name))}</span>
+          </div>
         </div>
         <div class="card-body">
-          <div class="card-top"><h3 id="${uid}-n"><bdi${langAttr(name)}>${esc(name)}</bdi></h3>${hasDist ? `<span class="dist">${esc(formatDistance(dist))}</span>` : ""}</div>
-          <p class="card-meta"><span class="meta-in"><span>${esc(tx(cat.name))}</span>${price !== null ? `<span class="from">${esc(t.from)}<b>${esc(money(price))}</b></span>` : ""}</span></p>
-          <p class="card-addr"><bdi${langAttr(addr)}>${esc(addr)}</bdi></p>
           <div class="card-foot">
-            <span class="foot-status">${statusPill(st)}<span class="hint-small">${esc(stateDetail(st))}</span></span>
+            <span class="foot-status">${statusPill(st)}</span>
+            ${hasDist ? `<span class="dist">${ICON.pin}<span>${esc(formatDistance(dist))}</span></span>` : ""}
           </div>
+          <p class="hint-small">${esc(stateDetail(st))}</p>
+          <p class="card-meta"><span class="meta-in">${price !== null ? `<span class="from">${esc(t.from)}<b>${esc(money(price))}</b></span>` : ""}<span class="card-addr"><bdi${langAttr(addr)}>${esc(addr)}</bdi></span></span></p>
+          <span class="card-cta" aria-hidden="true"><span>${esc(t.viewShop)}</span>${ICON.chevron}</span>
           ${preview ? "" : `<span class="sr-only" id="${uid}-d">${esc(summary)}</span>`}
         </div>
       </${tag}>`;
@@ -468,10 +509,9 @@
     const shops = allShops();
     const counts = {};
     shops.forEach(s => { counts[s.category] = (counts[s.category] || 0) + 1; });
-    const catTile = (c, label, n, extraClass, emoji) => `
-      <button class="shopfront ${extraClass || ""}" type="button" data-cat="${esc(c ? c.id : "")}" aria-pressed="${filter.category === (c ? c.id : "")}" style="--c:${c ? c.color : "#1d1a16"}">
-        <span class="awning" aria-hidden="true"></span>
-        <span class="emoji" aria-hidden="true">${esc(emoji)}</span>
+    const catTile = (c, label, n, extraClass, icon) => `
+      <button class="shopfront ${extraClass || ""}" type="button" data-cat="${esc(c ? c.id : "")}" aria-pressed="${filter.category === (c ? c.id : "")}">
+        <span class="tile-icon" aria-hidden="true">${icon}</span>
         <span class="name">${esc(label)}</span>
         <span class="n" data-count="${esc(c ? c.id : "")}">${esc(t.places(n))}</span>
       </button>`;
@@ -490,20 +530,20 @@
         </form>
         <div class="hero-art" aria-hidden="true">
           <div class="store">
-            <div class="awning"></div>
+            ${awningSvg("store-awning")}
             <div class="facade">
-              <div class="pane" style="--c:${category("barber").color}">💈</div>
+              <div class="pane">${ICON.scissors}</div>
               <div class="door"><span class="sign">${esc(t.openSign)}</span></div>
-              <div class="pane" style="--c:${category("nails").color}">💅</div>
+              <div class="pane">${ICON.polish}</div>
             </div>
             <div class="step"></div>
-            <span class="plant">🪴</span>
+            <span class="plant">${ICON.leaf}</span>
           </div>
         </div>
       </section>
       <div class="street" id="street" role="group" aria-label="${esc(t.catsLabel)}">
-        ${catTile(null, t.allCats, shops.length, "all", "★")}
-        ${CATEGORIES.map(c => catTile(c, tx(c.name), counts[c.id] || 0, "", c.emoji)).join("")}
+        ${catTile(null, t.allCats, shops.length, "all", ICON.grid)}
+        ${CATEGORIES.map(c => catTile(c, tx(c.name), counts[c.id] || 0, "", catIcon(c))).join("")}
       </div>
       <section aria-labelledby="resultsTitle">
         <div class="toolbar">
@@ -525,12 +565,12 @@
         <div class="grid" id="grid"></div>
       </section>
       <section class="owner-cta">
-        <div class="awning" aria-hidden="true"></div>
-        <div>
+        <div class="cta-text">
           <h2>${esc(t.ctaTitle)}</h2>
           <p>${esc(t.ctaText)}</p>
         </div>
-        <a class="btn" href="#/new">${ICON.plus}${esc(t.ctaBtn)}</a>
+        <a class="btn" href="#/new">${esc(t.ctaBtn)}${ICON.arrow}</a>
+        <div class="cta-art" aria-hidden="true">${awningSvg("cta-awning")}<span class="cta-body"><span class="cta-win"></span><span class="cta-door"></span></span></div>
       </section>`;
 
     const q = document.getElementById("q");
@@ -620,7 +660,7 @@
     grid.classList.toggle("calm", !animate);
     grid.innerHTML = list.length
       ? list.map(({ shop, dist }, i) => cardHtml(shop, dist, i)).join("")
-      : `<div class="empty"><span class="big" aria-hidden="true">🔍</span><h3>${esc(t.emptyTitle)}</h3><p>${esc(t.empty)}</p>
+      : `<div class="empty"><span class="big" aria-hidden="true">${ICON.search}</span><h3>${esc(t.emptyTitle)}</h3><p>${esc(t.empty)}</p>
            <button class="btn btn-ghost btn-sm" type="button" id="clearBtn">${esc(t.clearFilters)}</button></div>`;
     const clear = document.getElementById("clearBtn");
     if (clear) clear.addEventListener("click", () => {
@@ -659,7 +699,7 @@
     if (!pageNotice || pageNotice.hash !== normHash(location.hash)) return "";
     const t = L();
     const text = { edit: t.saved, removed: t.removed }[pageNotice.kind] || t.published;
-    return `<p class="note fade-in" id="pageNote"><span aria-hidden="true">${pageNotice.kind === "removed" ? "🗑️" : "🎉"}</span><span>${esc(text)}</span></p>`;
+    return `<p class="note fade-in" id="pageNote"><span class="note-icon" aria-hidden="true">${pageNotice.kind === "removed" ? ICON.trash : ICON.check}</span><span>${esc(text)}</span></p>`;
   }
   // Screen readers hear changes in a live region that already exists, so we use one fixed region.
   let announceTimer = 0;
@@ -692,7 +732,7 @@
     const t = L();
     document.title = (title || t.notFound) + " — " + tx(window.APP_NAME);
     app.innerHTML = `${backLink()}
-      <div class="empty"><span class="big" aria-hidden="true">${link ? "🔒" : "🏚️"}</span><h1 tabindex="-1">${esc(title || t.notFound)}</h1><p>${esc(sub || t.notFoundSub)}</p>
+      <div class="empty"><span class="big" aria-hidden="true">${link ? ICON.lock : ICON.store}</span><h1 tabindex="-1">${esc(title || t.notFound)}</h1><p>${esc(sub || t.notFoundSub)}</p>
         ${link ? `<a class="btn" href="${esc(link)}">${esc(t.viewShop)}</a>` : `<a class="btn" href="#/" data-back>${esc(t.back)}</a>`}</div>`;
   }
 
@@ -755,14 +795,14 @@
                 <div class="gallery ${multi ? "multi" : ""}" id="gallery"${multi ? ` tabindex="0" role="region" aria-label="${esc(t.photos)}"` : ""}>
                   ${shop.photos.length
                     ? shop.photos.map((p, i) => `<div class="window"><img class="backdrop" src="${esc(p)}" alt="" aria-hidden="true" decoding="async"><img class="photo" src="${esc(p)}" alt="${esc(t.photoAlt(name, i + 1))}" decoding="async"></div>`).join("")
-                    : `<div class="window" aria-hidden="true"><span class="emoji">${esc(cat.emoji)}</span></div>`}
+                    : `<div class="window" aria-hidden="true"><span class="ph-icon">${catIcon(cat)}</span></div>`}
                 </div>
                 ${multi ? `<button class="gallery-btn prev" type="button" data-step="-1" aria-label="${esc(t.prevPhoto)}" aria-controls="gallery">${ICON.back}</button>
                   <button class="gallery-btn next" type="button" data-step="1" aria-label="${esc(t.nextPhoto)}" aria-controls="gallery">${ICON.back}</button>
                   <span class="gallery-count" id="galleryCount" aria-hidden="true">1 / ${shop.photos.length}</span>` : ""}
               </div>
               <div class="shop-title">
-                <p class="card-meta"><span aria-hidden="true">${esc(cat.emoji)}</span><span>${esc(tx(cat.name))}</span>${dist !== null ? `<span aria-hidden="true">·</span><span>${esc(formatDistance(dist))}</span>` : ""}</p>
+                <p class="card-meta"><span class="meta-icon" aria-hidden="true">${catIcon(cat)}</span><span>${esc(tx(cat.name))}</span>${dist !== null ? `<span aria-hidden="true">·</span><span>${esc(formatDistance(dist))}</span>` : ""}</p>
                 <h1 tabindex="-1"><bdi${langAttr(name)}>${esc(name)}</bdi></h1>
                 <p class="card-meta" id="shopStatus" data-id="${esc(shop.id)}" data-sig="${esc(st.open + "|" + stateDetail(st))}">${statusPill(st)} <span>${esc(stateDetail(st))}</span></p>
                 <div class="actions desktop-only">
@@ -799,7 +839,7 @@
       }
       try {
         await navigator.clipboard.writeText(url);
-        showToast(`<span aria-hidden="true">✓</span> ${esc(t.copied)}`);
+        showToast(`${ICON.check}<span>${esc(t.copied)}</span>`);
         announce(t.copied);
       } catch (e) {
         // no clipboard access: show the link ready to copy by hand
@@ -951,7 +991,7 @@
 
   function locStatusHtml(state) {
     const t = L();
-    if (state === "set") return `${esc(t.locSet)} <span aria-hidden="true">✓</span>`;
+    if (state === "set") return `${esc(t.locSet)} ${ICON.check}`;
     return esc({ locating: t.locating, failed: t.locFailed, unavailable: t.locUnavailable, unsupported: t.locUnsupported }[state] || t.locNone);
   }
 
@@ -985,7 +1025,7 @@
       ${d.restored ? `<div class="note draft-note" id="draftNote"><span>${esc(editing ? t.draftEdits : t.draftKept)}</span>
         <button class="btn btn-ghost btn-sm" type="button" id="discardBtn">${esc(editing ? t.discard : t.startOver)}</button></div>` : ""}
       <form id="shopForm" class="form-layout" novalidate>
-        <p class="note"><span aria-hidden="true">ℹ️</span><span>${esc(t.demoNote)}</span></p>
+        <p class="note"><span class="note-icon" aria-hidden="true">${ICON.info}</span><span>${esc(t.demoNote)}</span></p>
 
         <section class="panel step" aria-labelledby="s1">
           <div class="step-head"><span class="step-num" aria-hidden="true">1</span><h2 id="s1">${esc(t.step1)}</h2></div>
@@ -1426,7 +1466,7 @@
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "he" ? "rtl" : "ltr";
     document.getElementById("skipLink").textContent = t.skip;
-    document.getElementById("brandName").textContent = tx(window.APP_NAME);
+    document.querySelector(".brand").setAttribute("aria-label", tx(window.APP_NAME)); // the logo shows both names
     const nav = document.getElementById("navNew");
     nav.innerHTML = `${ICON.plus}<span class="label-long">${esc(t.ownerBtn)}</span><span class="label-short">${esc(t.ownerBtnShort)}</span>`;
     if (route === "new") nav.setAttribute("aria-current", "page"); else nav.removeAttribute("aria-current");
