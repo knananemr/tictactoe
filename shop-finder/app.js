@@ -8,6 +8,7 @@
   const OLD_KEYS = ["nearby.draft", "nearby.notice"];
   const MAX_PHOTOS = 4;
   const DEFAULT_TZ = "Asia/Jerusalem";
+  const DEMO_POS = { lat: 32.0753, lng: 34.7749 }; // Dizengoff Center, for trying "near me" without location access
 
   /* ------------------------------------------------------------ texts */
   const TEXT = {
@@ -26,6 +27,7 @@
       locDenied: "Location is off — allow it in your browser to see what's closest.",
       locUnavailable: "Couldn't find your location right now — try again in a moment.",
       locUnsupported: "Your browser can't share location.",
+      demoSpot: "Try a demo spot in Tel Aviv", locDemo: "Sorted by distance from a demo spot in Tel Aviv",
       anyDistance: "Any distance", within: r => "Within " + r + " km", distanceLabel: "Distance",
       openNow: "Open now",
       allShops: "All places", nearYou: "Closest to you",
@@ -53,6 +55,7 @@
       ownerOnly: "Only the owner can edit this shop.", ownerOnlySub: "A shop can be edited on the device it was created on.", viewShop: "View the shop",
       yourShop: "This is your shop",
       edit: "Edit my shop", remove: "Delete my shop", removeConfirm: "Delete this shop? This can't be undone.",
+      removeYes: "Yes, delete it", removeNo: "Keep my shop",
       published: "Your shop is live! This is how customers see it.", saved: "Changes saved.", removed: "Your shop was deleted.",
       photoAlt: (name, i) => name + " — photo " + i,
       formTitle: "Open your shop", editTitle: "Edit your shop",
@@ -108,6 +111,7 @@
       locDenied: "המיקום כבוי — אפשרו אותו בדפדפן כדי לראות מה הכי קרוב.",
       locUnavailable: "לא הצלחנו למצוא את המיקום כרגע — נסו שוב בעוד רגע.",
       locUnsupported: "הדפדפן לא יכול לשתף מיקום.",
+      demoSpot: "לנסות עם נקודת דמו בתל אביב", locDemo: "ממוין לפי מרחק מנקודת דמו בתל אביב",
       anyDistance: "כל מרחק", within: r => "עד " + r + " ק״מ", distanceLabel: "מרחק",
       openNow: "פתוח עכשיו",
       allShops: "כל המקומות", nearYou: "הכי קרובים אליך",
@@ -135,6 +139,7 @@
       ownerOnly: "רק הבעלים יכולים לערוך את העסק הזה.", ownerOnlySub: "אפשר לערוך עסק במכשיר שבו הוא נוצר.", viewShop: "לדף העסק",
       yourShop: "זה העסק שלך",
       edit: "עריכת העסק", remove: "מחיקת העסק שלי", removeConfirm: "למחוק את העסק? אי אפשר לבטל את זה.",
+      removeYes: "כן, למחוק", removeNo: "להשאיר את העסק",
       published: "העסק שלך באוויר! כך הלקוחות רואים אותו.", saved: "השינויים נשמרו.", removed: "העסק שלך נמחק.",
       photoAlt: (name, i) => name + " — תמונה " + i,
       formTitle: "פתיחת עסק", editTitle: "עריכת העסק",
@@ -516,6 +521,7 @@
             </select>
           </div>
           <p class="status-line" id="locStatus" role="status"></p>
+          <button class="btn btn-ghost btn-sm demo-btn" type="button" id="demoBtn" hidden>${ICON.locate}${esc(t.demoSpot)}</button>
         </div>
         <div class="grid" id="grid"></div>
       </section>
@@ -560,6 +566,13 @@
     document.getElementById("radius").addEventListener("change", e => { filter.radius = Number(e.target.value) || 0; updateResults(true); });
     document.getElementById("openBtn").addEventListener("click", () => { filter.openNow = !filter.openNow; updateResults(true); });
     document.getElementById("nearBtn").addEventListener("click", toggleNearMe);
+    document.getElementById("demoBtn").addEventListener("click", () => {
+      locToken++;
+      userPos = Object.assign({}, DEMO_POS);
+      locState = "demo";
+      updateResults(true);
+      document.getElementById("nearBtn").focus();
+    });
     updateResults(firstRender);
   }
 
@@ -599,8 +612,10 @@
     setText(document.getElementById("resultsTitle"), cat ? tx(cat.name) : (userPos ? t.nearYou : t.allShops));
     setText(document.getElementById("count"), t.results(list.length));
     const status = document.getElementById("locStatus");
-    setText(status, { locating: t.locating, on: t.locOn, denied: t.locDenied, unavailable: t.locUnavailable, unsupported: t.locUnsupported }[locState] || "");
-    status.classList.toggle("warn", locState === "denied" || locState === "unavailable" || locState === "unsupported");
+    setText(status, { locating: t.locating, on: t.locOn, demo: t.locDemo, denied: t.locDenied, unavailable: t.locUnavailable, unsupported: t.locUnsupported }[locState] || "");
+    const failed = locState === "denied" || locState === "unavailable" || locState === "unsupported";
+    status.classList.toggle("warn", failed);
+    document.getElementById("demoBtn").hidden = !failed;
 
     homeSig = resultsSignature(list);
     grid.classList.toggle("calm", !animate);
@@ -720,10 +735,18 @@
         ${noticeHtml()}
         ${shop.mine ? `<div class="owner-bar fade-in">
             <span class="owner-tag">${esc(t.yourShop)}</span>
-            <span class="owner-actions">
+            <span class="owner-actions" id="ownerActions">
               <a class="btn btn-sm" href="#/edit/${encodeURIComponent(shop.id)}">${ICON.edit}${esc(t.edit)}</a>
               <button class="btn btn-danger btn-sm" type="button" id="removeBtn">${ICON.trash}${esc(t.remove)}</button>
             </span>
+            <div class="confirm-box" id="confirmBox" role="group" aria-labelledby="confirmText" hidden>
+              <p id="confirmText">${esc(t.removeConfirm)}</p>
+              <span class="owner-actions">
+                <button class="btn btn-sm btn-confirm-danger" type="button" id="confirmRemove">${ICON.trash}${esc(t.removeYes)}</button>
+                <button class="btn btn-sm" type="button" id="cancelRemove">${esc(t.removeNo)}</button>
+              </span>
+            </div>
+            <p class="owner-error" id="ownerError" role="alert" hidden></p>
           </div>` : ""}
         <div class="shop-layout">
           <div class="shop-main">
@@ -772,8 +795,8 @@
     app.querySelectorAll("[data-share]").forEach(b => b.addEventListener("click", async () => {
       const url = location.href;
       if (navigator.share) {
-        try { await navigator.share({ title: name, url }); } catch (e) { /* cancelled */ }
-        return;
+        try { await navigator.share({ title: name, url }); return; }
+        catch (e) { if (e && e.name === "AbortError") return; /* refused (e.g. inside a frame): copy instead */ }
       }
       try {
         await navigator.clipboard.writeText(url);
@@ -794,17 +817,36 @@
     if (multi && gallery) setupGallery(gallery, shop.photos.length);
 
     const removeBtn = document.getElementById("removeBtn");
-    if (removeBtn) removeBtn.addEventListener("click", () => {
-      if (!confirm(t.removeConfirm)) return;
-      const next = loadMyShops().filter(s => s.id !== shop.id).map(toStored);
-      const err = store.save("localStorage", STORE_KEY, next);
-      if (err) { alert(err === "full" ? t.errStorageFull : t.errStorageBlocked); return; }
-      myShops = loadMyShops();
-      discardDraft("edit." + shop.id);
-      pageNotice = { hash: "#/", kind: "removed" };
-      announce(t.removed);
-      navigate("#/", { replace: true });
-    });
+    if (removeBtn) {
+      const actions = document.getElementById("ownerActions"), box = document.getElementById("confirmBox");
+      const ask = open => {
+        actions.hidden = open;
+        box.hidden = !open;
+        document.getElementById(open ? "cancelRemove" : "removeBtn").focus();
+      };
+      removeBtn.addEventListener("click", () => { document.getElementById("ownerError").hidden = true; ask(true); });
+      document.getElementById("cancelRemove").addEventListener("click", () => ask(false));
+      box.addEventListener("keydown", e => { if (e.key === "Escape") ask(false); });
+      document.getElementById("confirmRemove").addEventListener("click", () => deleteShop(shop, ask));
+    }
+  }
+
+  function deleteShop(shop, ask) {
+    const t = L();
+    const next = loadMyShops().filter(s => s.id !== shop.id).map(toStored);
+    const err = store.save("localStorage", STORE_KEY, next);
+    if (err) {
+      const box = document.getElementById("ownerError");
+      box.textContent = err === "full" ? t.errStorageFull : t.errStorageBlocked;
+      box.hidden = false;
+      ask(false);
+      return;
+    }
+    myShops = loadMyShops();
+    discardDraft("edit." + shop.id);
+    pageNotice = { hash: "#/", kind: "removed" };
+    announce(t.removed);
+    navigate("#/", { replace: true });
   }
 
   // Previous / next buttons and a "2 / 4" counter for the shop photos.

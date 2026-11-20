@@ -675,3 +675,14 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 .toast .toast-url { flex: 1 1 200px; min-width: 0; min-height: 44px; padding: 6px 10px; border: 0; border-radius: 10px; font: inherit; font-weight: 600; color: var(--ink); }
 .toast .btn-ghost { color: var(--card); border-color: rgb(255 255 255 / .45); }
 @media (min-width: 900px) { .toast.has-bar { bottom: 24px; } }
+
+/* in-page delete confirmation (browsers inside frames ignore confirm()) */
+.confirm-box { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; }
+.confirm-box p { flex: 1 1 220px; font-weight: 700; color: var(--card); }
+.owner-bar .btn-confirm-danger { background: #ffb4a3; border-color: #ffb4a3; color: var(--ink); }
+.owner-error { width: 100%; color: #ffb4a3; font-weight: 700; }
+.demo-btn { margin-top: -2px; }
+
+/* phones in apps that draw under the status bar: keep the sticky header below it */
+.topbar { top: env(safe-area-inset-top, 0px); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 21; background: var(--paper); }
