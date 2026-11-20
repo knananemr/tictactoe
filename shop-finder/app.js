@@ -761,9 +761,9 @@
     const tel = phoneDigits(shop.phone);
     const wa = whatsappNumber(shop.phone);
 
-    const callBtn = cls => tel ? `<a class="btn ${cls}" href="tel:${esc(tel)}">${ICON.phone}${esc(t.call)}</a>` : "";
-    const dirBtn = cls => `<a class="btn ${cls}" href="${esc(mapUrl)}" target="_blank" rel="noopener noreferrer">${ICON.map}${esc(t.directions)}${newTabNote()}</a>`;
-    const shareBtn = (cls, iconOnly) => `<button class="btn ${cls}" type="button" data-share${iconOnly ? ` aria-label="${esc(t.share)}"` : ""}>${ICON.share}${iconOnly ? "" : esc(t.share)}</button>`;
+    const callBtn = cls => tel ? `<a class="btn${cls ? " " + cls : ""}" href="tel:${esc(tel)}">${ICON.phone}${esc(t.call)}</a>` : "";
+    const dirBtn = cls => `<a class="btn${cls ? " " + cls : ""}" href="${esc(mapUrl)}" target="_blank" rel="noopener noreferrer">${ICON.map}${esc(t.directions)}${newTabNote()}</a>`;
+    const shareBtn = (cls, iconOnly) => `<button class="btn${cls ? " " + cls : ""}" type="button" data-share${iconOnly ? ` aria-label="${esc(t.share)}"` : ""}>${ICON.share}${iconOnly ? "" : esc(t.share)}</button>`;
     const multi = shop.photos.length > 1;
 
     const about = tx(shop.about);
@@ -807,8 +807,8 @@
                 <p class="card-meta" id="shopStatus" data-id="${esc(shop.id)}" data-sig="${esc(st.open + "|" + stateDetail(st))}">${statusPill(st)} <span>${esc(stateDetail(st))}</span></p>
                 <div class="actions desktop-only">
                   ${callBtn("btn-accent")}
-                  ${dirBtn("btn-ghost")}
-                  ${shareBtn("btn-ghost")}
+                  ${dirBtn("")}
+                  ${shareBtn("")}
                 </div>
               </div>
             </article>
@@ -828,7 +828,7 @@
             </ul></section>
           </aside>
         </div>
-        <div class="action-bar">${callBtn("btn-accent")}${dirBtn(tel ? "btn-ghost" : "btn-accent")}${shareBtn("btn-ghost btn-icon", true)}</div>
+        <div class="action-bar">${callBtn("btn-accent")}${dirBtn(tel ? "" : "btn-accent")}${shareBtn("btn-icon", true)}</div>
       </div>`;
 
     app.querySelectorAll("[data-share]").forEach(b => b.addEventListener("click", async () => {

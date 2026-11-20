@@ -168,14 +168,19 @@ After the owner checked the published app on an iPhone, four reviewers compared 
 - **Awnings:** every awning ends with the same half stripe at both ends, with no seam under the stripes.
 - **Cards and pages:** distance sits next to the shop name, so cards keep one height. The "All" tile lines up with the other tiles. Hours text lines up with the other panels. Phone/email text lines up with the Hebrew fields. All stacked blocks on a phone share one corner radius, and the search bar's shadow ends on the page edge.
 
-## The redesign
+## The redesign ("Indigo" theme)
 
-- **Idea:** every shop gets a storefront. Cards and category tiles wear a striped awning in their category colour over a tinted "shop window". The app's purpose is to give small shops a place to be seen, and the storefront makes that visible.
-- **Type:** Suez One (sign-painter serif, has Hebrew) for headings and shop names; Assistant for text.
-- **Colour:** warm paper background, dark ink, tomato accent; every text colour passes WCAG AA.
-- **Home:** short headline, one search bar with "Near me" inside it, category "street", then results. Desktop shows an animated storefront with a swinging OPEN sign (still for people who turn off motion).
-- **Shop page:** awning hero, photo gallery with buttons, status with times, prices, today's hours highlighted, contact with Waze/WhatsApp/Share, sticky Call/Directions on phones, two columns on desktop, and an owner bar (Edit / Delete) on your own shop.
-- **Owner form:** 5 steps, live preview of your card, "24 hours" days, per-row price checks, a kept draft per form, edit after publishing.
+The app was re-skinned to match the owner's mock-ups (`design/mockups/`, spec in `THEME-BLUEPRINT.md`). Only the look changed.
+
+- **Colour:** pale lavender-white page, white cards, indigo `#4B3ACF` for buttons, selected states and icons, navy `#16162E` text. Soft indigo shadows instead of hard ones. All text passes WCAG AA.
+- **Type:** Heebo for text, Rubik for headings, names and prices. No serif, no italics.
+- **Icons:** thin line icons (inline SVG) replace every emoji, one per category.
+- **Logo:** indigo map pin with "Nearby" over "קרוב אליי", in both languages.
+- **Home:** centred header on phones (round add-shop and language buttons), pill search bar, square category chips, two-column photo cards with a white category badge, the name on a dark fade, status and distance, and an outline "view shop" pill. Indigo owner banner with a small flat shop drawing.
+- **Shop page:** photo with a white sheet over its edge and a navy logo tile, status pill, service row cards, a highlighted "today" row in the hours, contact rows with icon wells, and a bottom bar on phones with one wide indigo Call pill.
+- **Owner form:** numbered indigo step circles, rounded fields with a strong focus ring, lavender service and location boxes, and the same card in the live preview.
+- **Stayed on purpose:** every feature, route, text, id and test hook; the hours-grid layout from the iPhone pass; the swinging "open" sign on desktop (motion off when the user asks); no-photo shops use a gradient in the category colour instead of a photo.
+- **Left out (no such feature yet):** booking buttons and date/time picker, favourites (hearts), notifications bell, menu, bottom tab bar, reviews, coupons, owner dashboard. Their styles were reused for parts that exist (for example the booking pill became the Call button).
 
 ## Still open (needs the next step: a backend)
 
