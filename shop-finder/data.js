@@ -9,20 +9,22 @@
  *   lat, lng              – location, used for "near me"
  *   hours                 – 7 entries, Sunday first: ["09:00","19:00"] or null (closed)
  *   services              – [{ name, price, minutes }]
- *   photos                – image paths / data URLs (empty = coloured tile with the emoji)
+ *   photos                – image paths / data URLs (empty = category colour with the emoji)
+ *
+ * Category fields: id, emoji, color (awning colour), name
  */
 window.APP_NAME = { en: "Nearby", he: "קרוב אליי" };
 window.CURRENCY = "₪";
 
 window.CATEGORIES = [
-  { id: "barber",  emoji: "💈", name: { en: "Barber",        he: "מספרת גברים" } },
-  { id: "hair",    emoji: "💇", name: { en: "Hair salon",    he: "עיצוב שיער" } },
-  { id: "nails",   emoji: "💅", name: { en: "Nails",         he: "ציפורניים" } },
-  { id: "beauty",  emoji: "✨", name: { en: "Beauty clinic", he: "קוסמטיקה" } },
-  { id: "dental",  emoji: "🦷", name: { en: "Dental",        he: "מרפאת שיניים" } },
-  { id: "physio",  emoji: "🩺", name: { en: "Physiotherapy", he: "פיזיותרפיה" } },
-  { id: "massage", emoji: "💆", name: { en: "Massage & spa", he: "עיסוי וספא" } },
-  { id: "tattoo",  emoji: "🖋️", name: { en: "Tattoo",        he: "קעקועים" } }
+  { id: "barber",  emoji: "💈", color: "#b3261e", name: { en: "Barber",        he: "מספרת גברים" } },
+  { id: "hair",    emoji: "💇", color: "#7a3e65", name: { en: "Hair salon",    he: "עיצוב שיער" } },
+  { id: "nails",   emoji: "💅", color: "#b4466b", name: { en: "Nails",         he: "ציפורניים" } },
+  { id: "beauty",  emoji: "✨", color: "#8a6a4c", name: { en: "Beauty clinic", he: "קוסמטיקה" } },
+  { id: "dental",  emoji: "🦷", color: "#1f6f7c", name: { en: "Dental",        he: "מרפאת שיניים" } },
+  { id: "physio",  emoji: "🩺", color: "#2f6b4a", name: { en: "Physiotherapy", he: "פיזיותרפיה" } },
+  { id: "massage", emoji: "💆", color: "#5b4b8a", name: { en: "Massage & spa", he: "עיסוי וספא" } },
+  { id: "tattoo",  emoji: "🖋️", color: "#2b2b2b", name: { en: "Tattoo",        he: "קעקועים" } }
 ];
 
 (function () {
@@ -36,7 +38,7 @@ window.CATEGORIES = [
 
   window.SAMPLE_SHOPS = [
     {
-      id: "s1", category: "barber", color: "#1f3a5f",
+      id: "s1", category: "barber",
       name: { en: "Yossi's Barber Corner", he: "הפינה של יוסי" },
       about: { en: "A small two-chair barber shop. Classic cuts, fades and beard work — no appointment drama.",
                he: "מספרה קטנה עם שני כיסאות. תספורות קלאסיות, פיידים וטיפוח זקן." },
@@ -47,7 +49,7 @@ window.CATEGORIES = [
       photos: []
     },
     {
-      id: "s2", category: "barber", color: "#3d2c2e",
+      id: "s2", category: "barber",
       name: { en: "Fade Lab", he: "פייד לאב" },
       about: { en: "Modern fades and sharp line-ups in the north of the city.",
                he: "פיידים מודרניים וקווים חדים בצפון העיר." },
@@ -58,7 +60,7 @@ window.CATEGORIES = [
       photos: []
     },
     {
-      id: "s3", category: "hair", color: "#7a3e65",
+      id: "s3", category: "hair",
       name: { en: "Studio Maya", he: "סטודיו מאיה" },
       about: { en: "Colour, cuts and blow-dries in a quiet private studio.",
                he: "צבע, תספורות ופן בסטודיו פרטי ושקט." },
@@ -69,7 +71,7 @@ window.CATEGORIES = [
       photos: []
     },
     {
-      id: "s4", category: "nails", color: "#c2577a",
+      id: "s4", category: "nails",
       name: { en: "Pink Nail Bar", he: "פינק נייל בר" },
       about: { en: "Gel, manicure and pedicure. Walk-ins welcome when there's a free chair.",
                he: "ג'ל, מניקור ופדיקור. אפשר להגיע גם בלי תור כשיש מקום." },
@@ -80,7 +82,7 @@ window.CATEGORIES = [
       photos: []
     },
     {
-      id: "s5", category: "beauty", color: "#b08968",
+      id: "s5", category: "beauty",
       name: { en: "Glow Skin Clinic", he: "גלואו קליניק" },
       about: { en: "Facials, laser hair removal and skin consultations by a certified cosmetician.",
                he: "טיפולי פנים, הסרת שיער בלייזר וייעוץ עור אצל קוסמטיקאית מוסמכת." },
@@ -91,7 +93,7 @@ window.CATEGORIES = [
       photos: []
     },
     {
-      id: "s6", category: "dental", color: "#2a7f8e",
+      id: "s6", category: "dental",
       name: { en: "Dr. Levi Dental", he: "מרפאת שיניים ד״ר לוי" },
       about: { en: "Family dental clinic: check-ups, hygienist, whitening and emergencies.",
                he: "מרפאת שיניים משפחתית: בדיקות, שיננית, הלבנה ומקרים דחופים." },
@@ -102,7 +104,7 @@ window.CATEGORIES = [
       photos: []
     },
     {
-      id: "s7", category: "physio", color: "#3f7d58",
+      id: "s7", category: "physio",
       name: { en: "Move Physio", he: "מוב פיזיותרפיה" },
       about: { en: "Sports injuries, back pain and post-surgery rehab. One-on-one sessions.",
                he: "פציעות ספורט, כאבי גב ושיקום לאחר ניתוח. טיפולים אחד על אחד." },
@@ -113,7 +115,7 @@ window.CATEGORIES = [
       photos: []
     },
     {
-      id: "s8", category: "massage", color: "#6b5b95",
+      id: "s8", category: "massage",
       name: { en: "Quiet Hands Massage", he: "ידיים שקטות" },
       about: { en: "Swedish, deep tissue and pregnancy massage in Jaffa.",
                he: "עיסוי שוודי, רקמות עמוק ועיסוי להריון ביפו." },
@@ -124,7 +126,7 @@ window.CATEGORIES = [
       photos: []
     },
     {
-      id: "s9", category: "tattoo", color: "#2b2b2b",
+      id: "s9", category: "tattoo",
       name: { en: "Ink & Needle", he: "אינק אנד נידל" },
       about: { en: "Fine-line and black-work tattoos. Free design consultation.",
                he: "קעקועי קו דק ובלאק-וורק. ייעוץ עיצוב ללא עלות." },
@@ -135,7 +137,7 @@ window.CATEGORIES = [
       photos: []
     },
     {
-      id: "s10", category: "hair", color: "#a0522d",
+      id: "s10", category: "hair",
       name: { en: "Curls by Noa", he: "תלתלים של נועה" },
       about: { en: "Specialist in curly hair — cuts, treatments and styling lessons.",
                he: "מומחית לשיער מתולתל — תספורות, טיפולים והדרכות עיצוב." },
