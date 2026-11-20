@@ -450,12 +450,11 @@
           ${shop.mine && !preview ? `<span class="pill mine">${esc(t.yours)}</span>` : ""}
         </div>
         <div class="card-body">
-          <h3 id="${uid}-n"><bdi${langAttr(name)}>${esc(name)}</bdi></h3>
+          <div class="card-top"><h3 id="${uid}-n"><bdi${langAttr(name)}>${esc(name)}</bdi></h3>${hasDist ? `<span class="dist">${esc(formatDistance(dist))}</span>` : ""}</div>
           <p class="card-meta"><span class="meta-in"><span>${esc(tx(cat.name))}</span>${price !== null ? `<span class="from">${esc(t.from)}<b>${esc(money(price))}</b></span>` : ""}</span></p>
           <p class="card-addr"><bdi${langAttr(addr)}>${esc(addr)}</bdi></p>
           <div class="card-foot">
             <span class="foot-status">${statusPill(st)}<span class="hint-small">${esc(stateDetail(st))}</span></span>
-            ${hasDist ? `<span class="dist">${esc(formatDistance(dist))}</span>` : ""}
           </div>
           ${preview ? "" : `<span class="sr-only" id="${uid}-d">${esc(summary)}</span>`}
         </div>

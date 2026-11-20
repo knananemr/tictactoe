@@ -158,6 +158,16 @@ Four fresh reviewers (logic, hands-on testing, accessibility + RTL, visual) chec
 | R46 | The form preview at 600–899px showed a card far wider than real cards | Limited to real card width |
 | R47 | The "·" separator could start a wrapped line | It is hidden at line starts |
 
+## iPhone detail pass
+
+After the owner checked the published app on an iPhone, four reviewers compared the iPhone screenshots with test renders and listed every edge and proportion that was off. Fixed:
+
+- **Opening hours:** on iPhone the time boxes kept Safari's own minimum width, so the closing-time box stuck out of its row and the opening-time box covered the dash. The boxes now fit their columns on every browser. On phones each day is a plain row with a dashed divider, so the boxes line up with the other fields, and closed or 24-hour days fold into one line. Checkboxes look the same on iPhone and elsewhere.
+- **One size for controls:** text fields, selects, time boxes and the remove-service button are all 48px high with the same corners. Outline buttons use the same border colour as fields, and on phones the location and "same hours" buttons are full width, flush with the fields.
+- **Photos:** the dark sill under a photo is solid and the photo sits above it, not under it. Thumbnails crop the same way as the card customers see. The double gap under the photo picker is gone, and the remove button no longer touches the next thumbnail. The shop-page gallery shows the whole photo between the awning and the sill, with one unbroken sill.
+- **Awnings:** every awning ends with the same half stripe at both ends, with no seam under the stripes.
+- **Cards and pages:** distance sits next to the shop name, so cards keep one height. The "All" tile lines up with the other tiles. Hours text lines up with the other panels. Phone/email text lines up with the Hebrew fields. All stacked blocks on a phone share one corner radius, and the search bar's shadow ends on the page edge.
+
 ## The redesign
 
 - **Idea:** every shop gets a storefront. Cards and category tiles wear a striped awning in their category colour over a tinted "shop window". The app's purpose is to give small shops a place to be seen, and the storefront makes that visible.
