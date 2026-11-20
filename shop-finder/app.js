@@ -790,7 +790,6 @@
         <div class="shop-layout">
           <div class="shop-main">
             <article class="shop-hero fade-in" style="--c:${cat.color}">
-              <div class="awning" aria-hidden="true"></div>
               <div class="gallery-wrap">
                 <div class="gallery ${multi ? "multi" : ""}" id="gallery"${multi ? ` tabindex="0" role="region" aria-label="${esc(t.photos)}"` : ""}>
                   ${shop.photos.length
@@ -802,8 +801,9 @@
                   <span class="gallery-count" id="galleryCount" aria-hidden="true">1 / ${shop.photos.length}</span>` : ""}
               </div>
               <div class="shop-title">
-                <p class="card-meta"><span class="meta-icon" aria-hidden="true">${catIcon(cat)}</span><span>${esc(tx(cat.name))}</span>${dist !== null ? `<span aria-hidden="true">·</span><span>${esc(formatDistance(dist))}</span>` : ""}</p>
+                <span class="logo-tile" aria-hidden="true">${catIcon(cat)}</span>
                 <h1 tabindex="-1"><bdi${langAttr(name)}>${esc(name)}</bdi></h1>
+                <p class="card-meta shop-sub"><span>${esc(tx(cat.name))}</span>${dist !== null ? `<span class="meta-dist"><span class="meta-icon" aria-hidden="true">${ICON.pin}</span><span>${esc(formatDistance(dist))}</span></span>` : ""}</p>
                 <p class="card-meta" id="shopStatus" data-id="${esc(shop.id)}" data-sig="${esc(st.open + "|" + stateDetail(st))}">${statusPill(st)} <span>${esc(stateDetail(st))}</span></p>
                 <div class="actions desktop-only">
                   ${callBtn("btn-accent")}
@@ -814,17 +814,17 @@
             </article>
             ${about ? `<section class="panel fade-in"><h2>${esc(t.about)}</h2><p class="about" dir="auto"${langAttr(about)}>${linkify(about)}</p></section>` : ""}
             ${shop.services.length ? `<section class="panel fade-in"><h2>${esc(t.services)}</h2><ul class="price-list">
-              ${shop.services.map(s => `<li><span class="svc"><bdi${langAttr(tx(s.name))}>${esc(tx(s.name))}</bdi></span>${s.minutes ? `<span class="dur">${esc(t.min(s.minutes))}</span>` : ""}<span class="price">${s.price ? esc(money(s.price)) : "—"}</span></li>`).join("")}
+              ${shop.services.map(s => `<li><span class="svc-icon" aria-hidden="true">${catIcon(cat)}</span><span class="svc"><bdi${langAttr(tx(s.name))}>${esc(tx(s.name))}</bdi></span>${s.minutes ? `<span class="dur">${ICON.clock}<span>${esc(t.min(s.minutes))}</span></span>` : ""}<span class="price">${s.price ? esc(money(s.price)) : "—"}</span></li>`).join("")}
             </ul></section>` : ""}
           </div>
           <aside class="shop-side">
             <section class="panel fade-in"><h2>${esc(t.hours)}</h2>${hoursListHtml(shop)}</section>
             <section class="panel fade-in"><h2>${esc(t.contact)}</h2><ul class="contact-list">
-              <li>${ICON.map}<a href="${esc(mapUrl)}" target="_blank" rel="noopener noreferrer"><bdi${langAttr(tx(shop.address))}>${esc(tx(shop.address))}</bdi>${newTabNote()}</a></li>
-              ${wazeUrl ? `<li>${ICON.nav}<a href="${esc(wazeUrl)}" target="_blank" rel="noopener noreferrer">${esc(t.waze)}${newTabNote()}</a></li>` : ""}
-              ${tel ? `<li>${ICON.phone}<a href="tel:${esc(tel)}"><bdi dir="ltr">${esc(shop.phone)}</bdi></a></li>` : ""}
-              ${wa ? `<li>${ICON.chat}<a href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener noreferrer">${esc(t.whatsapp)}${newTabNote()}</a></li>` : ""}
-              ${shop.email ? `<li>${ICON.mail}<a href="mailto:${esc(shop.email)}"><bdi dir="ltr">${esc(shop.email)}</bdi></a></li>` : ""}
+              <li><span class="c-icon" aria-hidden="true">${ICON.map}</span><a href="${esc(mapUrl)}" target="_blank" rel="noopener noreferrer"><bdi${langAttr(tx(shop.address))}>${esc(tx(shop.address))}</bdi>${newTabNote()}</a></li>
+              ${wazeUrl ? `<li><span class="c-icon" aria-hidden="true">${ICON.nav}</span><a href="${esc(wazeUrl)}" target="_blank" rel="noopener noreferrer">${esc(t.waze)}${newTabNote()}</a></li>` : ""}
+              ${tel ? `<li><span class="c-icon" aria-hidden="true">${ICON.phone}</span><a href="tel:${esc(tel)}"><bdi dir="ltr">${esc(shop.phone)}</bdi></a></li>` : ""}
+              ${wa ? `<li><span class="c-icon" aria-hidden="true">${ICON.chat}</span><a href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener noreferrer">${esc(t.whatsapp)}${newTabNote()}</a></li>` : ""}
+              ${shop.email ? `<li><span class="c-icon" aria-hidden="true">${ICON.mail}</span><a href="mailto:${esc(shop.email)}"><bdi dir="ltr">${esc(shop.email)}</bdi></a></li>` : ""}
             </ul></section>
           </aside>
         </div>
