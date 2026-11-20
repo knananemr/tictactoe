@@ -33,6 +33,10 @@
     <noscript><p style="padding:24px">This app needs JavaScript. · האפליקציה צריכה JavaScript.</p></noscript>
   </main>
 
+  <!-- announcements for screen readers (must exist before its text changes) -->
+  <p class="sr-only" id="announcer" role="status" aria-live="polite"></p>
+  <div class="toast" id="toast" hidden></div>
+
   <script src="data.js"></script>
   <script src="app.js"></script>
 </body>

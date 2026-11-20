@@ -4,8 +4,8 @@
 
   const STORE_KEY = "nearby.myShops";
   const LANG_KEY = "nearby.lang";
-  const DRAFT_KEY = "nearby.draft";
-  const NOTICE_KEY = "nearby.notice";
+  const DRAFT_PREFIX = "nearby.draft."; // + "new" or "edit.<id>": one draft per form
+  const OLD_KEYS = ["nearby.draft", "nearby.notice"];
   const MAX_PHOTOS = 4;
   const DEFAULT_TZ = "Asia/Jerusalem";
 
@@ -14,9 +14,9 @@
     en: {
       skip: "Skip to content",
       ownerBtn: "Open your shop", ownerBtnShort: "Add shop",
-      langBtn: "עב", langLabel: "החלפה לעברית",
+      langBtn: "עב", langLabel: "עב — החלפה לעברית",
       eyebrow: n => n + " local spots listed",
-      openSign: "Open · come in",
+      openSign: "Open",
       heroA: "Great work,", heroEm: "around the corner.",
       heroSub: "Barbers, salons and clinics near you — including the small ones you'd walk right past.",
       searchPh: "Barber, nails, street…", searchLabel: "Search shops, services or streets",
@@ -24,6 +24,7 @@
       places: n => n === 1 ? "1 place" : n + " places",
       locating: "Finding your location…", locOn: "Sorted by distance from you",
       locDenied: "Location is off — allow it in your browser to see what's closest.",
+      locUnavailable: "Couldn't find your location right now — try again in a moment.",
       locUnsupported: "Your browser can't share location.",
       anyDistance: "Any distance", within: r => "Within " + r + " km", distanceLabel: "Distance",
       openNow: "Open now",
@@ -35,6 +36,7 @@
       open: "Open", closed: "Closed", yours: "Yours",
       closesAt: t => "Closes " + t, opensAt: t => "Opens " + t, opensTomorrow: t => "Opens tomorrow " + t,
       opensOn: (d, t) => "Opens " + d + " " + t, noHours: "Hours not listed",
+      allDay: "Open 24 hours", allDayShort: "24 hours",
       from: "from ",
       ctaTitle: "Own a small shop or clinic?",
       ctaText: "Get seen by people around the corner. Add your prices, hours and photos in a few minutes.",
@@ -42,11 +44,16 @@
       back: "All places", about: "About", services: "Services & prices", hours: "Opening hours",
       contact: "Contact & location", call: "Call", email: "Email", directions: "Directions",
       waze: "Navigate with Waze", whatsapp: "WhatsApp", share: "Share", copied: "Link copied",
+      copyThis: "Copy this link:", close: "Close",
       newTab: "(opens in a new tab)", photos: "Photos",
+      prevPhoto: "Previous photo", nextPhoto: "Next photo",
       today: "Today", min: m => m + " min", km: "km", m: "m",
       notFound: "We couldn't find this place.", notFoundSub: "It may have been removed.",
+      deletedTab: "This shop was deleted in another tab.",
+      ownerOnly: "Only the owner can edit this shop.", ownerOnlySub: "A shop can be edited on the device it was created on.", viewShop: "View the shop",
+      yourShop: "This is your shop",
       edit: "Edit my shop", remove: "Delete my shop", removeConfirm: "Delete this shop? This can't be undone.",
-      published: "Your shop is live! This is how customers see it.", saved: "Changes saved.",
+      published: "Your shop is live! This is how customers see it.", saved: "Changes saved.", removed: "Your shop was deleted.",
       photoAlt: (name, i) => name + " — photo " + i,
       formTitle: "Open your shop", editTitle: "Edit your shop",
       formSub: "Tell customers what you do, when you're open and what it costs. Your page goes live right away.",
@@ -56,10 +63,10 @@
       fName: "Shop name", fCategory: "Category", fCategoryPh: "Choose a category", fAbout: "About the shop",
       fAboutHelp: "A sentence or two: what you're great at.",
       fAddress: "Address", fPhone: "Phone", fEmail: "Email", optional: "optional",
-      fLocation: "Map location", useLocation: "I'm at the shop — use this spot", locSet: "Location saved ✓",
+      fLocation: "Map location", useLocation: "I'm at the shop — use this spot", locSet: "Location saved",
       locNone: "Not set — customers won't see how far you are, and you won't appear in distance filters.",
       locFailed: "Couldn't get the location. Check the browser permission.",
-      dayClosed: "Closed", hoursFrom: d => d + " — opening time", hoursTo: d => d + " — closing time",
+      dayClosed: "Closed", day24: "24 hours", hoursFrom: d => d + " — opening time", hoursTo: d => d + " — closing time",
       copyHours: "Same hours every open day", copyHoursHelp: "Copies the first open day's hours to the others.",
       svcName: "Service", svcPrice: "Price (₪)", svcMin: "Minutes", addService: "Add a service",
       removeService: n => "Remove service " + n,
@@ -68,12 +75,20 @@
       removePhoto: n => "Remove photo " + n, photosProcessing: "Preparing photos…",
       photosLimit: "Only " + MAX_PHOTOS + " photos fit — the extra ones were skipped.",
       photosBad: "Some files couldn't be read as images and were skipped.",
+      photosNotKept: n => (n === 1 ? "1 photo wasn't" : n + " photos weren't") + " kept when the page reloaded — please add again.",
+      photosReset: "Photo changes weren't kept when the page reloaded — these are your saved photos.",
+      draftKept: "We kept what you typed earlier.", startOver: "Start over",
+      draftEdits: "You have unsaved changes from earlier.", discard: "Discard changes",
       previewLabel: "Customers will see:", previewName: "Your shop name", previewAddr: "Your address",
       publish: "Publish my shop", saveChanges: "Save changes", cancel: "Cancel",
       errSummary: "Please fix the highlighted fields.",
       errName: "Enter your shop's name.", errCategory: "Choose a category.", errAddress: "Enter an address.",
       errPhone: "Enter a valid phone number (9–15 digits).", errEmail: "Enter a valid email or leave it empty.",
-      errHours: "Closing time must be after opening time (up to 06:00 counts as after midnight).",
+      errHours: "Closing time must be after opening time (closing up to 06:00 counts as after midnight). Open around the clock? Tick “24 hours”.",
+      errSvcName: "Give this service a name, or clear its price and minutes.",
+      errSvcPrice: "Price must be a whole number from 0 to 100,000.",
+      errSvcMin: "Minutes must be a whole number from 1 to 1,440.",
+      errDeleted: "This shop was deleted in another tab, so the changes weren't saved.",
       errStorageFull: "This device's storage is full. Delete an older shop or use fewer photos, then try again.",
       errStorageBlocked: "This browser is blocking saved data (private mode?), so the shop can't be saved.",
       titleHome: "Nearby — great local shops & clinics", titleNew: "Open your shop — Nearby", titleEdit: "Edit your shop — Nearby"
@@ -81,9 +96,9 @@
     he: {
       skip: "דילוג לתוכן",
       ownerBtn: "פתיחת עסק", ownerBtnShort: "פתיחת עסק",
-      langBtn: "EN", langLabel: "Switch to English",
+      langBtn: "EN", langLabel: "EN — Switch to English",
       eyebrow: n => n + " עסקים מקומיים באפליקציה",
-      openSign: "פתוח · היכנסו",
+      openSign: "פתוח",
       heroA: "עבודה מעולה,", heroEm: "ממש מעבר לפינה.",
       heroSub: "מספרות, סלונים וקליניקות קרוב אליך — כולל הקטנים שעוברים לידם בלי לשים לב.",
       searchPh: "מספרה, ציפורניים, רחוב…", searchLabel: "חיפוש עסקים, שירותים או רחובות",
@@ -91,6 +106,7 @@
       places: n => n === 1 ? "מקום אחד" : n + " מקומות",
       locating: "מאתרים את המיקום שלך…", locOn: "ממוין לפי מרחק ממך",
       locDenied: "המיקום כבוי — אפשרו אותו בדפדפן כדי לראות מה הכי קרוב.",
+      locUnavailable: "לא הצלחנו למצוא את המיקום כרגע — נסו שוב בעוד רגע.",
       locUnsupported: "הדפדפן לא יכול לשתף מיקום.",
       anyDistance: "כל מרחק", within: r => "עד " + r + " ק״מ", distanceLabel: "מרחק",
       openNow: "פתוח עכשיו",
@@ -102,6 +118,7 @@
       open: "פתוח", closed: "סגור", yours: "שלך",
       closesAt: t => "נסגר ב־" + t, opensAt: t => "נפתח ב־" + t, opensTomorrow: t => "נפתח מחר ב־" + t,
       opensOn: (d, t) => "נפתח ב" + d + " ב־" + t, noHours: "שעות לא צוינו",
+      allDay: "פתוח 24 שעות", allDayShort: "24 שעות",
       from: "החל מ־",
       ctaTitle: "יש לך עסק קטן או קליניקה?",
       ctaText: "תנו לאנשים מהשכונה לגלות אתכם. מוסיפים מחירים, שעות ותמונות תוך כמה דקות.",
@@ -109,11 +126,16 @@
       back: "כל המקומות", about: "אודות", services: "שירותים ומחירים", hours: "שעות פתיחה",
       contact: "יצירת קשר ומיקום", call: "חיוג", email: "מייל", directions: "ניווט",
       waze: "ניווט עם Waze", whatsapp: "וואטסאפ", share: "שיתוף", copied: "הקישור הועתק",
+      copyThis: "העתיקו את הקישור:", close: "סגירה",
       newTab: "(נפתח בכרטיסייה חדשה)", photos: "תמונות",
+      prevPhoto: "התמונה הקודמת", nextPhoto: "התמונה הבאה",
       today: "היום", min: m => m + " דק׳", km: "ק״מ", m: "מ׳",
       notFound: "לא מצאנו את המקום הזה.", notFoundSub: "ייתכן שהוא הוסר.",
+      deletedTab: "העסק נמחק בכרטיסייה אחרת.",
+      ownerOnly: "רק הבעלים יכולים לערוך את העסק הזה.", ownerOnlySub: "אפשר לערוך עסק במכשיר שבו הוא נוצר.", viewShop: "לדף העסק",
+      yourShop: "זה העסק שלך",
       edit: "עריכת העסק", remove: "מחיקת העסק שלי", removeConfirm: "למחוק את העסק? אי אפשר לבטל את זה.",
-      published: "העסק שלך באוויר! כך הלקוחות רואים אותו.", saved: "השינויים נשמרו.",
+      published: "העסק שלך באוויר! כך הלקוחות רואים אותו.", saved: "השינויים נשמרו.", removed: "העסק שלך נמחק.",
       photoAlt: (name, i) => name + " — תמונה " + i,
       formTitle: "פתיחת עסק", editTitle: "עריכת העסק",
       formSub: "ספרו ללקוחות מה אתם עושים, מתי אתם פתוחים וכמה זה עולה. הדף עולה לאוויר מיד.",
@@ -123,10 +145,10 @@
       fName: "שם העסק", fCategory: "קטגוריה", fCategoryPh: "בחרו קטגוריה", fAbout: "על העסק",
       fAboutHelp: "משפט או שניים: במה אתם הכי טובים.",
       fAddress: "כתובת", fPhone: "טלפון", fEmail: "מייל", optional: "לא חובה",
-      fLocation: "מיקום במפה", useLocation: "אני בעסק — להשתמש במיקום הזה", locSet: "המיקום נשמר ✓",
+      fLocation: "מיקום במפה", useLocation: "אני בעסק — להשתמש במיקום הזה", locSet: "המיקום נשמר",
       locNone: "לא הוגדר — לקוחות לא יראו כמה אתם רחוקים, והעסק לא יופיע בסינון לפי מרחק.",
       locFailed: "לא הצלחנו לקבל מיקום. בדקו את הרשאת הדפדפן.",
-      dayClosed: "סגור", hoursFrom: d => d + " — שעת פתיחה", hoursTo: d => d + " — שעת סגירה",
+      dayClosed: "סגור", day24: "24 שעות", hoursFrom: d => d + " — שעת פתיחה", hoursTo: d => d + " — שעת סגירה",
       copyHours: "אותן שעות לכל הימים הפתוחים", copyHoursHelp: "מעתיק את השעות של היום הפתוח הראשון לשאר הימים.",
       svcName: "שירות", svcPrice: "מחיר (₪)", svcMin: "דקות", addService: "הוספת שירות",
       removeService: n => "הסרת שירות " + n,
@@ -135,12 +157,20 @@
       removePhoto: n => "הסרת תמונה " + n, photosProcessing: "מכינים את התמונות…",
       photosLimit: "נכנסות רק " + MAX_PHOTOS + " תמונות — השאר לא נוספו.",
       photosBad: "חלק מהקבצים אינם תמונות תקינות ולא נוספו.",
+      photosNotKept: n => (n === 1 ? "תמונה אחת לא נשמרה" : n + " תמונות לא נשמרו") + " כשהדף נטען מחדש — הוסיפו שוב.",
+      photosReset: "שינויי התמונות לא נשמרו כשהדף נטען מחדש — אלה התמונות השמורות שלך.",
+      draftKept: "שמרנו את מה שהקלדתם קודם.", startOver: "להתחיל מחדש",
+      draftEdits: "יש לך שינויים שלא נשמרו מקודם.", discard: "ביטול השינויים",
       previewLabel: "כך הלקוחות יראו אתכם:", previewName: "שם העסק שלך", previewAddr: "הכתובת שלך",
       publish: "פרסום העסק", saveChanges: "שמירת השינויים", cancel: "ביטול",
       errSummary: "יש לתקן את השדות המסומנים.",
       errName: "הזינו את שם העסק.", errCategory: "בחרו קטגוריה.", errAddress: "הזינו כתובת.",
       errPhone: "הזינו מספר טלפון תקין (9–15 ספרות).", errEmail: "הזינו מייל תקין או השאירו ריק.",
-      errHours: "שעת הסגירה חייבת להיות אחרי שעת הפתיחה (עד 06:00 נחשב אחרי חצות).",
+      errHours: "שעת הסגירה חייבת להיות אחרי שעת הפתיחה (סגירה עד 06:00 נחשבת אחרי חצות). פתוחים מסביב לשעון? סמנו „24 שעות”.",
+      errSvcName: "תנו שם לשירות, או מחקו את המחיר והדקות.",
+      errSvcPrice: "המחיר צריך להיות מספר שלם בין 0 ל־100,000.",
+      errSvcMin: "הדקות צריכות להיות מספר שלם בין 1 ל־1,440.",
+      errDeleted: "העסק נמחק בכרטיסייה אחרת, ולכן השינויים לא נשמרו.",
       errStorageFull: "האחסון במכשיר מלא. מחקו עסק ישן או השתמשו בפחות תמונות, ונסו שוב.",
       errStorageBlocked: "הדפדפן חוסם שמירת נתונים (גלישה פרטית?), ולכן אי אפשר לשמור את העסק.",
       titleHome: "קרוב אליי — עסקים וקליניקות מעולים בשכונה", titleNew: "פתיחת עסק — קרוב אליי", titleEdit: "עריכת העסק — קרוב אליי"
@@ -203,6 +233,34 @@
     return "";
   }
   const toMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+  const isAllDay = h => !!h && h[0] === h[1]; // same opening and closing time = open 24 hours
+  const ALL_DAY = ["00:00", "00:00"];
+
+  // Language of owner-written text, so screen readers use the right voice.
+  const textLang = s => {
+    const he = (String(s).match(/[\u0590-\u05FF]/g) || []).length;
+    const latin = (String(s).match(/[A-Za-z]/g) || []).length;
+    return he || latin ? (he >= latin ? "he" : "en") : "";
+  };
+  const langAttr = s => { const l = textLang(s); return l && l !== lang ? ` lang="${l}"` : ""; };
+
+  // Owner text with web addresses turned into links (everything else escaped).
+  function linkify(text) {
+    const re = /\b(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+    let out = "", last = 0, m;
+    while ((m = re.exec(text))) {
+      let url = m[0].replace(/[.,;:!?)\]}'"»]+$/, "");
+      const href = /^www\./i.test(url) ? "https://" + url : url;
+      let ok = false;
+      try { ok = /^https?:$/.test(new URL(href).protocol); } catch (e) { ok = false; }
+      if (!ok || !url) continue;
+      out += esc(text.slice(last, m.index)) +
+        `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer nofollow ugc" dir="ltr">${esc(url)}<span class="sr-only"> ${esc(L().newTab)}</span></a>`;
+      last = m.index + url.length;
+      re.lastIndex = last;
+    }
+    return out + esc(text.slice(last));
+  }
 
   function normalizeText(s) {
     const finals = { "ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ" };
@@ -237,7 +295,8 @@
       tz: typeof s.tz === "string" ? s.tz : DEFAULT_TZ,
       hours: Array.from({ length: 7 }, (_, i) => {
         const h = Array.isArray(s.hours) ? s.hours[i] : null;
-        return Array.isArray(h) && TIME_RE.test(h[0]) && TIME_RE.test(h[1]) && h[0] !== h[1] ? [h[0], h[1]] : null;
+        if (!(Array.isArray(h) && TIME_RE.test(h[0]) && TIME_RE.test(h[1]))) return null;
+        return h[0] === h[1] ? ALL_DAY.slice() : [h[0], h[1]];
       }),
       services: (Array.isArray(s.services) ? s.services : [])
         .filter(x => x && typeof x === "object")
@@ -268,6 +327,8 @@
   let lastRoute = null;
   let lastShopId = null;
   let homeScrollY = 0;
+  let homeSig = "";
+  let pageNotice = null;   // { hash, kind } — "Your shop is live" etc., shown until you leave that page
 
   const app = document.getElementById("app");
 
@@ -313,6 +374,7 @@
     if (yesterday && toMin(yesterday[1]) < toMin(yesterday[0]) && min < toMin(yesterday[1])) {
       return { open: true, closes: yesterday[1] };
     }
+    if (isAllDay(today)) return { open: true, allDay: true };
     if (today) {
       const o = toMin(today[0]), c = toMin(today[1]);
       if (c > o ? (min >= o && min < c) : min >= o) return { open: true, closes: today[1] };
@@ -326,7 +388,7 @@
   }
   function stateDetail(st) {
     const t = L();
-    if (st.open) return t.closesAt(st.closes);
+    if (st.open) return st.allDay ? t.allDay : t.closesAt(st.closes);
     if (!st.opens) return t.noHours;
     if (st.opens.inDays === 0) return t.opensAt(st.opens.time);
     if (st.opens.inDays === 1) return t.opensTomorrow(st.opens.time);
@@ -345,12 +407,19 @@
     if (shop._hay) return shop._hay;
     const both = v => (v && typeof v === "object") ? v.en + " " + v.he : (v || "");
     const cat = category(shop.category);
-    shop._hay = normalizeText([both(shop.name), both(shop.about), both(shop.address), both(cat.name),
-      shop.services.map(s => both(s.name)).join(" ")].join(" "));
+    shop._hay = " " + normalizeText([both(shop.name), both(shop.about), both(shop.address), both(cat.name), both(cat.keywords),
+      shop.services.map(s => both(s.name)).join(" ")].join(" ")).split(/\s+/).filter(Boolean).join(" ") + " ";
     return shop._hay;
   }
   // A Hebrew word may carry a one-letter prefix (ה, ו, ב, ל, מ, ש, כ): "המספרה" should find "מספרה".
-  const wordMatches = (hay, w) => hay.includes(w) || (w.length > 3 && HE_PREFIX.test(w) && hay.includes(w.slice(1)));
+  // The shortened word must then be a whole word (or, from 4 letters, the start of one), so
+  // "כאבי" does not match "אבי" inside "תל אביב".
+  function wordMatches(hay, w) {
+    if (hay.includes(w)) return true;
+    if (w.length < 4 || !HE_PREFIX.test(w)) return false;
+    const rest = w.slice(1);
+    return hay.includes(" " + rest + " ") || (rest.length >= 4 && hay.includes(" " + rest));
+  }
 
   const newTabNote = () => `<span class="sr-only"> ${esc(L().newTab)}</span>`;
 
@@ -367,7 +436,7 @@
     const tag = preview ? "div" : "a";
     const linkAttrs = preview ? "" : ` href="#/shop/${encodeURIComponent(shop.id)}" aria-labelledby="${uid}-n" aria-describedby="${uid}-d"`;
     const hasDist = dist !== null && dist !== undefined;
-    const summary = [tx(cat.name), (st.open ? t.open : t.closed) + ", " + stateDetail(st), hasDist ? formatDistance(dist) : "", price !== null ? t.from + money(price) : ""].filter(Boolean).join(" · ");
+    const summary = [shop.mine && !preview ? t.yours : "", tx(cat.name), (st.open ? t.open : t.closed) + ", " + stateDetail(st), hasDist ? formatDistance(dist) : "", price !== null ? t.from + money(price) : ""].filter(Boolean).join(" · ");
     return `
       <${tag} class="card"${linkAttrs} style="--c:${cat.color};--i:${Math.min(i, 12)}">
         <div class="awning" aria-hidden="true"></div>
@@ -376,9 +445,9 @@
           ${shop.mine && !preview ? `<span class="pill mine">${esc(t.yours)}</span>` : ""}
         </div>
         <div class="card-body">
-          <h3 id="${uid}-n"><bdi>${esc(name)}</bdi></h3>
-          <p class="card-meta"><span>${esc(tx(cat.name))}</span>${price !== null ? `<span class="from">${esc(t.from)}<b>${esc(money(price))}</b></span>` : ""}</p>
-          <p class="card-addr"><bdi>${esc(addr)}</bdi></p>
+          <h3 id="${uid}-n"><bdi${langAttr(name)}>${esc(name)}</bdi></h3>
+          <p class="card-meta"><span class="meta-in"><span>${esc(tx(cat.name))}</span>${price !== null ? `<span class="from">${esc(t.from)}<b>${esc(money(price))}</b></span>` : ""}</span></p>
+          <p class="card-addr"><bdi${langAttr(addr)}>${esc(addr)}</bdi></p>
           <div class="card-foot">
             <span class="foot-status">${statusPill(st)}<span class="hint-small">${esc(stateDetail(st))}</span></span>
             ${hasDist ? `<span class="dist">${esc(formatDistance(dist))}</span>` : ""}
@@ -400,12 +469,13 @@
         <span class="awning" aria-hidden="true"></span>
         <span class="emoji" aria-hidden="true">${esc(emoji)}</span>
         <span class="name">${esc(label)}</span>
-        <span class="n">${esc(t.places(n))}</span>
+        <span class="n" data-count="${esc(c ? c.id : "")}">${esc(t.places(n))}</span>
       </button>`;
 
     app.innerHTML = `
+      ${noticeHtml()}
       <section class="hero">
-        <p class="eyebrow fade-in"><span class="dot" aria-hidden="true"></span>${esc(t.eyebrow(shops.length))}</p>
+        <p class="eyebrow fade-in" id="eyebrow"><span class="dot" aria-hidden="true"></span><span>${esc(t.eyebrow(shops.length))}</span></p>
         <h1 class="fade-in" tabindex="-1">${esc(t.heroA)} <em>${esc(t.heroEm)}</em></h1>
         <p class="hero-sub fade-in">${esc(t.heroSub)}</p>
         <form class="searchbar fade-in" role="search" id="searchForm">
@@ -427,14 +497,14 @@
           </div>
         </div>
       </section>
-      <nav class="street" id="street" aria-label="${esc(t.catsLabel)}">
+      <div class="street" id="street" role="group" aria-label="${esc(t.catsLabel)}">
         ${catTile(null, t.allCats, shops.length, "all", "★")}
         ${CATEGORIES.map(c => catTile(c, tx(c.name), counts[c.id] || 0, "", c.emoji)).join("")}
-      </nav>
+      </div>
       <section aria-labelledby="resultsTitle">
         <div class="toolbar">
           <div>
-            <h2 id="resultsTitle"></h2>
+            <h2 id="resultsTitle" tabindex="-1"></h2>
             <p class="count" id="count" aria-live="polite"></p>
           </div>
           <div class="toolbar-filters">
@@ -469,14 +539,23 @@
       e.preventDefault();
       clearTimeout(qTimer);
       updateResults(false);
-      q.blur();
-      document.getElementById("resultsTitle").scrollIntoView({ block: "start" });
+      // moving focus (not blur) closes the phone keyboard and keeps screen readers in place
+      const title = document.getElementById("resultsTitle");
+      title.focus({ preventScroll: true });
+      title.scrollIntoView({ block: "start" });
     });
-    document.getElementById("street").addEventListener("click", e => {
+    const street = document.getElementById("street");
+    street.addEventListener("click", e => {
       const b = e.target.closest("[data-cat]");
       if (!b) return;
-      filter.category = b.dataset.cat;
+      // pressing the selected category again turns it off (back to "All")
+      filter.category = filter.category === b.dataset.cat ? "" : b.dataset.cat;
       updateResults(true);
+    });
+    // keep a focused tile clear of the faded edge
+    street.addEventListener("focusin", e => {
+      const b = e.target.closest(".shopfront");
+      if (b && street.scrollWidth > street.clientWidth) b.scrollIntoView({ inline: "nearest", block: "nearest" });
     });
     document.getElementById("radius").addEventListener("change", e => { filter.radius = Number(e.target.value) || 0; updateResults(true); });
     document.getElementById("openBtn").addEventListener("click", () => { filter.openNow = !filter.openNow; updateResults(true); });
@@ -497,6 +576,10 @@
     return list;
   }
 
+  // What the list shows right now; the minute refresh only redraws when this changes.
+  const resultsSignature = list => lang + "|" + list.map(({ shop, dist }) => { const st = openState(shop); return shop.id + ":" + st.open + ":" + stateDetail(st) + ":" + (dist === null ? "" : formatDistance(dist)); }).join(",");
+  const setText = (el, text) => { if (el && el.textContent !== text) el.textContent = text; };
+
   function updateResults(animate) {
     const t = L();
     const grid = document.getElementById("grid");
@@ -513,12 +596,13 @@
     radius.value = String(filter.radius);
 
     const cat = filter.category ? category(filter.category) : null;
-    document.getElementById("resultsTitle").textContent = cat ? tx(cat.name) : (userPos ? t.nearYou : t.allShops);
-    document.getElementById("count").textContent = t.results(list.length);
+    setText(document.getElementById("resultsTitle"), cat ? tx(cat.name) : (userPos ? t.nearYou : t.allShops));
+    setText(document.getElementById("count"), t.results(list.length));
     const status = document.getElementById("locStatus");
-    status.textContent = { locating: t.locating, on: t.locOn, denied: t.locDenied, unsupported: t.locUnsupported }[locState] || "";
-    status.classList.toggle("warn", locState === "denied" || locState === "unsupported");
+    setText(status, { locating: t.locating, on: t.locOn, denied: t.locDenied, unavailable: t.locUnavailable, unsupported: t.locUnsupported }[locState] || "");
+    status.classList.toggle("warn", locState === "denied" || locState === "unavailable" || locState === "unsupported");
 
+    homeSig = resultsSignature(list);
     grid.classList.toggle("calm", !animate);
     grid.innerHTML = list.length
       ? list.map(({ shop, dist }, i) => cardHtml(shop, dist, i)).join("")
@@ -548,22 +632,63 @@
       userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       locState = "on";
       updateResults(true);
-    }, () => {
+    }, err => {
       if (token !== locToken) return;
-      locState = "denied";
+      // only a refused permission is the browser setting; no fix or a timeout is worth retrying
+      locState = err && err.code === 1 ? "denied" : "unavailable";
       updateResults(false);
     }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
   }
 
-  /* ------------------------------------------------------------ shop page */
-  const backLink = () => `<a class="back" href="#/" data-back>${ICON.back}${esc(L().back)}</a>`;
-
-  function renderNotFound() {
+  /* ------------------------------------------------------------ notices */
+  function noticeHtml() {
+    if (!pageNotice || pageNotice.hash !== normHash(location.hash)) return "";
     const t = L();
-    document.title = t.notFound + " — " + tx(window.APP_NAME);
+    const text = { edit: t.saved, removed: t.removed }[pageNotice.kind] || t.published;
+    return `<p class="note fade-in" id="pageNote"><span aria-hidden="true">${pageNotice.kind === "removed" ? "🗑️" : "🎉"}</span><span>${esc(text)}</span></p>`;
+  }
+  // Screen readers hear changes in a live region that already exists, so we use one fixed region.
+  let announceTimer = 0;
+  function announce(text) {
+    const box = document.getElementById("announcer");
+    if (!box) return;
+    box.textContent = "";
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(() => { box.textContent = text; }, 150);
+  }
+  let toastTimer = 0;
+  function showToast(html, opts) {
+    const box = document.getElementById("toast");
+    if (!box) return;
+    clearTimeout(toastTimer);
+    box.innerHTML = html;
+    box.hidden = false;
+    box.classList.toggle("has-bar", !!document.querySelector(".action-bar"));
+    if (!(opts && opts.sticky)) toastTimer = setTimeout(hideToast, 3200);
+  }
+  function hideToast() {
+    const box = document.getElementById("toast");
+    if (box) { box.hidden = true; box.innerHTML = ""; }
+  }
+
+  /* ------------------------------------------------------------ shop page */
+  const backLink = () => `<a class="back" href="#/" data-back>${ICON.back}<span>${esc(L().back)}</span></a>`;
+
+  function renderNotFound(title, sub, link) {
+    const t = L();
+    document.title = (title || t.notFound) + " — " + tx(window.APP_NAME);
     app.innerHTML = `${backLink()}
-      <div class="empty"><span class="big" aria-hidden="true">🏚️</span><h1 tabindex="-1">${esc(t.notFound)}</h1><p>${esc(t.notFoundSub)}</p>
-        <a class="btn" href="#/">${esc(t.back)}</a></div>`;
+      <div class="empty"><span class="big" aria-hidden="true">${link ? "🔒" : "🏚️"}</span><h1 tabindex="-1">${esc(title || t.notFound)}</h1><p>${esc(sub || t.notFoundSub)}</p>
+        ${link ? `<a class="btn" href="${esc(link)}">${esc(t.viewShop)}</a>` : `<a class="btn" href="#/" data-back>${esc(t.back)}</a>`}</div>`;
+  }
+
+  function hoursListHtml(shop) {
+    const t = L();
+    const today = nowIn(shop.tz).day;
+    return `<ul class="hours-list" id="hoursList" data-day="${today}">
+      ${shop.hours.map((h, i) => `<li class="${i === today ? "today" : ""}"${i === today ? ' aria-current="date"' : ""}><span>${esc(dayName(i))}${i === today ? ` <span class="today-tag">${esc(t.today)}</span>` : ""}</span>${
+        !h ? `<span class="off">${esc(t.closed)}</span>` : isAllDay(h) ? `<span>${esc(t.allDayShort)}</span>` : `<span class="t">${esc(h[0])}–${esc(h[1])}</span>`}</li>`).join("")}
+    </ul>`;
   }
 
   function renderShop(id) {
@@ -576,66 +701,69 @@
     const cat = category(shop.category);
     const st = openState(shop);
     const dist = shopDistance(shop);
-    const today = nowIn(shop.tz).day;
     const hasPos = shop.lat !== undefined;
     const mapUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(hasPos ? shop.lat + "," + shop.lng : tx(shop.address));
     const wazeUrl = hasPos ? "https://waze.com/ul?ll=" + encodeURIComponent(shop.lat + "," + shop.lng) + "&navigate=yes" : "";
     const tel = phoneDigits(shop.phone);
     const wa = whatsappNumber(shop.phone);
-    const notice = store.get("sessionStorage", NOTICE_KEY, null);
-    const showNotice = !!(notice && notice.id === shop.id);
-    if (showNotice) store.del("sessionStorage", NOTICE_KEY);
 
     const callBtn = cls => tel ? `<a class="btn ${cls}" href="tel:${esc(tel)}">${ICON.phone}${esc(t.call)}</a>` : "";
     const dirBtn = cls => `<a class="btn ${cls}" href="${esc(mapUrl)}" target="_blank" rel="noopener noreferrer">${ICON.map}${esc(t.directions)}${newTabNote()}</a>`;
     const shareBtn = (cls, iconOnly) => `<button class="btn ${cls}" type="button" data-share${iconOnly ? ` aria-label="${esc(t.share)}"` : ""}>${ICON.share}${iconOnly ? "" : esc(t.share)}</button>`;
     const multi = shop.photos.length > 1;
 
+    const about = tx(shop.about);
+
     app.innerHTML = `
       <div class="shop-page">
         ${backLink()}
-        ${showNotice ? `<p class="note fade-in" role="status">🎉 ${esc(notice.kind === "edit" ? t.saved : t.published)}</p>` : ""}
+        ${noticeHtml()}
+        ${shop.mine ? `<div class="owner-bar fade-in">
+            <span class="owner-tag">${esc(t.yourShop)}</span>
+            <span class="owner-actions">
+              <a class="btn btn-sm" href="#/edit/${encodeURIComponent(shop.id)}">${ICON.edit}${esc(t.edit)}</a>
+              <button class="btn btn-danger btn-sm" type="button" id="removeBtn">${ICON.trash}${esc(t.remove)}</button>
+            </span>
+          </div>` : ""}
         <div class="shop-layout">
           <div class="shop-main">
             <article class="shop-hero fade-in" style="--c:${cat.color}">
               <div class="awning" aria-hidden="true"></div>
-              <div class="gallery ${multi ? "multi" : ""}"${multi ? ` tabindex="0" role="region" aria-label="${esc(t.photos)}"` : ""}>
-                ${shop.photos.length
-                  ? shop.photos.map((p, i) => `<div class="window"><img src="${esc(p)}" alt="${esc(t.photoAlt(name, i + 1))}" decoding="async"></div>`).join("")
-                  : `<div class="window" aria-hidden="true"><span class="emoji">${esc(cat.emoji)}</span></div>`}
+              <div class="gallery-wrap">
+                <div class="gallery ${multi ? "multi" : ""}" id="gallery"${multi ? ` tabindex="0" role="region" aria-label="${esc(t.photos)}"` : ""}>
+                  ${shop.photos.length
+                    ? shop.photos.map((p, i) => `<div class="window"><img class="backdrop" src="${esc(p)}" alt="" aria-hidden="true" decoding="async"><img class="photo" src="${esc(p)}" alt="${esc(t.photoAlt(name, i + 1))}" decoding="async"></div>`).join("")
+                    : `<div class="window" aria-hidden="true"><span class="emoji">${esc(cat.emoji)}</span></div>`}
+                </div>
+                ${multi ? `<button class="gallery-btn prev" type="button" data-step="-1" aria-label="${esc(t.prevPhoto)}" aria-controls="gallery">${ICON.back}</button>
+                  <button class="gallery-btn next" type="button" data-step="1" aria-label="${esc(t.nextPhoto)}" aria-controls="gallery">${ICON.back}</button>
+                  <span class="gallery-count" id="galleryCount" aria-hidden="true">1 / ${shop.photos.length}</span>` : ""}
               </div>
               <div class="shop-title">
                 <p class="card-meta"><span aria-hidden="true">${esc(cat.emoji)}</span><span>${esc(tx(cat.name))}</span>${dist !== null ? `<span aria-hidden="true">·</span><span>${esc(formatDistance(dist))}</span>` : ""}</p>
-                <h1 tabindex="-1"><bdi>${esc(name)}</bdi></h1>
-                <p class="card-meta" id="shopStatus" data-id="${esc(shop.id)}">${statusPill(st)} <span>${esc(stateDetail(st))}</span></p>
+                <h1 tabindex="-1"><bdi${langAttr(name)}>${esc(name)}</bdi></h1>
+                <p class="card-meta" id="shopStatus" data-id="${esc(shop.id)}" data-sig="${esc(st.open + "|" + stateDetail(st))}">${statusPill(st)} <span>${esc(stateDetail(st))}</span></p>
                 <div class="actions desktop-only">
                   ${callBtn("btn-accent")}
                   ${dirBtn("btn-ghost")}
                   ${shareBtn("btn-ghost")}
                 </div>
-                <p class="help share-status" role="status"></p>
               </div>
             </article>
-            ${tx(shop.about) ? `<section class="panel fade-in"><h2>${esc(t.about)}</h2><p class="about" dir="auto">${esc(tx(shop.about))}</p></section>` : ""}
+            ${about ? `<section class="panel fade-in"><h2>${esc(t.about)}</h2><p class="about" dir="auto"${langAttr(about)}>${linkify(about)}</p></section>` : ""}
             ${shop.services.length ? `<section class="panel fade-in"><h2>${esc(t.services)}</h2><ul class="price-list">
-              ${shop.services.map(s => `<li><span class="svc"><bdi>${esc(tx(s.name))}</bdi></span>${s.minutes ? `<span class="dur">${esc(t.min(s.minutes))}</span>` : ""}<span class="price">${s.price ? esc(money(s.price)) : "—"}</span></li>`).join("")}
+              ${shop.services.map(s => `<li><span class="svc"><bdi${langAttr(tx(s.name))}>${esc(tx(s.name))}</bdi></span>${s.minutes ? `<span class="dur">${esc(t.min(s.minutes))}</span>` : ""}<span class="price">${s.price ? esc(money(s.price)) : "—"}</span></li>`).join("")}
             </ul></section>` : ""}
           </div>
           <aside class="shop-side">
-            <section class="panel fade-in"><h2>${esc(t.hours)}</h2><ul class="hours-list">
-              ${shop.hours.map((h, i) => `<li class="${i === today ? "today" : ""}"${i === today ? ' aria-current="date"' : ""}><span>${esc(dayName(i))}${i === today ? ` <span class="today-tag">${esc(t.today)}</span>` : ""}</span>${h ? `<span class="t">${esc(h[0])}–${esc(h[1])}</span>` : `<span class="off">${esc(t.closed)}</span>`}</li>`).join("")}
-            </ul></section>
+            <section class="panel fade-in"><h2>${esc(t.hours)}</h2>${hoursListHtml(shop)}</section>
             <section class="panel fade-in"><h2>${esc(t.contact)}</h2><ul class="contact-list">
-              <li>${ICON.map}<a href="${esc(mapUrl)}" target="_blank" rel="noopener noreferrer"><bdi>${esc(tx(shop.address))}</bdi>${newTabNote()}</a></li>
+              <li>${ICON.map}<a href="${esc(mapUrl)}" target="_blank" rel="noopener noreferrer"><bdi${langAttr(tx(shop.address))}>${esc(tx(shop.address))}</bdi>${newTabNote()}</a></li>
               ${wazeUrl ? `<li>${ICON.nav}<a href="${esc(wazeUrl)}" target="_blank" rel="noopener noreferrer">${esc(t.waze)}${newTabNote()}</a></li>` : ""}
               ${tel ? `<li>${ICON.phone}<a href="tel:${esc(tel)}"><bdi dir="ltr">${esc(shop.phone)}</bdi></a></li>` : ""}
               ${wa ? `<li>${ICON.chat}<a href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener noreferrer">${esc(t.whatsapp)}${newTabNote()}</a></li>` : ""}
               ${shop.email ? `<li>${ICON.mail}<a href="mailto:${esc(shop.email)}"><bdi dir="ltr">${esc(shop.email)}</bdi></a></li>` : ""}
             </ul></section>
-            ${shop.mine ? `<div class="owner-zone">
-                <a class="btn btn-sm" href="#/edit/${encodeURIComponent(shop.id)}">${ICON.edit}${esc(t.edit)}</a>
-                <button class="btn btn-danger btn-sm" type="button" id="removeBtn">${ICON.trash}${esc(t.remove)}</button>
-              </div>` : ""}
           </aside>
         </div>
         <div class="action-bar">${callBtn("btn-accent")}${dirBtn(tel ? "btn-ghost" : "btn-accent")}${shareBtn("btn-ghost btn-icon", true)}</div>
@@ -643,13 +771,27 @@
 
     app.querySelectorAll("[data-share]").forEach(b => b.addEventListener("click", async () => {
       const url = location.href;
-      const status = app.querySelector(".share-status");
       if (navigator.share) {
         try { await navigator.share({ title: name, url }); } catch (e) { /* cancelled */ }
         return;
       }
-      try { await navigator.clipboard.writeText(url); status.textContent = t.copied; } catch (e) { status.textContent = url; }
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast(`<span aria-hidden="true">✓</span> ${esc(t.copied)}`);
+        announce(t.copied);
+      } catch (e) {
+        // no clipboard access: show the link ready to copy by hand
+        showToast(`<label for="toastUrl">${esc(t.copyThis)}</label>
+          <input id="toastUrl" class="toast-url" type="text" readonly dir="ltr" value="${esc(url)}">
+          <button class="btn btn-ghost btn-sm btn-icon" type="button" id="toastClose" aria-label="${esc(t.close)}">${ICON.x}</button>`, { sticky: true });
+        const input = document.getElementById("toastUrl");
+        input.focus(); input.select();
+        document.getElementById("toastClose").addEventListener("click", () => { hideToast(); b.focus(); });
+      }
     }));
+
+    const gallery = document.getElementById("gallery");
+    if (multi && gallery) setupGallery(gallery, shop.photos.length);
 
     const removeBtn = document.getElementById("removeBtn");
     if (removeBtn) removeBtn.addEventListener("click", () => {
@@ -658,76 +800,151 @@
       const err = store.save("localStorage", STORE_KEY, next);
       if (err) { alert(err === "full" ? t.errStorageFull : t.errStorageBlocked); return; }
       myShops = loadMyShops();
-      location.replace("#/");
+      discardDraft("edit." + shop.id);
+      pageNotice = { hash: "#/", kind: "removed" };
+      announce(t.removed);
+      navigate("#/", { replace: true });
     });
   }
 
+  // Previous / next buttons and a "2 / 4" counter for the shop photos.
+  function setupGallery(gallery, n) {
+    const count = document.getElementById("galleryCount");
+    const prev = app.querySelector(".gallery-btn.prev"), next = app.querySelector(".gallery-btn.next");
+    const slideWidth = () => { const w = gallery.querySelector(".window"); return w ? w.getBoundingClientRect().width + 8 : gallery.clientWidth; };
+    const index = () => Math.min(n - 1, Math.max(0, Math.round(Math.abs(gallery.scrollLeft) / slideWidth())));
+    const sync = () => {
+      const i = index();
+      count.textContent = (i + 1) + " / " + n;
+      prev.disabled = i === 0;
+      next.disabled = i === n - 1;
+    };
+    [prev, next].forEach(b => b.addEventListener("click", () => {
+      const target = Math.min(n - 1, Math.max(0, index() + Number(b.dataset.step)));
+      const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+      gallery.querySelectorAll(".window")[target].scrollIntoView({ inline: "center", block: "nearest", behavior: smooth ? "smooth" : "auto" });
+    }));
+    let raf = 0;
+    gallery.addEventListener("scroll", () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(sync); }, { passive: true });
+    sync();
+  }
+
   /* ------------------------------------------------------------ "open your shop" form */
-  function emptyDraft() {
+  // Each form keeps its own draft: "new" for a new shop, "edit.<id>" for each shop being edited.
+  const blankHours = () => Array.from({ length: 7 }, (_, i) => ({ from: "09:00", to: i === 5 ? "14:00" : "19:00", closed: i === 6, allDay: false }));
+  const blankService = () => ({ name: "", price: "", minutes: "" });
+  function emptyDraft(slot) {
     return {
-      editId: "", photosLoaded: true,
+      slot: slot || "new", editId: "",
       name: "", category: "", about: "", address: "", phone: "", email: "", pos: null,
-      hours: Array.from({ length: 7 }, (_, i) => ({ from: "09:00", to: i === 5 ? "14:00" : "19:00", closed: i === 6 })),
-      services: [{ name: "", price: "", minutes: "" }],
-      photos: []
+      hours: blankHours(), services: [blankService()], photos: [],
+      dirty: false, photosChanged: false, pending: 0, showErrors: false, restored: false, photoNote: null
     };
   }
   function shopToDraft(shop) {
     const plain = v => typeof v === "string" ? v : tx(v);
-    return {
-      editId: shop.id, photosLoaded: true,
+    return Object.assign(emptyDraft("edit." + shop.id), {
+      editId: shop.id,
       name: plain(shop.name), category: shop.category, about: plain(shop.about), address: plain(shop.address),
       phone: shop.phone, email: shop.email, pos: shop.lat !== undefined ? { lat: shop.lat, lng: shop.lng } : null,
-      hours: shop.hours.map(h => h ? { from: h[0], to: h[1], closed: false } : { from: "09:00", to: "19:00", closed: true }),
+      hours: shop.hours.map(h => !h ? { from: "09:00", to: "19:00", closed: true, allDay: false }
+        : isAllDay(h) ? { from: "09:00", to: "19:00", closed: false, allDay: true }
+        : { from: h[0], to: h[1], closed: false, allDay: false }),
       services: shop.services.length
         ? shop.services.map(s => ({ name: plain(s.name), price: s.price ? String(s.price) : "", minutes: s.minutes ? String(s.minutes) : "" }))
-        : [{ name: "", price: "", minutes: "" }],
+        : [blankService()],
       photos: shop.photos.slice()
-    };
+    });
   }
-  function loadDraft() {
-    const d = Object.assign(emptyDraft(), store.get("sessionStorage", DRAFT_KEY, {}) || {});
-    ["name", "category", "about", "address", "phone", "email", "editId"].forEach(k => { if (typeof d[k] !== "string") d[k] = ""; });
-    if (!Array.isArray(d.hours) || d.hours.length !== 7 || !d.hours.every(h => h && typeof h === "object")) d.hours = emptyDraft().hours;
-    d.hours = d.hours.map(h => ({ from: TIME_RE.test(h.from) ? h.from : "09:00", to: TIME_RE.test(h.to) ? h.to : "19:00", closed: !!h.closed }));
-    if (!Array.isArray(d.services) || !d.services.length || !d.services.every(s => s && typeof s === "object")) d.services = emptyDraft().services;
-    d.services = d.services.map(s => ({ name: String(s.name || ""), price: String(s.price || ""), minutes: String(s.minutes || "") }));
-    if (!(d.pos && Number.isFinite(d.pos.lat) && Number.isFinite(d.pos.lng))) d.pos = null;
-    d.photos = [];
-    d.photosLoaded = false; // photos are not kept across reloads (too big for session storage)
+  // A draft saved in this tab before a reload. Photos are too big for session storage, so they are not kept.
+  function readStoredDraft(slot, editing) {
+    const raw = store.get("sessionStorage", DRAFT_PREFIX + slot, null);
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const d = editing ? shopToDraft(editing) : emptyDraft(slot);
+    ["name", "category", "about", "address", "phone", "email"].forEach(k => { if (typeof raw[k] === "string") d[k] = raw[k]; });
+    if (Array.isArray(raw.hours) && raw.hours.length === 7 && raw.hours.every(h => h && typeof h === "object")) {
+      d.hours = raw.hours.map(h => ({ from: TIME_RE.test(h.from) ? h.from : "09:00", to: TIME_RE.test(h.to) ? h.to : "19:00", closed: !!h.closed, allDay: !!h.allDay && !h.closed }));
+    }
+    if (Array.isArray(raw.services) && raw.services.length && raw.services.every(s => s && typeof s === "object")) {
+      d.services = raw.services.map(s => ({ name: String(s.name || ""), price: String(s.price || ""), minutes: String(s.minutes || "") }));
+    }
+    if (raw.pos && Number.isFinite(raw.pos.lat) && Number.isFinite(raw.pos.lng)) d.pos = { lat: raw.pos.lat, lng: raw.pos.lng };
+    d.dirty = !!raw.dirty;
+    if (editing && raw.photosChanged) d.photoNote = "reset";
+    else if (!editing && Number(raw.photoCount) > 0) d.photoNote = Math.min(MAX_PHOTOS, Math.round(Number(raw.photoCount)));
     return d;
   }
-  let draft = loadDraft();
-  let pendingPhotos = 0;
-  let showErrors = false;
+  // Older versions kept one shared draft; move a new-shop draft over and drop the rest.
+  (function migrateOldKeys() {
+    const old = store.get("sessionStorage", OLD_KEYS[0], null);
+    if (old && typeof old === "object" && !old.editId && store.get("sessionStorage", DRAFT_PREFIX + "new", null) === null) {
+      store.save("sessionStorage", DRAFT_PREFIX + "new", Object.assign({}, old, { dirty: true }));
+    }
+    OLD_KEYS.forEach(k => store.del("sessionStorage", k));
+  })();
 
-  function saveDraft() {
-    store.save("sessionStorage", DRAFT_KEY, Object.assign({}, draft, { photos: [], photosLoaded: false }));
+  const drafts = {};      // slot -> draft, for this page load
+  let draft = null;       // the draft of the form on screen
+  let formUi = null;      // helpers of the form on screen, so late async work updates the live form
+
+  function getDraft(slot, editing) {
+    if (drafts[slot]) return { d: drafts[slot], existed: true };
+    const stored = readStoredDraft(slot, editing);
+    drafts[slot] = stored || (editing ? shopToDraft(editing) : emptyDraft(slot));
+    return { d: drafts[slot], existed: !!stored };
+  }
+  function saveDraft(d) {
+    if (drafts[d.slot] !== d) return; // discarded meanwhile
+    store.save("sessionStorage", DRAFT_PREFIX + d.slot, {
+      name: d.name, category: d.category, about: d.about, address: d.address, phone: d.phone, email: d.email, pos: d.pos,
+      hours: d.hours, services: d.services.map(s => ({ name: s.name, price: s.price, minutes: s.minutes })),
+      dirty: d.dirty, photosChanged: d.photosChanged, photoCount: d.photos.length
+    });
+  }
+  function discardDraft(slot) {
+    delete drafts[slot];
+    store.del("sessionStorage", DRAFT_PREFIX + slot);
+    if (draft && draft.slot === slot) draft = null;
+  }
+  const isLive = d => !!formUi && formUi.d === d;
+
+  function locStatusHtml(state) {
+    const t = L();
+    if (state === "set") return `${esc(t.locSet)} <span aria-hidden="true">✓</span>`;
+    return esc({ locating: t.locating, failed: t.locFailed, unavailable: t.locUnavailable, unsupported: t.locUnsupported }[state] || t.locNone);
   }
 
-  function renderForm(editId) {
+  function renderForm(editId, entering) {
     const t = L();
     let editing = null;
-    if (editId) {
-      editing = myShops.find(s => s.id === editId);
-      if (!editing) { renderNotFound(); return; }
-      if (draft.editId !== editing.id) { draft = shopToDraft(editing); showErrors = false; }
-      if (!draft.photosLoaded) { draft.photos = editing.photos.slice(); draft.photosLoaded = true; }
-    } else if (draft.editId) {
-      draft = emptyDraft(); showErrors = false;
+    if (editId !== null) {
+      editing = myShops.find(s => s.id === editId) || null;
+      if (!editing) {
+        const sample = editId ? sampleShops.find(s => s.id === editId) : null;
+        if (sample) renderNotFound(t.ownerOnly, t.ownerOnlySub, "#/shop/" + encodeURIComponent(sample.id));
+        else renderNotFound();
+        return;
+      }
     }
+    const slot = editing ? "edit." + editing.id : "new";
+    const got = getDraft(slot, editing);
+    const d = draft = got.d;
+    if (entering) d.restored = got.existed && d.dirty;
     document.title = editing ? t.titleEdit : t.titleNew;
     const opt = `<span class="help">(${esc(t.optional)})</span>`;
     const req = `<span class="req" aria-hidden="true">*</span>`;
+    const shopHref = editing ? "#/shop/" + encodeURIComponent(editing.id) : "";
 
     app.innerHTML = `
-      ${editing ? `<a class="back" href="#/shop/${encodeURIComponent(editing.id)}">${ICON.back}<bdi>${esc(tx(editing.name))}</bdi></a>` : backLink()}
+      ${editing ? `<a class="back" href="${shopHref}" data-back data-discard="${esc(slot)}">${ICON.back}<bdi${langAttr(tx(editing.name))}>${esc(tx(editing.name))}</bdi></a>` : backLink()}
       <header class="page-head">
         <h1 tabindex="-1">${esc(editing ? t.editTitle : t.formTitle)}</h1>
         <p>${esc(editing ? t.editSub : t.formSub)}</p>
       </header>
+      ${d.restored ? `<div class="note draft-note" id="draftNote"><span>${esc(editing ? t.draftEdits : t.draftKept)}</span>
+        <button class="btn btn-ghost btn-sm" type="button" id="discardBtn">${esc(editing ? t.discard : t.startOver)}</button></div>` : ""}
       <form id="shopForm" class="form-layout" novalidate>
-        <p class="note">ℹ️ ${esc(t.demoNote)}</p>
+        <p class="note"><span aria-hidden="true">ℹ️</span><span>${esc(t.demoNote)}</span></p>
 
         <section class="panel step" aria-labelledby="s1">
           <div class="step-head"><span class="step-num" aria-hidden="true">1</span><h2 id="s1">${esc(t.step1)}</h2></div>
@@ -737,7 +954,7 @@
           <div class="field"><label for="fCategory">${esc(t.fCategory)} ${req}</label>
             <select id="fCategory" name="category" required aria-required="true" aria-describedby="err-fCategory">
               <option value="">${esc(t.fCategoryPh)}</option>
-              ${CATEGORIES.map(c => `<option value="${esc(c.id)}">${esc(c.emoji)} ${esc(tx(c.name))}</option>`).join("")}
+              ${CATEGORIES.map(c => `<option value="${esc(c.id)}">${esc(tx(c.name))}</option>`).join("")}
             </select>
             <p class="field-error" id="err-fCategory" hidden></p></div>
           <div class="field"><label for="fAbout">${esc(t.fAbout)} ${opt}</label>
@@ -761,21 +978,24 @@
           <div class="field" role="group" aria-labelledby="locLabel"><span class="label" id="locLabel">${esc(t.fLocation)} ${opt}</span>
             <div class="loc-box">
               <button class="btn btn-ghost btn-sm" type="button" id="fLocBtn" aria-describedby="fLocStatus">${ICON.locate}${esc(t.useLocation)}</button>
-              <p class="help" id="fLocStatus" role="status">${esc(draft.pos ? t.locSet : t.locNone)}</p>
+              <p class="help" id="fLocStatus" role="status">${locStatusHtml(d.pos ? "set" : "none")}</p>
             </div></div>
         </section>
 
         <section class="panel step" aria-labelledby="s3">
           <div class="step-head"><span class="step-num" aria-hidden="true">3</span><h2 id="s3">${esc(t.step3)}</h2></div>
           <div class="hours-grid" id="hoursGrid">
-            ${draft.hours.map((h, i) => `
-              <div class="hours-row ${h.closed ? "is-closed" : ""}" data-day="${i}" role="group" aria-label="${esc(dayName(i))}">
+            ${d.hours.map((h, i) => `
+              <div class="hours-row ${h.closed ? "is-closed" : ""} ${h.allDay ? "is-allday" : ""}" data-day="${i}" role="group" aria-label="${esc(dayName(i))}">
                 <span class="day" aria-hidden="true">${esc(dayName(i))}</span>
-                <label class="switch"><input type="checkbox" name="closed" ${h.closed ? "checked" : ""}>${esc(t.dayClosed)}</label>
+                <span class="switches">
+                  <label class="switch"><input type="checkbox" name="closed" ${h.closed ? "checked" : ""}>${esc(t.dayClosed)}</label>
+                  <label class="switch"><input type="checkbox" name="allDay" ${h.allDay ? "checked" : ""} ${h.closed ? "disabled" : ""}>${esc(t.day24)}</label>
+                </span>
                 <span class="times">
-                  <input type="time" name="from" value="${esc(h.from)}" aria-label="${esc(t.hoursFrom(dayName(i)))}" ${h.closed ? "disabled" : ""}>
+                  <input type="time" name="from" value="${esc(h.from)}" aria-label="${esc(t.hoursFrom(dayName(i)))}" ${h.closed || h.allDay ? "disabled" : ""}>
                   <span class="sep" aria-hidden="true">–</span>
-                  <input type="time" name="to" value="${esc(h.to)}" aria-label="${esc(t.hoursTo(dayName(i)))}" ${h.closed ? "disabled" : ""}>
+                  <input type="time" name="to" value="${esc(h.to)}" aria-label="${esc(t.hoursTo(dayName(i)))}" ${h.closed || h.allDay ? "disabled" : ""}>
                 </span>
                 <p class="field-error row-error" id="err-hours-${i}" hidden></p>
               </div>`).join("")}
@@ -813,115 +1033,149 @@
         <div class="submit-row">
           <p class="form-error" id="formError" role="alert" hidden></p>
           <button class="btn btn-accent" type="submit" id="submitBtn">${esc(editing ? t.saveChanges : t.publish)}</button>
-          ${editing ? `<a class="btn btn-ghost" href="#/shop/${encodeURIComponent(editing.id)}">${esc(t.cancel)}</a>` : ""}
+          ${editing ? `<a class="btn btn-ghost" href="${shopHref}" data-back data-discard="${esc(slot)}">${esc(t.cancel)}</a>` : ""}
         </div>
       </form>`;
 
     const form = document.getElementById("shopForm");
     const $ = id => document.getElementById(id);
-    $("fName").value = draft.name; $("fCategory").value = draft.category; $("fAbout").value = draft.about;
-    $("fAddress").value = draft.address; $("fPhone").value = draft.phone; $("fEmail").value = draft.email;
+    $("fName").value = d.name; $("fCategory").value = d.category; $("fAbout").value = d.about;
+    $("fAddress").value = d.address; $("fPhone").value = d.phone; $("fEmail").value = d.email;
     renderServices();
     renderThumbs();
     renderPreview();
     updateSubmit();
-    if (showErrors) showValidation(validate(), false);
+    if (d.photoNote) $("photoStatus").textContent = d.photoNote === "reset" ? t.photosReset : t.photosNotKept(d.photoNote);
+    if (d.showErrors) showValidation(validate(), false);
+
+    formUi = {
+      d,
+      renderPreview,
+      photosChanged(noteKeys) {
+        renderThumbs(); renderPreview(); updateSubmit();
+        if (noteKeys) $("photoStatus").textContent = noteKeys.map(k => L()[k]).join(" ");
+      },
+      setLoc(state) { $("fLocStatus").innerHTML = locStatusHtml(state); renderPreview(); }
+    };
 
     function renderServices() {
-      $("services").innerHTML = draft.services.map((s, i) => `
+      $("services").innerHTML = d.services.map((s, i) => `
         <div class="service-row" data-i="${i}">
           <div class="field svc-name"><label for="svcName${i}">${esc(t.svcName)}</label><input id="svcName${i}" name="svcName" maxlength="50" dir="auto" value="${esc(s.name)}"></div>
           <div class="field"><label for="svcPrice${i}">${esc(t.svcPrice)}</label><input id="svcPrice${i}" name="svcPrice" type="number" min="0" max="100000" step="1" inputmode="numeric" value="${esc(s.price)}"></div>
-          <div class="field"><label for="svcMin${i}">${esc(t.svcMin)}</label><input id="svcMin${i}" name="svcMin" type="number" min="0" max="1440" step="5" inputmode="numeric" value="${esc(s.minutes)}"></div>
-          <button class="btn btn-ghost btn-icon" type="button" data-remove="${i}" aria-label="${esc(t.removeService(i + 1))}" ${draft.services.length === 1 ? "hidden" : ""}>${ICON.x}</button>
+          <div class="field"><label for="svcMin${i}">${esc(t.svcMin)}</label><input id="svcMin${i}" name="svcMin" type="number" min="1" max="1440" step="1" inputmode="numeric" value="${esc(s.minutes)}"></div>
+          <button class="btn btn-ghost btn-icon" type="button" data-remove="${i}" aria-label="${esc(t.removeService(i + 1))}" ${d.services.length === 1 ? "hidden" : ""}>${ICON.x}</button>
+          <p class="field-error row-error" id="err-svc-${i}" hidden></p>
         </div>`).join("");
     }
     function renderThumbs() {
-      $("thumbs").innerHTML = draft.photos.map((p, i) => `
+      $("thumbs").innerHTML = d.photos.map((p, i) => `
         <div class="thumb"><img src="${esc(p)}" alt="">
           <button type="button" data-photo="${i}" aria-label="${esc(t.removePhoto(i + 1))}">${ICON.x}</button></div>`).join("");
     }
     function renderPreview() {
-      $("preview").innerHTML = cardHtml(draftToShop(), null, 0, { preview: true });
+      $("preview").innerHTML = cardHtml(draftToShop(d), null, 0, { preview: true });
     }
     function updateSubmit() {
       const btn = $("submitBtn");
-      btn.disabled = pendingPhotos > 0;
-      btn.textContent = pendingPhotos > 0 ? t.photosProcessing : (editing ? t.saveChanges : t.publish);
+      btn.disabled = d.pending > 0;
+      btn.textContent = d.pending > 0 ? t.photosProcessing : (editing ? t.saveChanges : t.publish);
     }
 
-    function collect() {
-      draft.name = $("fName").value; draft.category = $("fCategory").value; draft.about = $("fAbout").value;
-      draft.address = $("fAddress").value; draft.phone = $("fPhone").value; draft.email = $("fEmail").value;
-      draft.hours = Array.from(form.querySelectorAll(".hours-row")).map(row => ({
-        from: row.querySelector('[name="from"]').value,
-        to: row.querySelector('[name="to"]').value,
-        closed: row.querySelector('[name="closed"]').checked
-      }));
-      draft.services = Array.from($("services").children).map(row => ({
-        name: row.querySelector('[name="svcName"]').value,
-        price: row.querySelector('[name="svcPrice"]').value,
-        minutes: row.querySelector('[name="svcMin"]').value
-      }));
-      saveDraft();
+    function collect(markDirty) {
+      d.name = $("fName").value; d.category = $("fCategory").value; d.about = $("fAbout").value;
+      d.address = $("fAddress").value; d.phone = $("fPhone").value; d.email = $("fEmail").value;
+      d.hours = Array.from(form.querySelectorAll(".hours-row")).map(row => {
+        const closed = row.querySelector('[name="closed"]').checked;
+        return {
+          from: row.querySelector('[name="from"]').value,
+          to: row.querySelector('[name="to"]').value,
+          closed, allDay: !closed && row.querySelector('[name="allDay"]').checked
+        };
+      });
+      d.services = Array.from($("services").querySelectorAll(".service-row")).map(row => {
+        const price = row.querySelector('[name="svcPrice"]'), min = row.querySelector('[name="svcMin"]');
+        return {
+          name: row.querySelector('[name="svcName"]').value, price: price.value, minutes: min.value,
+          priceBad: !!(price.validity && price.validity.badInput), minBad: !!(min.validity && min.validity.badInput)
+        };
+      });
+      if (markDirty) d.dirty = true;
+      saveDraft(d);
     }
-    form._collect = collect; // used by the language switch
+    form._collect = () => collect(false); // used by the language switch
 
+    function syncRow(row) {
+      const closed = row.querySelector('[name="closed"]'), allDay = row.querySelector('[name="allDay"]');
+      if (closed.checked) allDay.checked = false;
+      allDay.disabled = closed.checked;
+      row.classList.toggle("is-closed", closed.checked);
+      row.classList.toggle("is-allday", allDay.checked);
+      row.querySelectorAll('input[type="time"]').forEach(inp => { inp.disabled = closed.checked || allDay.checked; });
+    }
     function onChange(e) {
-      if (e && e.target && e.target.name === "closed") {
-        const row = e.target.closest(".hours-row");
-        row.classList.toggle("is-closed", e.target.checked);
-        row.querySelectorAll('input[type="time"]').forEach(inp => { inp.disabled = e.target.checked; });
-      }
-      if (e && e.target && e.target.id === "fPhotos") return;
-      collect();
-      if (showErrors) showValidation(validate(), false);
+      const target = e && e.target;
+      if (target && (target.name === "closed" || target.name === "allDay")) syncRow(target.closest(".hours-row"));
+      if (target && target.id === "fPhotos") return;
+      collect(true);
+      if (d.showErrors) showValidation(validate(), false);
       renderPreview();
     }
     form.addEventListener("input", onChange);
-    form.addEventListener("change", e => { if (e.target.name === "closed") onChange(e); });
+    form.addEventListener("change", e => { if (e.target.name === "closed" || e.target.name === "allDay") onChange(e); });
+
+    const discardBtn = $("discardBtn");
+    if (discardBtn) discardBtn.addEventListener("click", () => {
+      discardDraft(slot);
+      renderForm(editId, true);
+      document.getElementById("fName").focus();
+    });
 
     $("copyHours").addEventListener("click", () => {
-      collect();
-      const src = draft.hours.find(h => !h.closed);
+      collect(false);
+      const src = d.hours.find(h => !h.closed);
       if (!src) return;
       form.querySelectorAll(".hours-row").forEach(row => {
         if (row.querySelector('[name="closed"]').checked) return;
         row.querySelector('[name="from"]').value = src.from;
         row.querySelector('[name="to"]').value = src.to;
+        row.querySelector('[name="allDay"]').checked = src.allDay;
+        syncRow(row);
       });
       onChange();
     });
 
     $("addService").addEventListener("click", () => {
-      collect();
-      draft.services.push({ name: "", price: "", minutes: "" });
+      collect(true);
+      d.services.push(blankService());
       renderServices();
-      $("svcName" + (draft.services.length - 1)).focus();
+      if (d.showErrors) showValidation(validate(), false);
+      $("svcName" + (d.services.length - 1)).focus();
     });
     $("services").addEventListener("click", e => {
       const b = e.target.closest("[data-remove]");
       if (!b) return;
-      collect();
+      collect(true);
       const i = Number(b.dataset.remove);
-      draft.services.splice(i, 1);
+      d.services.splice(i, 1);
       renderServices();
-      saveDraft();
+      saveDraft(d);
+      if (d.showErrors) showValidation(validate(), false);
       renderPreview();
-      const next = $("svcName" + Math.min(i, draft.services.length - 1));
+      const next = $("svcName" + Math.min(i, d.services.length - 1));
       if (next) next.focus();
     });
 
     $("fLocBtn").addEventListener("click", () => {
-      const status = $("fLocStatus");
-      if (!navigator.geolocation) { status.textContent = t.locUnsupported; return; }
-      status.textContent = t.locating;
+      if (!navigator.geolocation) { formUi.setLoc("unsupported"); return; }
+      formUi.setLoc("locating");
       navigator.geolocation.getCurrentPosition(p => {
-        draft.pos = { lat: p.coords.latitude, lng: p.coords.longitude };
-        saveDraft();
-        if (document.body.contains(status)) { status.textContent = L().locSet; renderPreview(); }
-      }, () => {
-        if (document.body.contains(status)) status.textContent = draft.pos ? L().locSet : L().locFailed;
+        d.pos = { lat: p.coords.latitude, lng: p.coords.longitude };
+        d.dirty = true;
+        saveDraft(d);
+        if (isLive(d)) formUi.setLoc("set");
+      }, err => {
+        if (isLive(d)) formUi.setLoc(d.pos ? "set" : (err && err.code === 1 ? "failed" : "unavailable"));
       }, { timeout: 10000 });
     });
 
@@ -930,34 +1184,36 @@
       const all = Array.from(input.files || []);
       const files = all.filter(f => /^image\//.test(f.type));
       input.value = "";
-      const room = MAX_PHOTOS - draft.photos.length - pendingPhotos;
+      const room = MAX_PHOTOS - d.photos.length - d.pending;
       const take = files.slice(0, Math.max(0, room));
       const notes = [];
-      if (files.length > take.length) notes.push(t.photosLimit);
+      if (files.length > take.length) notes.push("photosLimit");
       let bad = all.length - files.length;
+      d.photoNote = null;
       if (!take.length) {
-        if (bad) notes.push(t.photosBad);
-        $("photoStatus").textContent = notes.join(" ");
+        if (bad) notes.push("photosBad");
+        if (isLive(d)) formUi.photosChanged(notes);
         return;
       }
-      pendingPhotos += take.length;
-      updateSubmit();
+      // The photos belong to this draft even if the form is redrawn (language switch) or left meanwhile.
+      d.pending += take.length;
+      if (isLive(d)) formUi.photosChanged(null);
       for (const f of take) {
         const data = await shrinkImage(f);
-        pendingPhotos--;
-        if (data && draft.photos.length < MAX_PHOTOS) draft.photos.push(data); else if (!data) bad++;
+        d.pending--;
+        if (data && d.photos.length < MAX_PHOTOS) { d.photos.push(data); d.photosChanged = true; d.dirty = true; } else if (!data) bad++;
+        if (isLive(d)) formUi.photosChanged(null);
       }
-      if (bad) notes.push(t.photosBad);
-      if (!document.body.contains(form)) return;
-      $("photoStatus").textContent = notes.join(" ");
-      updateSubmit();
-      renderThumbs();
-      renderPreview();
+      if (bad) notes.push("photosBad");
+      saveDraft(d);
+      if (isLive(d)) formUi.photosChanged(notes);
     });
     $("thumbs").addEventListener("click", e => {
       const b = e.target.closest("[data-photo]");
       if (!b) return;
-      draft.photos.splice(Number(b.dataset.photo), 1);
+      d.photos.splice(Number(b.dataset.photo), 1);
+      d.photosChanged = true; d.dirty = true; d.photoNote = null;
+      saveDraft(d);
       renderThumbs();
       renderPreview();
       $("fPhotos").focus();
@@ -965,16 +1221,24 @@
 
     function validate() {
       const errors = {};
-      if (!draft.name.trim()) errors.fName = t.errName;
-      if (!CATEGORIES.some(c => c.id === draft.category)) errors.fCategory = t.errCategory;
-      if (!draft.address.trim()) errors.fAddress = t.errAddress;
-      if (!validPhone(draft.phone)) errors.fPhone = t.errPhone;
-      if (draft.email.trim() && !EMAIL_RE.test(draft.email.trim())) errors.fEmail = t.errEmail;
-      draft.hours.forEach((h, i) => {
-        if (h.closed) return;
-        // closing up to 06:00 counts as "after midnight"
-        const ok = TIME_RE.test(h.from) && TIME_RE.test(h.to) && h.from !== h.to && (h.to > h.from || h.to <= "06:00");
+      if (!d.name.trim()) errors.fName = t.errName;
+      if (!CATEGORIES.some(c => c.id === d.category)) errors.fCategory = t.errCategory;
+      if (!d.address.trim()) errors.fAddress = t.errAddress;
+      if (!validPhone(d.phone)) errors.fPhone = t.errPhone;
+      if (d.email.trim() && !EMAIL_RE.test(d.email.trim())) errors.fEmail = t.errEmail;
+      d.hours.forEach((h, i) => {
+        if (h.closed || h.allDay) return;
+        if (!(TIME_RE.test(h.from) && TIME_RE.test(h.to) && h.from !== h.to)) { errors["hours-" + i] = t.errHours; return; }
+        // closing up to 06:00 counts as "after midnight" (but not a 20+ hour day like 07:00–06:00)
+        const o = toMin(h.from), c = toMin(h.to);
+        const ok = c > o || (h.to <= "06:00" && 1440 - o + c <= 20 * 60);
         if (!ok) errors["hours-" + i] = t.errHours;
+      });
+      d.services.forEach((s, i) => {
+        const name = s.name.trim(), price = String(s.price).trim(), min = String(s.minutes).trim();
+        if (!name && (price || min)) errors["svcName" + i] = t.errSvcName;
+        if (s.priceBad || (price && !(/^\d+$/.test(price) && Number(price) <= 100000))) errors["svcPrice" + i] = t.errSvcPrice;
+        if (s.minBad || (min && !(/^\d+$/.test(min) && Number(min) >= 1 && Number(min) <= 1440))) errors["svcMin" + i] = t.errSvcMin;
       });
       return errors;
     }
@@ -985,8 +1249,9 @@
         msg.hidden = !errors[id];
         msg.textContent = errors[id] || "";
       });
-      draft.hours.forEach((h, i) => {
+      d.hours.forEach((h, i) => {
         const msg = $("err-hours-" + i);
+        if (!msg) return;
         const row = msg.closest(".hours-row");
         const e = errors["hours-" + i];
         msg.hidden = !e;
@@ -994,6 +1259,20 @@
         row.querySelectorAll('input[type="time"]').forEach(inp => {
           inp.setAttribute("aria-invalid", e ? "true" : "false");
           if (e) inp.setAttribute("aria-describedby", "err-hours-" + i); else inp.removeAttribute("aria-describedby");
+        });
+      });
+      d.services.forEach((s, i) => {
+        const msg = $("err-svc-" + i);
+        if (!msg) return;
+        const ids = ["svcName" + i, "svcPrice" + i, "svcMin" + i];
+        const texts = ids.map(id => errors[id]).filter(Boolean);
+        msg.hidden = !texts.length;
+        msg.textContent = texts.join(" ");
+        ids.forEach(id => {
+          const inp = $(id);
+          if (!inp) return;
+          inp.setAttribute("aria-invalid", errors[id] ? "true" : "false");
+          if (errors[id]) inp.setAttribute("aria-describedby", "err-svc-" + i); else inp.removeAttribute("aria-describedby");
         });
       });
       const keys = Object.keys(errors);
@@ -1007,53 +1286,56 @@
         if (first) first.focus();
       }
     }
+    function showFormError(text) {
+      const box = $("formError");
+      box.textContent = text;
+      box.hidden = false;
+    }
 
     let submitting = false;
     form.addEventListener("submit", e => {
       e.preventDefault();
-      if (pendingPhotos > 0 || submitting) return;
-      collect();
+      if (d.pending > 0 || submitting) return;
+      collect(false);
       const errors = validate();
-      showErrors = true;
+      d.showErrors = true;
       showValidation(errors, true);
       if (Object.keys(errors).length) return;
 
-      const shop = draftToShop();
+      const current = loadMyShops(); // re-read: another tab may have changed it
+      if (editing && !current.some(s => s.id === editing.id)) { showFormError(t.errDeleted); return; }
+      const shop = draftToShop(d);
       shop.id = editing ? editing.id : "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       const saved = cleanShop(shop, true);
-      const current = loadMyShops(); // re-read: another tab may have changed it
-      const next = (editing && current.some(s => s.id === saved.id)
-        ? current.map(s => s.id === saved.id ? saved : s)
-        : [saved].concat(current)).map(toStored);
+      const next = (editing ? current.map(s => s.id === saved.id ? saved : s) : [saved].concat(current)).map(toStored);
       submitting = true;
       const err = store.save("localStorage", STORE_KEY, next);
       if (err) {
         submitting = false;
-        const box = $("formError");
-        box.textContent = err === "full" ? t.errStorageFull : t.errStorageBlocked;
-        box.hidden = false;
+        showFormError(err === "full" ? t.errStorageFull : t.errStorageBlocked);
         return;
       }
       myShops = loadMyShops();
-      draft = emptyDraft();
-      showErrors = false;
-      store.del("sessionStorage", DRAFT_KEY);
-      store.save("sessionStorage", NOTICE_KEY, { id: saved.id, kind: editing ? "edit" : "new" });
-      location.replace("#/shop/" + encodeURIComponent(saved.id));
+      discardDraft(slot);
+      const dest = "#/shop/" + encodeURIComponent(saved.id);
+      pageNotice = { hash: dest, kind: editing ? "edit" : "new" };
+      announce(editing ? t.saved : t.published);
+      navigate(dest, { replace: true });
     });
   }
 
-  function draftToShop() {
+  function draftToShop(d) {
     const shop = {
       id: "preview",
-      name: draft.name.trim(), category: draft.category, about: draft.about.trim(),
-      address: draft.address.trim(), phone: draft.phone.trim(), email: draft.email.trim(),
+      name: d.name.trim(), category: d.category, about: d.about.trim(),
+      address: d.address.trim(), phone: d.phone.trim(), email: d.email.trim(),
       tz: DEFAULT_TZ,
-      hours: draft.hours.map(h => h.closed || !TIME_RE.test(h.from) || !TIME_RE.test(h.to) || h.from === h.to ? null : [h.from, h.to]),
-      services: draft.services.map(s => ({ name: s.name.trim(), price: Math.max(0, Number(s.price) || 0), minutes: Math.max(0, Math.round(Number(s.minutes) || 0)) })).filter(s => s.name),
-      photos: draft.photos.slice()
+      hours: d.hours.map(h => h.closed ? null : h.allDay ? ALL_DAY.slice()
+        : (!TIME_RE.test(h.from) || !TIME_RE.test(h.to) || h.from === h.to) ? null : [h.from, h.to]),
+      services: d.services.map(s => ({ name: s.name.trim(), price: Math.max(0, Math.round(Number(s.price) || 0)), minutes: Math.max(0, Math.round(Number(s.minutes) || 0)) })).filter(s => s.name),
+      photos: d.photos.slice()
     };
-    if (draft.pos) { shop.lat = draft.pos.lat; shop.lng = draft.pos.lng; }
+    if (d.pos) { shop.lat = d.pos.lat; shop.lng = d.pos.lng; }
     return shop;
   }
 
@@ -1084,6 +1366,8 @@
   }
 
   /* ------------------------------------------------------------ routing & chrome */
+  // "#/", "#/shop/<id>", "#/edit/<id>", "#/new". Anything else shows home.
+  const normHash = h => { h = String(h || ""); const i = h.indexOf("#"); h = i >= 0 ? h.slice(i) : ""; return !h || h === "#" ? "#/" : h; };
   function currentRoute() {
     const h = location.hash;
     if (h.startsWith("#/shop/")) return "shop";
@@ -1107,19 +1391,21 @@
     if (route === "new") nav.setAttribute("aria-current", "page"); else nav.removeAttribute("aria-current");
     const lb = document.getElementById("langBtn");
     lb.textContent = t.langBtn;
-    lb.setAttribute("aria-label", t.langLabel);
+    lb.setAttribute("aria-label", t.langLabel); // starts with the visible text (EN / עב)
     lb.lang = lang === "he" ? "en" : "he";
   }
 
   function render(opts) {
+    opts = opts || {};
+    formUi = null;
     renderChrome();
     const route = currentRoute();
     if (route === "shop") renderShop(routeId("#/shop/"));
-    else if (route === "edit") renderForm(routeId("#/edit/"));
-    else if (route === "new") renderForm("");
+    else if (route === "edit") renderForm(routeId("#/edit/"), !!opts.entering);
+    else if (route === "new") renderForm(null, !!opts.entering);
     else renderHome();
 
-    if (opts && opts.focus) {
+    if (opts.focus) {
       let target = null;
       if (route === "home" && opts.fromShop && lastShopId) {
         target = Array.from(app.querySelectorAll(".card")).find(a => a.getAttribute("href") === "#/shop/" + encodeURIComponent(lastShopId)) || null;
@@ -1130,15 +1416,77 @@
     lastRoute = route;
   }
 
-  // "All places" goes *back* when we came from the list, so the list keeps its place.
-  let cameFromHome = false;
+  // Re-render without losing keyboard focus (used when data changes under the user).
+  function keepFocus(fn) {
+    const a = document.activeElement;
+    let sel = "";
+    if (a && a !== document.body && app.contains(a)) {
+      if (a.id) sel = "#" + CSS.escape(a.id);
+      else if (a.getAttribute("href")) sel = `[href="${CSS.escape(a.getAttribute("href"))}"]`;
+      else if (a.dataset.cat !== undefined) sel = `[data-cat="${CSS.escape(a.dataset.cat)}"]`;
+    }
+    const value = a && a.id === "q" ? { start: a.selectionStart, end: a.selectionEnd } : null;
+    fn();
+    if (!sel) return;
+    const el = app.querySelector(sel);
+    if (el && el !== document.activeElement) {
+      el.focus({ preventScroll: true });
+      if (value && el.setSelectionRange) try { el.setSelectionRange(value.start, value.end); } catch (e) { /* ignore */ }
+    }
+  }
+
+  // Each history entry remembers the page before it (history.state.prev), so in-app
+  // "back" links can really go back (keeping the list's place) only when that is where they lead.
+  if (!history.state || !("prev" in history.state)) history.replaceState({ prev: null }, "");
+  let navigating = false, navTimer = 0;
+
+  function navigate(hash, opts) {
+    hash = normHash(hash);
+    const st = history.state || {};
+    if (opts && opts.replace) {
+      // e.g. Save on an edit page opened from the shop page: go back to that entry instead of duplicating it
+      if (st.prev === hash) { history.back(); return; }
+      const from = lastRoute;
+      history.replaceState({ prev: st.prev === undefined ? null : st.prev }, "", hash);
+      onRoute(from);
+      return;
+    }
+    location.hash = hash;
+  }
+
+  function onRoute(fromRoute) {
+    navigating = false;
+    if (pageNotice && pageNotice.hash !== normHash(location.hash)) pageNotice = null;
+    hideToast();
+    const to = currentRoute();
+    render({ focus: true, fromShop: fromRoute === "shop", entering: true });
+    if (to === "home" && fromRoute && fromRoute !== "home") window.scrollTo(0, homeScrollY);
+    else window.scrollTo(0, 0);
+  }
+
   document.addEventListener("click", e => {
-    const back = e.target.closest("[data-back]");
-    if (back && cameFromHome && currentRoute() !== "home") {
+    const a = e.target.closest("a[data-back]");
+    if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (a.dataset.discard) discardDraft(a.dataset.discard); // Cancel / leaving the edit page throws the edits away
+    if (navigating) { e.preventDefault(); return; }       // a double click must not go back twice
+    const st = history.state;
+    if (st && st.prev === normHash(a.getAttribute("href")) && normHash(location.hash) !== st.prev) {
       e.preventDefault();
+      navigating = true;
+      clearTimeout(navTimer);
+      navTimer = setTimeout(() => { navigating = false; }, 1500);
       history.back();
     }
   });
+
+  // The skip link moves focus to the page heading; it must not change the route.
+  document.getElementById("skipLink").addEventListener("click", e => {
+    e.preventDefault();
+    const target = app.querySelector("h1") || app;
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ block: "start" });
+  });
+
   window.addEventListener("scroll", () => {
     if (currentRoute() === "home" && lastRoute === "home") homeScrollY = window.scrollY;
   }, { passive: true });
@@ -1149,37 +1497,73 @@
     lang = lang === "he" ? "en" : "he";
     store.save("localStorage", LANG_KEY, lang);
     const y = window.scrollY;
+    hideToast();
     render();
     window.scrollTo(0, y);
-    document.getElementById("langBtn").focus();
+    document.getElementById("langBtn").focus({ preventScroll: true });
   });
 
-  window.addEventListener("hashchange", () => {
-    const from = lastRoute;
-    const to = currentRoute();
-    if (to === "home") cameFromHome = false;
-    else if (from === "home") cameFromHome = true;
-    render({ focus: true, fromShop: from === "shop" });
-    if (to === "home" && from && from !== "home") window.scrollTo(0, homeScrollY);
-    else window.scrollTo(0, 0);
+  window.addEventListener("hashchange", e => {
+    // a fresh entry (link, typed URL): remember where it came from
+    if (!history.state) history.replaceState({ prev: normHash(e.oldURL) }, "");
+    onRoute(lastRoute);
   });
 
-  // Keep "Open / Closed" honest while the page stays open.
+  // Keep "Open / Closed" honest while the page stays open, on the minute.
   function refreshOpenState() {
     const route = currentRoute();
-    const grid = document.getElementById("grid");
-    if (route === "home" && grid && !grid.contains(document.activeElement)) updateResults(false);
+    if (route === "home" && document.getElementById("grid")) {
+      if (resultsSignature(filteredShops()) !== homeSig) keepFocus(() => updateResults(false));
+    }
     const st = document.getElementById("shopStatus");
     if (route === "shop" && st) {
       const shop = allShops().find(s => s.id === st.dataset.id);
-      if (shop) { const os = openState(shop); st.innerHTML = statusPill(os) + " <span>" + esc(stateDetail(os)) + "</span>"; }
+      if (shop) {
+        const os = openState(shop);
+        const sig = os.open + "|" + stateDetail(os);
+        if (st.dataset.sig !== sig) { st.innerHTML = statusPill(os) + " <span>" + esc(stateDetail(os)) + "</span>"; st.dataset.sig = sig; }
+        const list = document.getElementById("hoursList");
+        if (list && Number(list.dataset.day) !== nowIn(shop.tz).day) list.outerHTML = hoursListHtml(shop);
+      }
     }
+    if ((route === "new" || route === "edit") && formUi) formUi.renderPreview();
   }
-  setInterval(refreshOpenState, 60000);
+  (function tick() {
+    setTimeout(() => { refreshOpenState(); tick(); }, 60000 - (Date.now() % 60000) + 50);
+  })();
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshOpenState(); });
+
+  // Another tab added, changed or deleted a shop.
+  function refreshHomeCounts() {
+    const t = L();
+    const shops = allShops();
+    const counts = {};
+    shops.forEach(s => { counts[s.category] = (counts[s.category] || 0) + 1; });
+    setText(document.querySelector("#eyebrow > span:last-child"), t.eyebrow(shops.length));
+    document.querySelectorAll("#street [data-count]").forEach(el => setText(el, t.places(el.dataset.count ? counts[el.dataset.count] || 0 : shops.length)));
+  }
   window.addEventListener("storage", e => {
-    if (e.key === STORE_KEY) { myShops = loadMyShops(); if (currentRoute() === "home" || currentRoute() === "shop") render(); }
+    if (e.key !== STORE_KEY) return;
+    const before = {};
+    myShops.forEach(s => { before[s.id] = JSON.stringify(toStored(s)); });
+    myShops = loadMyShops();
+    const route = currentRoute();
+    if (route === "home") {
+      keepFocus(() => { refreshHomeCounts(); updateResults(false); });
+    } else if (route === "shop") {
+      const id = routeId("#/shop/");
+      const now = myShops.find(s => s.id === id);
+      if ((now ? JSON.stringify(toStored(now)) : undefined) !== before[id]) keepFocus(() => render());
+    } else if (route === "edit") {
+      const id = routeId("#/edit/");
+      if (before[id] && !myShops.some(s => s.id === id)) {
+        discardDraft("edit." + id);
+        formUi = null;
+        renderNotFound(L().deletedTab, L().notFoundSub);
+        app.querySelector("h1").focus({ preventScroll: true });
+      }
+    }
   });
 
-  render();
+  render({ entering: true });
 })();
