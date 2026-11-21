@@ -67,17 +67,30 @@
   var view = null;
   var activeCat;
 
-  // Opening-hours rows with neither days nor time are ignored. A row written as one text
-  // ("Sun–Thu 12:00–23:00", or one per language) is shown as written.
-  var HOURS = (Array.isArray(infoCfg.hours) ? infoCfg.hours : []).map(function (h) {
-    return h && typeof h === "object" && (own(h, "days") || own(h, "time")) ? h : { days: "", time: h };
-  }).filter(function (h) {
-    return t(h.days).trim() !== "" || t(h.time).trim() !== "";
-  });
   // The About page is left out when the client gave nothing it can show.
+  if (allText(infoCfg.hours).join("").trim() && !hoursRows(infoCfg.hours).length) {
+    console.warn("[menu] info.hours has no rows to show. Write it as a list of { days, time } in config.js.");
+  }
   var HAS_ABOUT = t(infoCfg.about).trim() !== "" || t(infoCfg.address).trim() !== "" ||
-    texts(infoCfg.phone).length > 0 || HOURS.length > 0;
+    texts(infoCfg.phone).some(function (r) { return /[^\s,\/|;.\-–—]/.test(r.s); }) || hoursRows(infoCfg.hours).length > 0;
   var VIEWS = HAS_ABOUT ? ["home", "menu", "about"] : ["home", "menu"];
+
+  // Opening-hours rows, in the page language. Each row is { days, time }, or one text
+  // ("Sun–Thu 12:00–23:00"). The list, a row, or a text can each be written per language.
+  // Rows with neither days nor time are left out.
+  function hoursRows(v, l) {
+    if (Array.isArray(v)) return v.reduce(function (a, x) {
+      // A row written as a list of texts (["Sun–Thu", "12:00–23:00"]) is one row; a list of rows is read as rows.
+      var one = Array.isArray(x) && x.every(function (y) { return typeof y === "string" || typeof y === "number"; });
+      return a.concat(hoursRows(one ? { days: "", time: x } : x, l));
+    }, []);
+    if (v && typeof v === "object" && !own(v, "days") && !own(v, "time")) {
+      var k = pickKey(v, function (x) { return hoursRows(x).length > 0; });
+      return k == null ? [] : hoursRows(v[k], own(UI, k) ? k : l);
+    }
+    var h = v && typeof v === "object" ? v : { days: "", time: v };
+    return t(h.days).trim() !== "" || t(h.time).trim() !== "" ? [{ days: h.days, time: h.time, l: l || null }] : [];
+  }
 
   /* ---------- Small helpers ---------- */
   // Own keys only, so a tag or id such as "constructor" is not mistaken for a built-in.
@@ -146,8 +159,12 @@
   }
   function t(v) { return tl(v).s; }
   // A list of texts (one text, a list, or a list per language) → [{ s, l }], empty entries left out.
+  // An object without language keys ({ office: "03-…", mobile: "050-…" }) is a list of its values.
   function texts(v, l0) {
     if (Array.isArray(v)) return v.reduce(function (a, x) { return a.concat(texts(x, l0)); }, []);
+    if (v && typeof v === "object" && !Object.keys(v).some(function (k) { return own(UI, k); })) {
+      return texts(Object.keys(v).map(function (k) { return v[k]; }), l0);
+    }
     if (v && typeof v === "object") {
       var k = pickKey(v, function (x) { return texts(x).length > 0; });
       return k == null ? [] : texts(v[k], own(UI, k) ? k : l0);
@@ -178,7 +195,7 @@
     var r = tl(v), s = r.s.trim();
     if (!s) return { s: "", l: null };
     var n = num(s);
-    if (n === 0) return { s: "", l: null }; // 0 means "not given", as before
+    if (n === 0 || /^(NaN|-?Infinity|undefined|null)$/.test(s)) return { s: "", l: null }; // 0 means "not given", as before
     if (!isNaN(n)) return ui(UI[lang].approx + n.toLocaleString("en") + " " + unit);
     return /^[\d\s.,\-–]+$/.test(s) ? ui(s + " " + unit) : { s: s, l: r.l };
   }
@@ -187,6 +204,33 @@
     if (typeof g === "object") return tl(g);
     var tags = UI[lang].tags;
     return own(tags, g) ? ui(tags[g]) : { s: g, l: null };
+  }
+  // A dish's tags → a list of built-in keys ("spicy"), the client's own texts, and the client's
+  // own tags per language ({ he: "ללא גלוטן", en: "Gluten free" }). A single tag works like a list,
+  // nested lists are read as one list, and a list per language ({ en: [...], he: [...] }, like
+  // ingredients) is paired up by place.
+  function tagList(v) {
+    var flat = (function f(x) {
+      if (Array.isArray(x)) return x.reduce(function (a, y) { return a.concat(f(y)); }, []);
+      var ks = x && typeof x === "object" ? Object.keys(x).filter(function (k) { return own(UI, k) && Array.isArray(x[k]); }) : [];
+      if (!ks.length) return [x];
+      var n = Math.max.apply(null, ks.map(function (k) { return x[k].length; })), z = [];
+      for (var i = 0; i < n; i++) {
+        var o = {};
+        ks.forEach(function (k) { if (x[k][i] != null) o[k] = x[k][i]; });
+        z.push(o);
+      }
+      return z;
+    })(v);
+    return flat.map(function (g) {
+      if (typeof g === "number") return isFinite(g) ? String(g) : "";
+      if (typeof g === "string") return g.trim();
+      if (!g || typeof g !== "object") return "";
+      // { en: "spicy", he: "spicy" } is the built-in tag, shown in each language.
+      var vals = Object.keys(g).map(function (k) { return typeof g[k] === "string" ? g[k].trim() : ""; }).filter(Boolean);
+      if (vals.length && own(UI.en.tags, vals[0]) && vals.every(function (s) { return s === vals[0]; })) return vals[0];
+      return t(g).trim() !== "" ? g : "";
+    }).filter(Boolean);
   }
 
   /* ---------- Search normalisation ---------- */
@@ -270,13 +314,11 @@
             Object.keys(UI).forEach(function (l) { it.name[l] = UI[l].dish + " " + (ii + 1); });
           }
         }
-        // A single tag written as text ("spicy") works the same as a list (["spicy"]).
-        // The client's own tag can also be written per language ({ he: "ללא גלוטן", en: "Gluten free" }).
-        var tags = Array.isArray(it.tags) ? it.tags : [it.tags];
-        it.tags = tags.filter(function (g) {
-          return typeof g === "number" || (typeof g === "string" && g.trim()) ||
-            (g && typeof g === "object" && t(g).trim() !== "");
-        }).map(function (g) { return typeof g === "object" ? g : String(g).trim(); });
+        it.tags = tagList(it.tags);
+        if (it.price && typeof it.price === "object" && !Array.isArray(it.price) &&
+            !Object.keys(it.price).some(function (k) { return own(UI, k); })) {
+          console.warn('[menu] The price of "' + t(it.name) + '" has no language keys, so only its first value is shown.');
+        }
         var key = unique(id + "/" + (given(it.id) ? String(it.id).trim() : ii), seenKey);
         it._key = key;
         itemsByKey[key] = it;
@@ -337,6 +379,21 @@
     Object.keys(map).forEach(function (k) {
       if (th[k]) document.documentElement.style.setProperty(map[k], th[k]);
     });
+    // Text on the accent colour ("Best seller") is white or near black, whichever reads better.
+    if (th.accent) {
+      var probe = document.createElement("i");
+      probe.style.color = th.accent;
+      document.body.appendChild(probe);
+      var c = (getComputedStyle(probe).color.match(/[\d.]+/g) || []).slice(0, 3).map(function (x) {
+        x = Number(x) / 255;
+        return x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+      });
+      probe.remove();
+      if (c.length === 3) {
+        var L = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+        document.documentElement.style.setProperty("--on-accent", 1.05 / (L + 0.05) >= (L + 0.05) / 0.0556 ? "#fff" : "#111");
+      }
+    }
     var meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) {
       meta = document.createElement("meta");
@@ -350,7 +407,7 @@
   // The emoji is always there; a photo, when set, sits on top of it.
   // If the photo fails to load it is removed and the emoji shows.
   function thumb(it) {
-    return '<span class="thumb"><span class="thumb-emoji" aria-hidden="true">' + esc(it.emoji || "🍽️") + "</span>" +
+    return '<span class="thumb"><span class="thumb-emoji" aria-hidden="true">' + esc(t(it.emoji).trim() || "🍽️") + "</span>" +
       (it.image ? '<img src="' + esc(it.image) + '" alt="" loading="lazy" decoding="async">' : "") + "</span>";
   }
   // Text that is cut short with "…" carries its own direction (not an inner <bdi>),
@@ -435,7 +492,7 @@
       (cats.length ? '<div class="section-title"><h2>' + esc(u.categories) + '</h2></div><div class="cat-tiles">' +
         cats.map(function (c) {
           return '<button class="cat-tile" data-cat="' + c.id + '">' +
-            (c.emoji ? '<span class="emoji" aria-hidden="true">' + esc(c.emoji) + "</span>" : "") +
+            (t(c.emoji).trim() ? '<span class="emoji" aria-hidden="true">' + esc(t(c.emoji).trim()) + "</span>" : "") +
             "<span>" + bdi(tl(c.name)) + "<small>" + esc(countLabel(c.items.length)) + "</small></span></button>";
         }).join("") + "</div>" : "");
   }
@@ -496,83 +553,158 @@
       saveQuery();
     }
   }
-  // The history entry keeps the search text at once: Back or a reload can come before the next save.
+  // The search text is kept for its history entry at once, since Back or a reload can come before
+  // the next save. It goes to memory and sessionStorage, not to history on every key: Safari
+  // refuses history calls after 100 in a short time, and then dish and view entries would be lost.
   function saveQuery() {
     var q = $("search").value;
-    if (state().q === q) return;
-    try { history.replaceState(merge(state(), { q: q }), ""); } catch (e) {}
+    if (!curId || qs[curId] === q) return;
+    delete qs[curId];
+    qs[curId] = q; // last in the list, so trimming old entries never drops the current one
+    writeStore(Q_KEY, qs);
   }
 
   // Numbers in a phone or hours text ("*6060", "12:00 – 23:00") always read left to right;
   // the words around them ("24 שעות", "מוקד הזמנות") keep the direction of their own language.
-  var NUM_RUN = /[+*#(]?\d(?:[\d\s().:*#\/–—-]*[\d)])?/g;
+  // Every kind of hyphen (‐ ‑ ‒ – — ― −) joins the parts of a number; a colon only inside a time
+  // ("12:00"), so in "24/7: 050-…" the colon stays with the words.
+  var NUM_RUN = /(?:\(\+|[+*#(])?\d(?:(?:[\d\s().*#\/‐-―−-]|:(?=\d))*[\d)])?/g;
+  var NUM_END = /[\s.:\/‐-―−-]+$/;
   function count(s, ch) { return s.split(ch).length - 1; }
+  // Where a number run must end so its brackets pair up. A bracket opened or closed among the
+  // words ("(שלוחה 5)", "050-123-4567 (24 שעות)") stays with the words, so it mirrors with them.
+  function pairedEnd(m) {
+    var open = [];
+    for (var k = 0; k < m.length; k++) {
+      var c = m.charAt(k);
+      if (c === "(") open.push(k);
+      else if (c === ")") { if (!open.length) return k; open.pop(); }
+    }
+    return open.length ? open[0] : m.length;
+  }
   function nums(s) {
-    var out = "", last = 0;
-    s.replace(NUM_RUN, function (m, i) {
-      // A bracket opened or closed among the words ("(שלוחה 5)") stays with the words, so it mirrors with them.
-      if (m.charAt(0) === "(" && count(m, "(") > count(m, ")")) { m = m.slice(1); i++; }
-      while (m.slice(-1) === ")" && count(m, ")") > count(m, "(")) m = m.slice(0, -1);
-      m = m.replace(/[\s.:\/–—-]+$/, "");
-      out += esc(s.slice(last, i)) + '<bdi dir="ltr">' + esc(m) + "</bdi>";
-      last = i + m.length;
-      return m;
-    });
+    var out = "", last = 0, m, re = new RegExp(NUM_RUN.source, "g");
+    while ((m = re.exec(s))) {
+      var i = m.index, end = pairedEnd(m[0]);
+      if (end === 0) { re.lastIndex = i + 1; continue; } // an opening bracket of the words: look after it
+      var r = m[0].slice(0, end).replace(NUM_END, "");
+      out += esc(s.slice(last, i)) + '<bdi dir="ltr">' + esc(r) + "</bdi>";
+      last = re.lastIndex = i + r.length;
+    }
     return out + esc(s.slice(last));
   }
   // Text with no letters ("12:00 – 15:30, 18:00 – 23:30") always reads left to right, however
   // it was written; text with words ("24 שעות", "Orders: 03-555-1234") takes its own direction.
   var LETTER = /[A-Za-zÀ-ɏͰ-ϿЀ-ӿ֐-׿؀-ۿ]/;
   function numAttrs(r) { return LETTER.test(r.s) ? attrs(r) : ' dir="ltr"'; }
+  function meaningful(s) { return /[^\s,\/|;.\-–—]/.test(s); }
 
-  // The number a phone text dials: a star number (*6060), or else its longest phone number, so
-  // words and other numbers around it ("Delivery 24/7:", "(9:00-17:00)") are not dialled.
-  // An extension ("ext. 5", "(ext. 5)", "שלוחה 5") is not dialled, "+972 (0)50" dials +97250,
-  // and a number written with letters (1-800-FLOWERS) dials the keypad digits.
-  var EXT = /(^|[^A-Za-z])\s*[(\[]?\s*(?:ext\.?|extension|x)\s*:?\s*\d[\d\s-]*[)\]]?|\s*[(\[]?\s*שלוחה\s*:?\s*\d[\d\s-]*[)\]]?/gi;
+  // The number a phone text dials. Words and other numbers around it ("Delivery 24/7:", "24 hours",
+  // "(9:00-17:00)", "Branch 2") are shown but not dialled, and neither is an extension ("ext. 5",
+  // "(ext. 5)", "שלוחה 5"). "(+972) 3-…" and "+972 (0)3-…" dial +9723…, a star number (*6060)
+  // is dialled as it is, and a number written with letters (1-800-FLOWERS) dials the keypad digits.
   var KEYPAD = "22233344455566677778889999";
-  var VANITY = /(\+?\d[\d\s().-]*?)[\s-]?([A-Za-z][A-Za-z\d-]*)$/;
-  var PHONE_RUN = /\+?(?:\d|\(\d+\))(?:(?:\s*[.\-–]\s*|\s+)?(?:\d|\(\d+\)))*/g;
+  var EXT = /(^|[^A-Za-z])\s*[(\[]?\s*(?:ext\.?|extension|x)\s*:?\s*\d{1,5}(?!\s*[-–—]?\s*\d)\s*[)\]]?|\s*[(\[]?\s*שלוחה\s*:?\s*\d{1,5}(?!\s*[-–—]?\s*\d)\s*[)\]]?/gi;
+  var VANITY = /(\+?\d[\d .-]*?)([ -]?)([A-Za-z][A-Za-z-]*[A-Za-z])/g;
   function digits(s) { return s.replace(/\D/g, "").length; }
-  function dialOf(p) {
-    var n = p.replace(EXT, function (m, pre) { return (pre || "") + " "; });
-    n = n.replace(/(\+\d{1,4})[\s.-]*\(0\)/g, "$1 "); // the 0 is only dialled from inside the country
-    var v = n.match(VANITY);
-    // Letters only count as digits after a short start ("1-800-"), so "03-555-1234 Danny" stays a name.
-    if (v && digits(v[1]) < 7 && v[2].length >= 3 && digits(v[1]) + digits(v[2].replace(/[A-Za-z]/g, "0")) >= 7) {
-      n = n.slice(0, v.index) + v[0].replace(/[A-Za-z]/g, function (c) {
-        return KEYPAD.charAt(c.toUpperCase().charCodeAt(0) - 65);
-      });
-    }
-    var star = n.match(/\*\d{2,6}#?/);
-    if (star) return star[0].replace(/#/g, "%23");
-    var best = "";
-    (n.match(PHONE_RUN) || []).forEach(function (r) {
-      r = r.replace(/(\d)[\s.\-–]*\(\d+\)$/, "$1"); // a bracket after the number ("(24)") is a note, not digits to dial
-      if (digits(r) > digits(best)) best = r;
+  function blank(n) { return new Array(n + 1).join(" "); }
+  function blankAll(m) { return blank(m.length); }
+  // The phone text with all that is not part of a number to dial turned into spaces. It keeps the
+  // length of the text, so a number found in it is at the same place in the text itself.
+  function dialText(p) {
+    var n = p.replace(/[‐-‒−]/g, "-").replace(/(\d)[–-―](?=\d)/g, "$1-");
+    n = n.replace(EXT, function (m, pre) { pre = pre || ""; return pre + blank(m.length - pre.length); });
+    n = n.replace(/\(\s*(\+\d{1,4})\s*\)/g, function (m, cc) { return " " + cc + blank(m.length - cc.length - 1); });
+    n = n.replace(/(\+\d{1,4})([\s.-]*\(0\))/g, function (m, cc, z) { return cc + blank(z.length); }); // the 0 is only dialled from inside the country
+    n = n.replace(/\b\d{1,2}[.:]\d{2}\s*[-–—]\s*\d{1,2}[.:]\d{2}\b|\d{1,2}:\d{2}|\b\d{1,2}\/\d{1,2}\b/g, blankAll); // hours, "24/7"
+    return n.replace(VANITY, function (m, d, sep, w) {
+      var dd = digits(d), all = dd + w.replace(/-/g, "").length;
+      // A real number with letters ("1-800-FLOWERS", 10 to 12 digits), not "24 hours" or "03-555-1234 Danny".
+      if (dd < 3 || dd > 7 || all < 10 || all > 12) return m;
+      return d + sep + w.replace(/[A-Za-z]/g, function (c) { return KEYPAD.charAt(c.toUpperCase().charCodeAt(0) - 65); });
     });
-    return digits(best) >= 3 ? best.replace(/[^\d+]/g, "") : "";
+  }
+  // The phone numbers in a dial text: groups of digits ("03", "555", "+972", "(03)") joined across
+  // a space or one "-" or "." (spaces around it allowed: "050 - 123 - 4567"). Not across ", " or
+  // words, not after a whole number ("03-555-1234 24", "03-555-1234 - 050-…"), and not from a short
+  // number before it ("Branch 2 03-…", "Floor 3 - 03-…").
+  function phoneRuns(n) {
+    var re = /\+?\d+|\(\d+\)/g, m, runs = [], cur = null;
+    while ((m = re.exec(n))) {
+      var g = m[0], j = m.index + g.length;
+      if (cur && joins(cur, g, n.slice(cur.j, m.index))) { cur.j = j; cur.d += digits(g); }
+      else runs.push(cur = { i: m.index, j: j, d: digits(g), first: g });
+    }
+    return runs;
+  }
+  function joins(run, g, sep) {
+    var dash = /^\s?[.\-–]\s?$/.test(sep), spaced = /\s/.test(sep);
+    if (!(sep === "" || dash || /^\s+$/.test(sep))) return false;
+    if (g.charAt(0) === "+") return false; // a new number
+    if (g.charAt(0) === "(") return run.d <= 4; // an area code after a country code: "+1 (212) …"
+    if (run.d >= (/^(\+|00)/.test(run.first) ? 11 : 9)) return false; // the number is already whole
+    return !(spaced && g.charAt(0) === "0" && run.d <= 2 && /^\d/.test(run.first));
+  }
+  function dialOf(p) {
+    var n = dialText(p), star = n.match(/\*\d{2,6}#?/), best = null;
+    if (star) return star[0].replace(/#/g, "%23");
+    phoneRuns(n).forEach(function (r) { if (r.d >= 3 && (!best || r.d > best.d)) best = r; });
+    return best ? n.slice(best.i, best.j).replace(/[^\d+]/g, "") : "";
+  }
+  // A phone text → its parts, each on its own line with its own call link. It is split at ",", "/",
+  // "|", ";", " or " and " או " (not inside brackets, and not in "24/7"), and between two whole
+  // numbers ("03-555-1234 050-123-4567"). A label with no number ("Tel" in "Tel/Fax: 03-…", "Call"
+  // in "Call or WhatsApp 050-…") stays with the number after it; a note after a number gets its own line.
+  var PHONE_SEP = /\s*[,\/|;]\s*|\s+(?:or|או)\s+/gi;
+  function phoneParts(s) {
+    var pieces = [], last = 0, m, re = new RegExp(PHONE_SEP.source, "gi");
+    while ((m = re.exec(s))) {
+      var before = s.slice(0, m.index), after = s.slice(m.index + m[0].length);
+      if (count(before, "(") > count(before, ")")) continue;
+      if (m[0] === "/" && /(^|\D)\d{1,2}$/.test(before) && /^\d{1,2}(\D|$)/.test(after)) continue;
+      pieces.push({ s: s.slice(last, m.index), sep: m[0] });
+      last = m.index + m[0].length;
+    }
+    pieces.push({ s: s.slice(last), sep: "" });
+    var out = [];
+    pieces.forEach(function (pc) {
+      var prev = out[out.length - 1];
+      if (prev && prev.none) { prev.s += prev.sep + pc.s; prev.sep = pc.sep; prev.none = !dialOf(prev.s); }
+      else out.push({ s: pc.s, sep: pc.sep, none: !dialOf(pc.s) });
+    });
+    var res = [];
+    out.forEach(function (pc) {
+      var p = pc.s, at = 0, big = phoneRuns(dialText(p)).filter(function (r) { return r.d >= 7; });
+      for (var k = 1; k < big.length; k++) {
+        var cut = big[k - 1].j, note = /^\s*\([^()]*\)/.exec(p.slice(cut));
+        if (note) cut += note[0].length; // "(office)" after a number stays with it
+        if (cut > big[k].i) continue;
+        res.push(p.slice(at, cut));
+        at = cut;
+      }
+      res.push(p.slice(at));
+    });
+    return res.map(function (p) { return p.replace(/^[\s,;|\/\-–—]+|[\s,;|\/\-–—]+$/g, ""); }).filter(meaningful);
   }
 
   function renderAbout() {
-    var u = UI[lang], hours = HOURS;
+    var u = UI[lang], hours = hoursRows(infoCfg.hours);
     var about = tl(infoCfg.about), address = tl(infoCfg.address);
     function row(key, valHtml) {
       return '<div class="info-row"><span class="info-key">' + bdi(key) + '</span><span class="info-val">' + valHtml + "</span></div>";
     }
     // "12:00 – 15:30, 18:00 – 23:30": each part stays on one line when it fits; a long value wraps between parts.
+    // A "/" splits only with spaces around it, so "24/7" and "1/6–30/9" stay whole.
     function parts(s) {
-      return String(s).split(/(\s*[,\/|]\s*)/).map(function (p, i) {
+      return String(s).split(/(\s*[,|]\s*|\s+\/\s+)/).map(function (p, i) {
         return i % 2 ? esc(p) : '<span class="nw">' + nums(p) + "</span>";
       }).join("");
     }
     // Several numbers ("03-555-1234 / 050-123-4567", "... or ...", "... או ...") each get their own call link.
-    // Each keeps the language it was written in. "24/7" is not two numbers.
+    // Each keeps the language it was written in.
     var phones = [];
     texts(infoCfg.phone).forEach(function (r) {
-      r.s.replace(/\b(\d{1,2})\/(\d{1,2})\b/g, "$1⁄$2").split(/\s*[,\/|;]\s*|\s+(?:or|או)\s+/i).forEach(function (p) {
-        p = p.replace(/⁄/g, "/").trim();
-        if (!p) return;
+      phoneParts(r.s).forEach(function (p) {
         var dial = dialOf(p);
         var text = '<span class="nw"' + numAttrs({ s: p, l: r.l }) + ">" + nums(p) + "</span>";
         phones.push(dial ? '<a href="tel:' + dial + '">' + text + "</a>" : text);
@@ -581,8 +713,8 @@
     $("view-about").innerHTML = '<h1 class="sr-only">' + esc(u.about) + '</h1><div class="info-wrap">' +
       (about.s.trim() ? '<div class="info-card"><h2>' + esc(u.aboutUs) + "</h2><p>" + bdi(about) + "</p></div>" : "") +
       (hours.length ? '<div class="info-card"><h2>' + esc(u.hours) + "</h2>" + hours.map(function (h) {
-        var time = tl(h.time);
-        return row(tl(h.days), "<span" + numAttrs(time) + ">" + parts(time.s) + "</span>");
+        var time = tl(h.time, h.l);
+        return row(tl(h.days, h.l), "<span" + numAttrs(time) + ">" + parts(time.s) + "</span>");
       }).join("") + "</div>" : "") +
       (address.s.trim() || phones.length ? '<div class="info-card"><h2>' + esc(u.contact) + "</h2>" +
         (address.s.trim() ? row(ui(u.address), bdi(address)) : "") +
@@ -625,10 +757,11 @@
   }
   // Each view change is a history entry, so the phone's Back button moves between views.
   // `clear` empties the search, after the entry being left has saved it with its position.
-  // Clearing a search is a new entry too (a drawer link on the searched menu), so Back brings the search back.
+  // Clearing a search on the menu is a new entry too (a drawer link on the searched menu), so Back
+  // brings the search back. On Home and About the box is hidden, so text left in it does not count.
   function navigate(v, catId, clear) {
     v = VIEWS.indexOf(v) >= 0 ? v : "home";
-    if (v !== view || (clear && $("search").value)) {
+    if (v !== view || (clear && view === "menu" && $("search").value)) {
       saveScroll();
       push({ view: v }, "#" + v);
     }
@@ -651,26 +784,30 @@
   // entry gets an id. Its position is updated on every scroll, kept in memory and in
   // sessionStorage (which, unlike history, a reload cannot drop), and also on the entry itself.
   // The entry also keeps the search text, so its position matches the list it was taken on.
-  var POS_KEY = "menu-pos:" + location.pathname, curId = null, curOv = false, pinTok = 0;
-  var pos = (function () {
+  var POS_KEY = "menu-pos:" + location.pathname, Q_KEY = "menu-q:" + location.pathname;
+  var curId = null, curOv = false, pinTok = 0;
+  function readStore(key) {
     try {
-      var o = JSON.parse(sessionStorage.getItem(POS_KEY) || "{}");
+      var o = JSON.parse(sessionStorage.getItem(key) || "{}");
       return o && typeof o === "object" && !Array.isArray(o) ? o : {};
     } catch (e) { return {}; }
-  })();
-  function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
-  function remember() { if (curId) pos[curId] = Math.round(window.scrollY); }
-  function writePos() {
+  }
+  function writeStore(key, o) {
     try {
-      var keys = Object.keys(pos);
-      while (keys.length > 60) delete pos[keys.shift()]; // only recent entries matter
-      sessionStorage.setItem(POS_KEY, JSON.stringify(pos));
+      var keys = Object.keys(o);
+      while (keys.length > 60) delete o[keys.shift()]; // only recent entries matter
+      sessionStorage.setItem(key, JSON.stringify(o));
     } catch (e) {}
   }
+  var pos = readStore(POS_KEY), qs = readStore(Q_KEY);
+  function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function remember() { if (curId) pos[curId] = Math.round(window.scrollY); }
   function posOf(st) { return st.id && typeof pos[st.id] === "number" ? pos[st.id] : st.y > 0 ? st.y : 0; }
+  function qOf(st) { return st.id && typeof qs[st.id] === "string" ? qs[st.id] : st.q; }
   function saveScroll() {
     remember();
-    writePos();
+    writeStore(POS_KEY, pos);
+    saveQuery();
     try { history.replaceState(merge(state(), { y: Math.round(window.scrollY), q: $("search").value }), ""); } catch (e) {}
   }
   function push(st, url) {
@@ -693,14 +830,14 @@
   }
   // Scrolls at once, then holds that position while something keeps moving the page: a smooth
   // scroll that was still running (a category tap just before Back), or a finger fling. The hold
-  // ends 150 ms after the page stops drifting (at most 1.5 s), and at once on any touch, wheel,
-  // key or focus change by the customer.
+  // ends 150 ms after the page stops drifting (at most 4 s, as a strong fling can last that long),
+  // and at once on any touch, wheel, key or focus change by the customer.
   var pinY = null, pinEnd = 0, pinMax = 0;
   function scrollNow(y) {
     var tk = ++pinTok, now = Date.now();
     pinY = y;
     pinEnd = now + 150;
-    pinMax = now + 1500;
+    pinMax = now + 4000;
     window.scrollTo({ top: y, behavior: "instant" });
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
@@ -736,13 +873,14 @@
     if (spyLock) { clearTimeout(lockTimer); lockTimer = setTimeout(unlockSpy, 250); return; }
     spy();
   }
-  // The category being read and how far its title is from the top, so turning the phone
-  // (or resizing the window) keeps the same place even though the layout changes.
+  // The category being read, how far its title is from the top and how tall it is, so turning
+  // the phone (or resizing the window) keeps the same place even though the layout changes.
   var anchor = null, lastW = window.innerWidth;
   function marginTop(el) { return parseFloat(getComputedStyle(el).scrollMarginTop) || 0; }
   function keepAnchor() {
     var sec = view === "menu" && activeCat ? $("cat-" + activeCat) : null;
-    anchor = sec && !sec.hidden ? { cat: activeCat, off: sec.getBoundingClientRect().top - marginTop(sec) } : null;
+    var r = sec && !sec.hidden ? sec.getBoundingClientRect() : null;
+    anchor = r ? { cat: activeCat, off: r.top - marginTop(sec), h: r.height } : null;
   }
   function onResize() {
     var a = anchor, w = window.innerWidth;
@@ -750,8 +888,11 @@
     if (w !== lastW && a && view === "menu") {
       var sec = $("cat-" + a.cat);
       if (sec && !sec.hidden) {
+        var r = sec.getBoundingClientRect(), off = a.off;
+        // Deep inside a category, keep the same share of it above the top: its height changes too.
+        if (off < 0 && a.h > 0) off = off * r.height / a.h;
         unpin();
-        window.scrollTo({ top: sec.getBoundingClientRect().top + window.scrollY - marginTop(sec) - a.off, behavior: "instant" });
+        window.scrollTo({ top: r.top + window.scrollY - marginTop(sec) - off, behavior: "instant" });
       }
     }
     lastW = w;
@@ -859,14 +1000,19 @@
   function openItem(key, from) {
     var it = itemsByKey[key];
     if (!it || anyOpen()) return;
-    var u = UI[lang], desc = tl(it.desc), stats = [];
+    var u = UI[lang], desc = tl(it.desc), stats = [], seen = {};
     var ing = texts(it.ingredients);
+    // The same tag written twice ("vegan" and { he: "טבעוני" }) is shown once.
+    var tags = it.tags.filter(function (g) {
+      var k = "~" + tagText(g).s.trim().toLowerCase();
+      return seen[k] ? false : (seen[k] = true);
+    });
     var time = approx(it.time, u.min), kcal = approx(it.calories, u.kcal);
     if (time.s) stats.push('<div class="stat"><small>' + esc(u.prep) + "</small><b>" + bdi(time) + "</b></div>");
     if (kcal.s) stats.push('<div class="stat"><small>' + esc(u.calories) + "</small><b>" + bdi(kcal) + "</b></div>");
     $("sheetBody").innerHTML = thumb(it) +
       '<div class="sheet-head"><h2 id="sheetTitle">' + bdi(tl(it.name)) + "</h2>" + price(it.price) + "</div>" +
-      (it.tags.length ? '<div class="tags">' + it.tags.map(function (g) {
+      (tags.length ? '<div class="tags">' + tags.map(function (g) {
         return '<span class="tag' + (g === "popular" ? " hot" : "") + '">' + bdi(tagText(g)) + "</span>";
       }).join("") + "</div>" : "") +
       (desc.s.trim() ? '<p class="sheet-desc">' + bdi(desc) + "</p>" : "") +
@@ -934,14 +1080,14 @@
     curOv = !!st.overlay;
     closeAll();
     if (v !== view) {
-      if (v === "menu") setSearch(st.q);
+      if (v === "menu") setSearch(qOf(st));
       show(v);
       scrollNow(posOf(st));
     } else if (fresh || leftOv || st.overlay) {
       pos[curId] = y; // an overlay opened or closed, or a new entry: the page stays where it is
     } else {
       // Two entries of the same view (#menu typed in the address bar while on the menu).
-      if (v === "menu") setSearch(st.q);
+      if (v === "menu") setSearch(qOf(st));
       scrollNow(posOf(st));
     }
     saveScroll();
@@ -1121,16 +1267,17 @@
     var st = state();
     show(viewFromHash());
     var same = st.view === view;
-    if (same && view === "menu") setSearch(st.q); // the search the position was taken on
+    if (same && view === "menu") setSearch(qOf(st)); // the search the position was taken on
     var y = same ? posOf(st) : 0;
     curId = st.id && same ? st.id : newId();
     if (y > 0) scrollNow(y);
     var here = { view: view, id: curId, y: y, q: $("search").value };
     // After a reload with a dish or the drawer open, open it again on the same history entry.
     if (same && st.overlay && !st.under && canReopen(st)) {
-      // An open drawer or dish the page did not put on an entry of its own (an older version of
-      // the page wrote these): keep this entry without it and open it again on a new entry above,
-      // so closing it stays on this view.
+      // An open drawer or dish the page did not put on an entry of its own (older versions wrote
+      // these). What is under it is unknown, maybe another site, so going back to close it is not
+      // safe: keep this entry without it and open it again on a new entry above, so closing it
+      // stays on this view.
       try { history.replaceState(merge(plain(st), here), "", "#" + view); } catch (e) {}
       here = null;
       reopen(st);

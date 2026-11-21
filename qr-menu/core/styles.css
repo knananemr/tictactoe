@@ -9,6 +9,7 @@
   --muted: #666666;
   --line: #e4e4e4;
   --accent: #c62828;
+  --on-accent: #fff; /* set from the client's accent by app.js */
   --radius: 18px;
   --radius-sm: 12px;
   --pad: 16px;
@@ -336,7 +337,7 @@ html[dir="ltr"] .card-tag, html[dir="ltr"] .drawer-brand { text-align: left; }
 .sheet-head .price.free { flex: 0 1 auto; max-width: 45%; white-space: normal; text-align: end; font-size: 17px; overflow-wrap: anywhere; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 8px 0; }
 .tag { min-width: 0; padding: 3px 10px; border-radius: 999px; background: var(--bg); font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
-.tag.hot { background: var(--accent); color: #fff; }
+.tag.hot { background: var(--accent); color: var(--on-accent); }
 .sheet-desc { margin: 12px 8px 0; color: var(--muted); overflow-wrap: anywhere; }
 .stats { display: flex; gap: 10px; margin: 18px 8px 0; }
 .stat { flex: 1; min-width: 0; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--bg); }
@@ -357,6 +358,8 @@ html[dir="ltr"] .card-tag, html[dir="ltr"] .drawer-brand { text-align: left; }
 /* One unit (a phone number, "12:00 – 15:30"): it moves to the next line whole and only
    breaks inside when it is wider than the whole line. */
 .nw { display: inline-block; max-width: 100%; }
+/* A phone number or time inside a longer text also moves to the next line whole. */
+.info-val bdi[dir="ltr"] { display: inline-block; max-width: 100%; }
 
 /* ---------- Animations ---------- */
 @keyframes fade { from { opacity: 0; } }

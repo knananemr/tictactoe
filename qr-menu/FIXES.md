@@ -52,10 +52,32 @@
 >   - Tiles fit "Mediterranean" on one line down to 320 px.
 >   - In phone landscape, dish photos are shorter (16:9), so a whole card fits
 >     under the bars when focused with a keyboard.
+>   - On the Hebrew page every price sits under the start of the dish name, the
+>     mirror of English (it used to sit at the card's left edge).
+> - **Round 6:**
+>   - Phone links: numbers written with any kind of hyphen (‑ ‐ − —) or as
+>     "(+972) 3-…" dial in full. "24 hours", "Branch 2", "Floor 3 -", opening
+>     hours and a second number are no longer added to the dialled number, and
+>     an extension no longer hides the number after it ("שלוחה 5 - 03-…").
+>     Two numbers in one text each get their own line and link. A label such as
+>     "Tel/Fax:" or "Call or WhatsApp" stays with its number.
+>   - Brackets, colons and "24/7" in Hebrew phone and hours text read in the
+>     right order, and a phone number no longer breaks across two lines.
+>   - Opening hours can be written per language or as one text, tags as a list
+>     per language, and an emoji per language. A tag written twice shows once.
+>   - "Best seller" stays readable on any accent colour.
+>   - Search text is no longer written to the browser history on every key
+>     (Safari refuses history writes after 100 in a short time, which broke Back).
+>   - Tapping the logo or the drawer link for the page already shown no longer
+>     leaves a Back press that does nothing.
+>   - Turning the phone deep inside a category keeps the same dishes on screen.
+>   - Back during a very long fling still returns Home to the top.
+>   - Reloading on a drawer or dish opened by an older version of the page, then
+>     closing it, stays on the menu.
 >
 > Known limit:
-> - If the browser blocks sessionStorage, a position saved less than 0.3 s
->   before Back can be lost after a reload.
+> - If the browser blocks sessionStorage, the scroll position and search text
+>   from the last 0.3 s before a reload can be lost.
 >
 > The **Owner decisions** at the end are still open: nothing there has been built.
 
