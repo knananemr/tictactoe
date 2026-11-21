@@ -6,7 +6,7 @@ export const state = {
   lang: "he",         // "he" or "en"; main.js reads the saved choice (nearby.lang)
   myShops: [],        // the owner's shops saved on this device; main.js loads them
   userPos: null,      // { lat, lng } once the customer shares location
-  locState: "",       // "", "locating", "on", "denied", "unsupported"
+  locState: "",       // "", "locating", "on", "demo", "denied", "unavailable", "unsupported"
   locToken: 0,
   filter: { q: "", category: "", radius: 0, openNow: false },
   firstRender: true,

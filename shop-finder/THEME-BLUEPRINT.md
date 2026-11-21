@@ -8,7 +8,8 @@ The mock-ups are in `design/mockups/` (01 … 07). Open them before you start; t
 **Change how the app looks. Do not change what it does.**
 
 - The app keeps every feature, route, text string, id, `data-*` hook, ARIA attribute and behaviour it has today.
-- Work happens mainly in `styles.css`. Small, purely presentational edits to the HTML templates in `app.js`
+- Work happens mainly in `src/styles.css`. Small, purely presentational edits to the HTML templates in `src/views/*.js`
+  (and the small templates in `src/hours.js`, `src/notices.js`, `src/icons.js`)
   and to `index.html` are allowed where the new look needs them (icons, logo, wrappers, moving an element
   inside the same card). Keep every class, id and attribute that JS or the tests use.
 - No logic changes: search, filters, hours, storage, drafts, routing, validation and language switching stay as they are.
@@ -114,7 +115,7 @@ Flat `--paper` with one soft lavender glow at the top
 
 Mock-up icons are thin line icons with round ends. Emoji must go.
 
-- Add to the `ICON` map in `app.js` (same style as the existing entries: 24×24 viewBox, `fill="none"`,
+- Add to the `ICON` map in `src/icons.js` (same style as the existing entries: 24×24 viewBox, `fill="none"`,
   `stroke="currentColor"`, `stroke-width="1.75"`, round caps and joins, `aria-hidden="true"`):
   `grid` (four rounded squares, for "All"), `clock`, `pin`, `chevron`, `store`, `check`, `info`, `alert`, `arrow`,
   and one per category.
@@ -125,7 +126,7 @@ Mock-up icons are thin line icons with round ends. Emoji must go.
   shop hero, shop meta, hero art, "★" on the All tile) with the matching icon. Keep `aria-hidden`.
   The category `<select>` in the form keeps plain text options (a test checks there is no emoji there).
 - Icon colour: indigo on white, white on indigo, navy inside the white badge on photos.
-- `data.js`: the `emoji` field may stay as unused data. Change the category `color` values to this cooler set,
+- `src/categories.js`: the `emoji` field may stay as unused data. Change the category `color` values to this cooler set,
   used only for the no-photo placeholder (section 3.5):
   barber `#4B3ACF` · hair `#7A3FD0` · nails `#C0398F` · beauty `#9A4CCB` · dental `#2F6FD6` ·
   physio `#1F8A8A` · massage `#5961DD` · tattoo `#23233F` · other `#5B5B7A`.
@@ -314,9 +315,8 @@ sticky preview. The look is the same as on phones, just with more room.
 
 ## 5. Checks
 
-The test suite is at
-`/tmp/claude-0/-home-user-tictactoe/948cd767-2149-503b-9903-97a3ce36246a/scratchpad/suite.js`.
-Run it from that folder: `node suite.js /home/user/tictactoe/shop-finder`. It has 231 checks and all pass today.
+The test suite is `tests/suite.js`.
+Run it with `cd /home/user/tictactoe/shop-finder && npm test` (builds dist/, then tests it). It has 232 checks and all pass today.
 
 Checks that pin the old theme may be updated to the new values. Nothing else in the suite may be changed:
 

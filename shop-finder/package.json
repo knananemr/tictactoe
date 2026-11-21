@@ -11,7 +11,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vite build && node tests/suite.js dist",
-    "shots": "node tests/screenshots.js dist",
+    "shots": "vite build && node tests/screenshots.js dist",
     "fonts": "node scripts/copy-fonts.mjs"
   },
   "devDependencies": {

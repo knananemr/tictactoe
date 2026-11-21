@@ -10,7 +10,7 @@ Do one step per session unless the step is small. Stop at every "Owner gate" and
 ## Progress
 
 - [ ] Step 0 — Owner setup
-- [ ] Step 1 — Make the project buildable and split it into modules
+- [x] Step 1 — Make the project buildable and split it into modules (repo move still waiting for the owner's new repo; do it first in the next session that has it)
 - [ ] Step 2 — Put all data behind one store (still local)
 - [ ] Step 3 — Build the backend (Supabase) and email
 - [ ] Step 4 — Connect the app: sign-in, owner flows, report, hide, delete account, admin

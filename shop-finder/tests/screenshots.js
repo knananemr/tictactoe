@@ -6,6 +6,7 @@ const GROUPS = ['home', 'shop', 'photos', 'form', 'desk'];
 const args = process.argv.slice(2), dirArg = args.find(a => !GROUPS.includes(a));
 const DIR = path.resolve(dirArg || path.join(__dirname, '..', 'dist')), OUT = path.join(__dirname, 'screenshots-out');
 if (!fs.existsSync(path.join(DIR, 'index.html'))) { console.log('No index.html in ' + DIR + ' (build first: npm run build)'); process.exit(1); }
+if (/src="\/src\/main\.js"/.test(fs.readFileSync(path.join(DIR, 'index.html'), 'utf8'))) { console.log(DIR + ' is the unbuilt source; photograph the build: npm run shots (or npm run build, then node tests/screenshots.js dist)'); process.exit(1); }
 fs.mkdirSync(OUT, { recursive: true });
 const TYPES = { html: 'text/html', js: 'text/javascript', css: 'text/css', woff2: 'font/woff2', woff: 'font/woff', svg: 'image/svg+xml', json: 'application/json', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
 const IL = iso => new Date(iso + '+02:00');

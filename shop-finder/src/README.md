@@ -1,5 +1,8 @@
 # src/ — the app's modules
 
+**Run it** (from `shop-finder/`, after `npm install`): `npm run dev` (dev server), `npm test` (builds `dist/`, then runs `tests/suite.js dist`), `npm run shots` (builds, then screenshots), `npm run build && npm run preview` (the build at http://localhost:4173).
+`index.html` and `dist/` must be served over http(s). Opening `index.html` or `dist/index.html` straight from disk (file://) shows a blank page, because browsers block module scripts there. Any static server works for `dist/`.
+
 `index.html` loads one module, `main.js`; Vite bundles the rest. Each file, in import order (a file only imports files above it):
 
 - `util.js` — helpers with no imports: limits (`MAX_PHOTOS`, `DEFAULT_TZ`), `esc`, patterns, phone / time / text-language helpers, `normalizeText`, `distanceKm`, `setText`, `normHash`, and the `#app` element.

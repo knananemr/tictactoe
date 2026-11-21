@@ -7,6 +7,7 @@ const URL = 'https://nearby.test/index.html'; // served from DIR via request int
 const fs = require('fs');
 const TYPES = { html: 'text/html', js: 'text/javascript', css: 'text/css', woff2: 'font/woff2', woff: 'font/woff', svg: 'image/svg+xml', json: 'application/json', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
 if (!fs.existsSync(path.join(DIR, 'index.html'))) { console.log('No index.html in ' + DIR + ' (build first: npm run build, or run npm test)'); process.exit(1); }
+if (/src="\/src\/main\.js"/.test(fs.readFileSync(path.join(DIR, 'index.html'), 'utf8'))) { console.log(DIR + ' is the unbuilt source; test the build: npm test (or npm run build, then node tests/suite.js dist)'); process.exit(1); }
 const OUT = path.join(__dirname, 'suite-out');
 require('fs').mkdirSync(OUT, { recursive: true });
 
@@ -764,6 +765,8 @@ const names = p => p.locator('#grid .card h3').allTextContents();
         await p.waitForTimeout(500);
         await p.evaluate(() => document.fonts.ready);
       }
+      // a request the CSP stops before it reaches the network fires no request event, only a console error
+      outside.push(...p.errors.filter(e => /Content Security Policy/.test(e)).map(e => lang + ' ' + e));
       await p.context().close();
     }
     ok(outside.length === 0, 'no request to any host other than nearby.test (home, shop, form; he and en)', outside);
