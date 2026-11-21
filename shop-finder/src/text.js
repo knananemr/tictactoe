@@ -1,0 +1,210 @@
+// The text tables (he / en) and everything that depends on the current language:
+// L() and tx(), the lang attribute for owner text, links in owner text, and
+// number, money, day and distance formatting.
+import { state } from "./state.js";
+import { MAX_PHOTOS, esc, textLang } from "./util.js";
+
+const TEXT = {
+  en: {
+    skip: "Skip to content",
+    ownerBtn: "Open your shop", ownerBtnShort: "Add shop",
+    langBtn: "עב", langLabel: "עב — החלפה לעברית",
+    eyebrow: n => n + " local spots listed",
+    openSign: "Open",
+    heroA: "Great work,", heroEm: "around the corner.",
+    heroSub: "Barbers, salons and clinics near you — including the small ones you'd walk right past.",
+    searchPh: "Barber, nails, street…", searchLabel: "Search shops, services or streets",
+    nearMe: "Near me", allCats: "All", catsLabel: "Categories",
+    places: n => n === 1 ? "1 place" : n + " places",
+    locating: "Finding your location…", locOn: "Sorted by distance from you",
+    locDenied: "Location is off — allow it in your browser to see what's closest.",
+    locUnavailable: "Couldn't find your location right now — try again in a moment.",
+    locUnsupported: "Your browser can't share location.",
+    demoSpot: "Try a demo spot in Tel Aviv", locDemo: "Sorted by distance from a demo spot in Tel Aviv",
+    anyDistance: "Any distance", within: r => "Within " + r + " km", distanceLabel: "Distance",
+    openNow: "Open now",
+    allShops: "All places", nearYou: "Closest to you",
+    results: n => n === 1 ? "1 result" : n + " results",
+    emptyTitle: "No matches",
+    empty: "Nothing fits these filters. Try another search, category or distance, or turn off “Open now”.",
+    clearFilters: "Clear filters",
+    open: "Open", closed: "Closed", yours: "Yours",
+    closesAt: t => "Closes " + t, opensAt: t => "Opens " + t, opensTomorrow: t => "Opens tomorrow " + t,
+    opensOn: (d, t) => "Opens " + d + " " + t, noHours: "Hours not listed",
+    allDay: "Open 24 hours", allDayShort: "24 hours",
+    from: "from ",
+    ctaTitle: "Own a small shop or clinic?",
+    ctaText: "Get seen by people around the corner. Add your prices, hours and photos in a few minutes.",
+    ctaBtn: "Open your shop",
+    back: "All places", about: "About", services: "Services & prices", hours: "Opening hours",
+    contact: "Contact & location", call: "Call", email: "Email", directions: "Directions",
+    waze: "Navigate with Waze", whatsapp: "WhatsApp", share: "Share", copied: "Link copied",
+    copyThis: "Copy this link:", close: "Close",
+    newTab: "(opens in a new tab)", photos: "Photos",
+    prevPhoto: "Previous photo", nextPhoto: "Next photo",
+    today: "Today", min: m => m + " min", km: "km", m: "m",
+    notFound: "We couldn't find this place.", notFoundSub: "It may have been removed.",
+    deletedTab: "This shop was deleted in another tab.",
+    ownerOnly: "Only the owner can edit this shop.", ownerOnlySub: "A shop can be edited on the device it was created on.", viewShop: "View the shop",
+    yourShop: "This is your shop",
+    edit: "Edit my shop", remove: "Delete my shop", removeConfirm: "Delete this shop? This can't be undone.",
+    removeYes: "Yes, delete it", removeNo: "Keep my shop",
+    published: "Your shop is live! This is how customers see it.", saved: "Changes saved.", removed: "Your shop was deleted.",
+    photoAlt: (name, i) => name + " — photo " + i,
+    formTitle: "Open your shop", editTitle: "Edit your shop",
+    formSub: "Tell customers what you do, when you're open and what it costs. Your page goes live right away.",
+    editSub: "Update anything — customers see the changes right away.",
+    demoNote: "Prototype: shops you add are saved only on this device for now.",
+    step1: "The basics", step2: "Contact & location", step3: "Opening hours", step4: "Services & prices", step5: "Photos",
+    fName: "Shop name", fCategory: "Category", fCategoryPh: "Choose a category", fAbout: "About the shop",
+    fAboutHelp: "A sentence or two: what you're great at.",
+    fAddress: "Address", fPhone: "Phone", fEmail: "Email", optional: "optional",
+    fLocation: "Map location", useLocation: "I'm at the shop — use this spot", locSet: "Location saved",
+    locNone: "Not set — customers won't see how far you are, and you won't appear in distance filters.",
+    locFailed: "Couldn't get the location. Check the browser permission.",
+    dayClosed: "Closed", day24: "24 hours", hoursFrom: d => d + " — opening time", hoursTo: d => d + " — closing time",
+    copyHours: "Same hours every open day", copyHoursHelp: "Copies the first open day's hours to the others.",
+    svcName: "Service", svcPrice: "Price (₪)", svcMin: "Minutes", addService: "Add a service",
+    removeService: n => "Remove service " + n,
+    photosHelp: "Up to " + MAX_PHOTOS + " photos. The first one is your cover.",
+    choosePhotos: "Choose photos", photosDrop: "JPG or PNG from your phone or computer",
+    removePhoto: n => "Remove photo " + n, photosProcessing: "Preparing photos…",
+    photosLimit: "Only " + MAX_PHOTOS + " photos fit — the extra ones were skipped.",
+    photosBad: "Some files couldn't be read as images and were skipped.",
+    photosNotKept: n => (n === 1 ? "1 photo wasn't" : n + " photos weren't") + " kept when the page reloaded — please add again.",
+    photosReset: "Photo changes weren't kept when the page reloaded — these are your saved photos.",
+    draftKept: "We kept what you typed earlier.", startOver: "Start over",
+    draftEdits: "You have unsaved changes from earlier.", discard: "Discard changes",
+    previewLabel: "Customers will see:", previewName: "Your shop name", previewAddr: "Your address",
+    publish: "Publish my shop", saveChanges: "Save changes", cancel: "Cancel",
+    errSummary: "Please fix the highlighted fields.",
+    errName: "Enter your shop's name.", errCategory: "Choose a category.", errAddress: "Enter an address.",
+    errPhone: "Enter a valid phone number (9–15 digits).", errEmail: "Enter a valid email or leave it empty.",
+    errHours: "Closing time must be after opening time (closing up to 06:00 counts as after midnight). Open around the clock? Tick “24 hours”.",
+    errSvcName: "Give this service a name, or clear its price and minutes.",
+    errSvcPrice: "Price must be a whole number from 0 to 100,000.",
+    errSvcMin: "Minutes must be a whole number from 1 to 1,440.",
+    errDeleted: "This shop was deleted in another tab, so the changes weren't saved.",
+    errStorageFull: "This device's storage is full. Delete an older shop or use fewer photos, then try again.",
+    errStorageBlocked: "This browser is blocking saved data (private mode?), so the shop can't be saved.",
+    titleHome: "Nearby — great local shops & clinics", titleNew: "Open your shop — Nearby", titleEdit: "Edit your shop — Nearby"
+  },
+  he: {
+    skip: "דילוג לתוכן",
+    ownerBtn: "פתיחת עסק", ownerBtnShort: "פתיחת עסק",
+    langBtn: "EN", langLabel: "EN — Switch to English",
+    eyebrow: n => n + " עסקים מקומיים באפליקציה",
+    openSign: "פתוח",
+    heroA: "עבודה מעולה,", heroEm: "ממש מעבר לפינה.",
+    heroSub: "מספרות, סלונים וקליניקות קרוב אליך — כולל הקטנים שעוברים לידם בלי לשים לב.",
+    searchPh: "מספרה, ציפורניים, רחוב…", searchLabel: "חיפוש עסקים, שירותים או רחובות",
+    nearMe: "סביבי", allCats: "הכול", catsLabel: "קטגוריות",
+    places: n => n === 1 ? "מקום אחד" : n + " מקומות",
+    locating: "מאתרים את המיקום שלך…", locOn: "ממוין לפי מרחק ממך",
+    locDenied: "המיקום כבוי — אפשרו אותו בדפדפן כדי לראות מה הכי קרוב.",
+    locUnavailable: "לא הצלחנו למצוא את המיקום כרגע — נסו שוב בעוד רגע.",
+    locUnsupported: "הדפדפן לא יכול לשתף מיקום.",
+    demoSpot: "לנסות עם נקודת דמו בתל אביב", locDemo: "ממוין לפי מרחק מנקודת דמו בתל אביב",
+    anyDistance: "כל מרחק", within: r => "עד " + r + " ק״מ", distanceLabel: "מרחק",
+    openNow: "פתוח עכשיו",
+    allShops: "כל המקומות", nearYou: "הכי קרובים אליך",
+    results: n => n === 1 ? "תוצאה אחת" : n + " תוצאות",
+    emptyTitle: "אין התאמות",
+    empty: "שום מקום לא מתאים לסינון. נסו חיפוש, קטגוריה או מרחק אחרים, או כבו את „פתוח עכשיו”.",
+    clearFilters: "ניקוי סינון",
+    open: "פתוח", closed: "סגור", yours: "שלך",
+    closesAt: t => "נסגר ב־" + t, opensAt: t => "נפתח ב־" + t, opensTomorrow: t => "נפתח מחר ב־" + t,
+    opensOn: (d, t) => "נפתח ב" + d + " ב־" + t, noHours: "שעות לא צוינו",
+    allDay: "פתוח 24 שעות", allDayShort: "24 שעות",
+    from: "החל מ־",
+    ctaTitle: "יש לך עסק קטן או קליניקה?",
+    ctaText: "תנו לאנשים מהשכונה לגלות אתכם. מוסיפים מחירים, שעות ותמונות תוך כמה דקות.",
+    ctaBtn: "פתיחת עסק",
+    back: "כל המקומות", about: "אודות", services: "שירותים ומחירים", hours: "שעות פתיחה",
+    contact: "יצירת קשר ומיקום", call: "חיוג", email: "מייל", directions: "ניווט",
+    waze: "ניווט עם Waze", whatsapp: "וואטסאפ", share: "שיתוף", copied: "הקישור הועתק",
+    copyThis: "העתיקו את הקישור:", close: "סגירה",
+    newTab: "(נפתח בכרטיסייה חדשה)", photos: "תמונות",
+    prevPhoto: "התמונה הקודמת", nextPhoto: "התמונה הבאה",
+    today: "היום", min: m => m + " דק׳", km: "ק״מ", m: "מ׳",
+    notFound: "לא מצאנו את המקום הזה.", notFoundSub: "ייתכן שהוא הוסר.",
+    deletedTab: "העסק נמחק בכרטיסייה אחרת.",
+    ownerOnly: "רק הבעלים יכולים לערוך את העסק הזה.", ownerOnlySub: "אפשר לערוך עסק במכשיר שבו הוא נוצר.", viewShop: "לדף העסק",
+    yourShop: "זה העסק שלך",
+    edit: "עריכת העסק", remove: "מחיקת העסק שלי", removeConfirm: "למחוק את העסק? אי אפשר לבטל את זה.",
+    removeYes: "כן, למחוק", removeNo: "להשאיר את העסק",
+    published: "העסק שלך באוויר! כך הלקוחות רואים אותו.", saved: "השינויים נשמרו.", removed: "העסק שלך נמחק.",
+    photoAlt: (name, i) => name + " — תמונה " + i,
+    formTitle: "פתיחת עסק", editTitle: "עריכת העסק",
+    formSub: "ספרו ללקוחות מה אתם עושים, מתי אתם פתוחים וכמה זה עולה. הדף עולה לאוויר מיד.",
+    editSub: "אפשר לעדכן הכול — הלקוחות רואים את השינויים מיד.",
+    demoNote: "אב-טיפוס: עסקים שתוסיפו נשמרים בינתיים רק במכשיר הזה.",
+    step1: "הבסיס", step2: "יצירת קשר ומיקום", step3: "שעות פתיחה", step4: "שירותים ומחירים", step5: "תמונות",
+    fName: "שם העסק", fCategory: "קטגוריה", fCategoryPh: "בחרו קטגוריה", fAbout: "על העסק",
+    fAboutHelp: "משפט או שניים: במה אתם הכי טובים.",
+    fAddress: "כתובת", fPhone: "טלפון", fEmail: "מייל", optional: "לא חובה",
+    fLocation: "מיקום במפה", useLocation: "אני בעסק — להשתמש במיקום הזה", locSet: "המיקום נשמר",
+    locNone: "לא הוגדר — לקוחות לא יראו כמה אתם רחוקים, והעסק לא יופיע בסינון לפי מרחק.",
+    locFailed: "לא הצלחנו לקבל מיקום. בדקו את הרשאת הדפדפן.",
+    dayClosed: "סגור", day24: "24 שעות", hoursFrom: d => d + " — שעת פתיחה", hoursTo: d => d + " — שעת סגירה",
+    copyHours: "אותן שעות לכל הימים הפתוחים", copyHoursHelp: "מעתיק את השעות של היום הפתוח הראשון לשאר הימים.",
+    svcName: "שירות", svcPrice: "מחיר (₪)", svcMin: "דקות", addService: "הוספת שירות",
+    removeService: n => "הסרת שירות " + n,
+    photosHelp: "עד " + MAX_PHOTOS + " תמונות. הראשונה תהיה תמונת השער.",
+    choosePhotos: "בחירת תמונות", photosDrop: "JPG או PNG מהטלפון או מהמחשב",
+    removePhoto: n => "הסרת תמונה " + n, photosProcessing: "מכינים את התמונות…",
+    photosLimit: "נכנסות רק " + MAX_PHOTOS + " תמונות — השאר לא נוספו.",
+    photosBad: "חלק מהקבצים אינם תמונות תקינות ולא נוספו.",
+    photosNotKept: n => (n === 1 ? "תמונה אחת לא נשמרה" : n + " תמונות לא נשמרו") + " כשהדף נטען מחדש — הוסיפו שוב.",
+    photosReset: "שינויי התמונות לא נשמרו כשהדף נטען מחדש — אלה התמונות השמורות שלך.",
+    draftKept: "שמרנו את מה שהקלדתם קודם.", startOver: "להתחיל מחדש",
+    draftEdits: "יש לך שינויים שלא נשמרו מקודם.", discard: "ביטול השינויים",
+    previewLabel: "כך הלקוחות יראו אתכם:", previewName: "שם העסק שלך", previewAddr: "הכתובת שלך",
+    publish: "פרסום העסק", saveChanges: "שמירת השינויים", cancel: "ביטול",
+    errSummary: "יש לתקן את השדות המסומנים.",
+    errName: "הזינו את שם העסק.", errCategory: "בחרו קטגוריה.", errAddress: "הזינו כתובת.",
+    errPhone: "הזינו מספר טלפון תקין (9–15 ספרות).", errEmail: "הזינו מייל תקין או השאירו ריק.",
+    errHours: "שעת הסגירה חייבת להיות אחרי שעת הפתיחה (סגירה עד 06:00 נחשבת אחרי חצות). פתוחים מסביב לשעון? סמנו „24 שעות”.",
+    errSvcName: "תנו שם לשירות, או מחקו את המחיר והדקות.",
+    errSvcPrice: "המחיר צריך להיות מספר שלם בין 0 ל־100,000.",
+    errSvcMin: "הדקות צריכות להיות מספר שלם בין 1 ל־1,440.",
+    errDeleted: "העסק נמחק בכרטיסייה אחרת, ולכן השינויים לא נשמרו.",
+    errStorageFull: "האחסון במכשיר מלא. מחקו עסק ישן או השתמשו בפחות תמונות, ונסו שוב.",
+    errStorageBlocked: "הדפדפן חוסם שמירת נתונים (גלישה פרטית?), ולכן אי אפשר לשמור את העסק.",
+    titleHome: "קרוב אליי — עסקים וקליניקות מעולים בשכונה", titleNew: "פתיחת עסק — קרוב אליי", titleEdit: "עריכת העסק — קרוב אליי"
+  }
+};
+
+const L = () => TEXT[state.lang];
+function tx(v) { return (v && typeof v === "object") ? (v[state.lang] || v.en || v.he || "") : (typeof v === "string" ? v : ""); }
+
+const langAttr = s => { const l = textLang(s); return l && l !== state.lang ? ` lang="${l}"` : ""; };
+
+// Owner text with web addresses turned into links (everything else escaped).
+function linkify(text) {
+  const re = /\b(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+  let out = "", last = 0, m;
+  while ((m = re.exec(text))) {
+    let url = m[0].replace(/[.,;:!?)\]}'"»]+$/, "");
+    const href = /^www\./i.test(url) ? "https://" + url : url;
+    let ok = false;
+    try { ok = /^https?:$/.test(new URL(href).protocol); } catch (e) { ok = false; }
+    if (!ok || !url) continue;
+    out += esc(text.slice(last, m.index)) +
+      `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer nofollow ugc" dir="ltr">${esc(url)}<span class="sr-only"> ${esc(L().newTab)}</span></a>`;
+    last = m.index + url.length;
+    re.lastIndex = last;
+  }
+  return out + esc(text.slice(last));
+}
+
+const locale = () => state.lang === "he" ? "he-IL" : "en-IL";
+const money = n => new Intl.NumberFormat(locale(), { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(n);
+const dayName = i => new Intl.DateTimeFormat(locale(), { weekday: "long" }).format(new Date(2024, 0, 7 + i));
+function formatDistance(km) {
+  const metres = Math.max(10, Math.round(km * 100) * 10);
+  if (metres < 1000) return metres + " " + L().m;
+  return new Intl.NumberFormat(locale(), { maximumFractionDigits: km < 10 ? 1 : 0 }).format(km) + " " + L().km;
+}
+
+export { L, tx, langAttr, linkify, money, dayName, formatDistance };
