@@ -3,8 +3,14 @@
  * Do not edit per client: each client's content lives in clients/<name>/config.js.
  * This file builds the whole page, so client folders hold no markup of their own.
  */
-(function () {
+(function boot() {
   "use strict";
+
+  // Works even if the scripts are placed in <head>: wait until the page body exists.
+  if (!document.body) {
+    document.addEventListener("DOMContentLoaded", boot);
+    return;
+  }
 
   var $ = function (id) { return document.getElementById(id); };
   var cfg = window.MENU_CONFIG;
