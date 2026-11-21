@@ -27,6 +27,8 @@ const ICON = {
   alert: svg('<path d="M12 3.8 2.8 20h18.4z"/><path d="M12 10v4.5M12 17.3v.1"/>'),
   lock: svg('<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>'),
   leaf: svg('<path d="M12 21v-9"/><path d="M12 13c-4.5 0-7-2.6-7-7 4.5 0 7 2.6 7 7zM12 15.5c0-4.5 2.6-7.5 7-7.5 0 4.5-2.6 7.5-7 7.5z"/>'),
+  offline: svg('<path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0M12 19.5v.1M3 3l18 18"/>'),
+  retry: svg('<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>'),
   // categories
   scissors: svg('<circle cx="6.5" cy="6.5" r="2.8"/><circle cx="6.5" cy="17.5" r="2.8"/><path d="M8.7 8.3 20 18M8.7 15.7 20 6"/>'),
   dryer: svg('<path d="M10 4a5 5 0 0 0 0 10h3.5l6.5 2.2V5.8L13.5 4z"/><circle cx="10" cy="9" r="1.8"/><path d="M9.5 14 11 20.5h2.6L13 14"/>'),

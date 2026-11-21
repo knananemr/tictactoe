@@ -40,6 +40,27 @@ async function newPage(browser, opts = {}) {
   if (opts.geoError) await ctx.addInitScript(code => {
     navigator.geolocation.getCurrentPosition = (ok, err) => setTimeout(() => err({ code, message: 'stub' }), 30);
   }, opts.geoError);
+  // Step 2 test seam (src/store/local.js): opts.store becomes globalThis.__nearbyTest before the app
+  // starts, re-installed on every load (failOnce comes back after a reload)
+  if (opts.store) await ctx.addInitScript(cfg => { globalThis.__nearbyTest = cfg; }, opts.store);
+  // opts.idb: "missing" (no indexedDB) | "broken" (open throws, as in some private modes) | "full" (put throws
+  // QuotaExceededError) | { slowMs } (every IDBRequest onsuccess handler runs slowMs late)
+  if (opts.idb) await ctx.addInitScript(m => {
+    if (m === 'missing') Object.defineProperty(window, 'indexedDB', { configurable: true, get: () => undefined });
+    else if (m === 'broken') IDBFactory.prototype.open = function () { throw new DOMException('blocked', 'SecurityError'); };
+    else if (m === 'full') IDBObjectStore.prototype.put = function () { throw new DOMException('full', 'QuotaExceededError'); };
+    else if (m && m.slowMs) {
+      const d = Object.getOwnPropertyDescriptor(IDBRequest.prototype, 'onsuccess');
+      Object.defineProperty(IDBRequest.prototype, 'onsuccess', { configurable: true, get: d.get,
+        set(f) { d.set.call(this, typeof f === 'function' ? function (e) { setTimeout(() => f.call(this, e), m.slowMs); } : f); } });
+    }
+  }, opts.idb);
+  // opts.watchSkel: window.__skel counts every skeleton (.skel) ever added to the page
+  if (opts.watchSkel) await ctx.addInitScript(() => {
+    window.__skel = 0;
+    new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1 && (n.classList.contains('skel') || n.querySelector('.skel'))) window.__skel++; })
+      .observe(document, { childList: true, subtree: true });
+  });
   const page = await ctx.newPage();
   if (opts.reducedMotion) await page.emulateMedia({ reducedMotion: 'reduce' });
   page.errors = [];
@@ -49,6 +70,22 @@ async function newPage(browser, opts = {}) {
   return page;
 }
 const names = p => p.locator('#grid .card h3').allTextContents();
+// Step 2 seam helpers: change the seam of a loaded page, read its call counts, count skeletons seen,
+// photos to pick, and the drafts / photo records kept on the device.
+const setStore = (p, patch) => p.evaluate(x => Object.assign(globalThis.__nearbyTest || (globalThis.__nearbyTest = {}), x), patch);
+const calls = (p, op) => p.evaluate(op => ((globalThis.__nearbyTest || {}).calls || {})[op] || 0, op);
+const skelSeen = p => p.evaluate(() => window.__skel || 0);
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR42mP8z8BQz0AEYBxVSF+FABJADveWkH6oAAAAAElFTkSuQmCC', 'base64');
+const photoFiles = n => Array.from({ length: n }, (_, i) => ({ name: `p${i}.png`, mimeType: 'image/png', buffer: PNG }));
+const storedDraft = (p, slot) => p.evaluate(s => JSON.parse(localStorage.getItem('nearby.draft.' + s) || 'null'), slot);
+const idbPhotos = (p, slot) => p.evaluate(s => new Promise(res => {     // [{ id, isBlob }] in nearby-drafts for slot
+  let r; try { r = indexedDB.open('nearby-drafts'); } catch (e) { return res([]); }   // idb "missing" / "broken"
+  r.onupgradeneeded = () => r.transaction.abort();                         // never create the database from a test
+  r.onerror = () => res([]);
+  r.onsuccess = () => { const db = r.result; if (!db.objectStoreNames.contains('draftPhotos')) { db.close(); return res([]); }
+    const q = db.transaction('draftPhotos').objectStore('draftPhotos').index('slot').getAll(s);
+    q.onsuccess = () => { db.close(); res(q.result.map(x => ({ id: x.id, isBlob: x.blob instanceof Blob }))); }; };
+}), slot);
 
 (async () => {
   const browser = await chromium.launch();
@@ -771,6 +808,155 @@ const names = p => p.locator('#grid .card h3').allTextContents();
     }
     ok(outside.length === 0, 'no request to any host other than nearby.test (home, shop, form; he and en)', outside);
   }
+
+  // ======== Step 2 · FOUNDATION checks ========
+  {
+    // the seam is installed before the app starts; the store counts its calls and logs them; failOnce is used up
+    const p = await newPage(browser, { lang: 'en', store: { failOnce: { refresh: 'network' }, log: [] } });
+    await p.goto(URL);
+    const seam = await p.evaluate(() => { const t = globalThis.__nearbyTest || {}; return { log: (t.log || []).join(), left: Object.keys(t.failOnce || {}) }; });
+    const n = await calls(p, 'refresh');
+    await setStore(p, { log: [] });
+    const set = await p.evaluate(() => Array.isArray(globalThis.__nearbyTest.log) && globalThis.__nearbyTest.log.length === 0 && globalThis.__nearbyTest.calls.refresh === 1);
+    ok(n === 1 && seam.log === 'refresh:start,refresh:end' && seam.left.length === 0 && set && p.errors.length === 0, 'seam: calls counted, opts.store installed', { n, seam, set, errors: p.errors });
+    await p.context().close();
+  }
+  {
+    // the language choice is kept on the device (prefs.js), under the old key
+    const p = await newPage(browser);
+    await p.goto(URL);
+    await p.click('#langBtn');
+    const saved = await p.evaluate(() => localStorage.getItem('nearby.lang'));
+    await p.reload();
+    await p.waitForSelector('#grid .card');
+    ok(saved === '"en"' && await p.evaluate(() => document.documentElement.lang) === 'en' && await p.locator('#grid .card').count() === 10 && p.errors.length === 0, 'prefs: language kept under nearby.lang', [saved, p.errors]);
+    await p.context().close();
+  }
+  {
+    // the offline banner (the seam makes local mode follow the connection): Hebrew, English, gone again online
+    const p = await newPage(browser, { lang: 'he', store: {} });
+    await p.goto(URL);
+    const banner = () => p.evaluate(() => { const b = document.getElementById('netBanner'); return { shown: !b.hidden && b.getBoundingClientRect().height > 0, text: b.textContent, note: b.matches('.note') || !!b.querySelector('.note'), svg: !!b.querySelector('svg') }; });
+    const before = await banner();
+    const notes = await p.locator('.note').count();
+    await p.context().setOffline(true);
+    await p.waitForFunction(() => !document.getElementById('netBanner').hidden);
+    const he = await banner();
+    await p.waitForFunction(() => document.getElementById('announcer').textContent.length > 0);
+    const said = await p.locator('#announcer').textContent();
+    await p.click('#langBtn');
+    const en = await banner();
+    await p.context().setOffline(false);
+    await p.waitForFunction(() => document.getElementById('netBanner').hidden);
+    await p.waitForFunction(() => /back online/.test(document.getElementById('announcer').textContent));
+    const after = await banner();
+    ok(!before.shown && he.shown && he.svg && he.text === 'אין חיבור לאינטרנט. מוצג מה שכבר נטען.' && said === he.text &&
+      en.shown && en.text === "You're offline. Showing what's already loaded." && !after.shown && !he.note &&
+      await p.locator('.note').count() === notes && await p.locator('#grid .card').count() === 10 && p.errors.length === 0,
+      'offline banner in both languages, hidden again online', { before, he, said, en, after, errors: p.errors });
+    await p.context().close();
+  }
+  {
+    // D1: without the seam, local mode never shows the offline banner
+    const p = await newPage(browser, { lang: 'en' });
+    await p.goto(URL);
+    await p.evaluate(() => { window.__offline = 0; addEventListener('offline', () => { window.__offline++; }); }); // runs after the app's own listener
+    await p.context().setOffline(true);
+    await p.waitForFunction(() => window.__offline > 0);
+    const hidden = await p.evaluate(() => document.getElementById('netBanner').hidden);
+    ok(hidden && await p.locator('#grid .card').count() === 10 && p.errors.length === 0, 'no offline banner without the seam', p.errors);
+    await p.context().setOffline(false);
+    await p.context().close();
+  }
+  {
+    // drafts are kept on the device: closing the tab keeps what was typed
+    const p = await newPage(browser, { lang: 'en' });
+    const ctx = p.context();
+    await p.goto(URL + '#/new');
+    await p.fill('#fName', 'Kept draft');
+    await p.fill('#fAbout', 'typed before closing');
+    const errors = p.errors.slice();
+    await p.close();
+    const q = await ctx.newPage();
+    q.errors = [];
+    q.on('pageerror', e => q.errors.push(e.message));
+    q.on('console', m => { if (m.type() === 'error') q.errors.push(m.text()); });
+    await q.goto(URL + '#/new');
+    await q.waitForSelector('#shopForm');
+    const got = [await q.inputValue('#fName'), await q.inputValue('#fAbout'), await q.locator('#draftNote').count()];
+    ok(got[0] === 'Kept draft' && got[1] === 'typed before closing' && got[2] === 1 && errors.length === 0 && q.errors.length === 0, 'drafts: a typed draft outlives the tab', { got, errors, later: q.errors });
+    await ctx.close();
+  }
+  {
+    // drafts that older versions kept in sessionStorage move to localStorage; sessionStorage is not cleared
+    const p = await newPage(browser, { lang: 'en', seed: ['nearby.myShops', JSON.stringify([owner('u1')])] });
+    await p.context().addInitScript(() => {
+      if (sessionStorage.getItem('oldDrafts')) return;
+      sessionStorage.setItem('oldDrafts', '1');
+      sessionStorage.setItem('nearby.draft.new', JSON.stringify({ name: 'Old draft', dirty: true }));
+      sessionStorage.setItem('nearby.draft.edit.u1', JSON.stringify({ name: 'Old edit', dirty: true }));
+      sessionStorage.setItem('nearby.notice', JSON.stringify({ hash: '#/', kind: 'new' }));
+    });
+    await p.goto(URL + '#/new');
+    await p.waitForSelector('#shopForm');
+    const fresh = [await p.inputValue('#fName'), await p.locator('#draftNote').count()];
+    const st = await p.evaluate(() => ({
+      session: ['nearby.draft.new', 'nearby.draft.edit.u1', 'nearby.notice'].map(k => sessionStorage.getItem(k)),
+      seeded: sessionStorage.getItem('seeded'), mark: sessionStorage.getItem('oldDrafts'),
+      local: ['nearby.draft.new', 'nearby.draft.edit.u1'].map(k => JSON.parse(localStorage.getItem(k) || 'null'))
+    }));
+    await p.goto(URL + '#/edit/u1');
+    await p.waitForSelector('#shopForm');
+    const edit = [await p.inputValue('#fName'), await p.locator('#draftNote').count()];
+    ok(fresh[0] === 'Old draft' && fresh[1] === 1 && edit[0] === 'Old edit' && edit[1] === 1 && st.session.every(v => v === null) &&
+      st.seeded === '1' && st.mark === '1' && st.local[0] && st.local[0].name === 'Old draft' && st.local[1] && st.local[1].name === 'Old edit' && p.errors.length === 0,
+      'drafts: old sessionStorage drafts move to localStorage', { fresh, edit, st, errors: p.errors });
+    await p.context().close();
+    // a draft already on the device wins over an old copy; the oldest single draft (nearby.draft) still moves
+    const q = await newPage(browser, { lang: 'en', seed: ['nearby.draft.new', JSON.stringify({ name: 'Newer', dirty: true })] });
+    await q.context().addInitScript(() => {
+      if (sessionStorage.getItem('oldDrafts')) return;
+      sessionStorage.setItem('oldDrafts', '1');
+      sessionStorage.setItem('nearby.draft.new', JSON.stringify({ name: 'Old draft', dirty: true }));
+      sessionStorage.setItem('nearby.draft', JSON.stringify({ name: 'Oldest' }));
+    });
+    await q.goto(URL + '#/new');
+    await q.waitForSelector('#shopForm');
+    const kept = [await q.inputValue('#fName'), await q.evaluate(() => [sessionStorage.getItem('nearby.draft.new'), sessionStorage.getItem('nearby.draft')])];
+    await q.context().close();
+    const r = await newPage(browser, { lang: 'en' });
+    await r.context().addInitScript(() => {
+      if (sessionStorage.getItem('oldDrafts')) return;
+      sessionStorage.setItem('oldDrafts', '1');
+      sessionStorage.setItem('nearby.draft', JSON.stringify({ name: 'Oldest' }));
+    });
+    await r.goto(URL + '#/new');
+    await r.waitForSelector('#shopForm');
+    const oldest = [await r.inputValue('#fName'), await r.locator('#draftNote').count(), await r.evaluate(() => sessionStorage.getItem('nearby.draft'))];
+    ok(kept[0] === 'Newer' && kept[1].every(v => v === null) && oldest[0] === 'Oldest' && oldest[1] === 1 && oldest[2] === null && q.errors.length === 0 && r.errors.length === 0,
+      'drafts: a draft on the device wins, and the oldest single draft still moves', { kept, oldest });
+    await r.context().close();
+  }
+  // ======== Step 2 · HOME checks — home agent: add blocks directly below this line ========
+  // (end of HOME checks)
+
+  // Seam options: opts.store { delay, fail, failOnce, status, partial, info, log }, opts.idb, opts.watchSkel;
+  // helpers setStore(p, patch), calls(p, op), skelSeen(p), photoFiles(n), PNG, storedDraft(p, slot), idbPhotos(p, slot).
+  // A shop-page or edit-form loading check uses delay.refresh 10000 so the list never lands mid-check.
+  // Every block opens its own pages and closes their contexts.
+  // A second page in a seeded context re-runs the seed and rewrites nearby.myShops when it loads.
+
+  // ======== Step 2 · SHOP PAGE checks — shop agent: add blocks directly below this line ========
+  // (end of SHOP PAGE checks)
+
+  // Errors arrive as codes (store/contract.js); views never read messages.
+  // setOffline(true) fires 'offline' and flips navigator.onLine (checked in Chromium); local mode
+  // only notices it when opts.store is set (D1). A check asserts only DOM its own files draw (9.2).
+  // A reload re-installs opts.store: failOnce comes back. Use setStore for one-off changes.
+  // Keep each block independent of the others' order.
+
+  // ======== Step 2 · FORM checks — form agent: add blocks directly below this line ========
+  // (end of FORM checks)
 
   // 12. Screenshots for review
   for (const [w, h, tag] of [[390, 844, 'm'], [1280, 860, 'd']]) {

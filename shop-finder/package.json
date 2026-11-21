@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vite build && node tests/suite.js dist",
+    "test": "vite build && node tests/suite.js dist && node tests/boundaries.js",
     "shots": "vite build && node tests/screenshots.js dist",
     "fonts": "node scripts/copy-fonts.mjs"
   },

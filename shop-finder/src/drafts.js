@@ -1,7 +1,8 @@
-// Form drafts: one per form, kept for this page load (state.drafts) and in session
-// storage across a reload. Used by the form, the shop page (delete) and main.js.
+// Form drafts: one per form, kept for this page load (state.drafts) and on the device
+// (draftStore), so a draft outlives a reload and the tab being closed, until it is
+// published or discarded. Used by the form, the shop page (delete) and main.js.
 import { state } from "./state.js";
-import { storage, DRAFT_PREFIX, OLD_KEYS } from "./storage.js";
+import { draftStore } from "./store/index.js";
 import { TIME_RE, MAX_PHOTOS, isAllDay } from "./util.js";
 import { tx } from "./text.js";
 
@@ -13,7 +14,8 @@ function emptyDraft(slot) {
     slot: slot || "new", editId: "",
     name: "", category: "", about: "", address: "", phone: "", email: "", pos: null,
     hours: blankHours(), services: [blankService()], photos: [],
-    dirty: false, photosChanged: false, pending: 0, showErrors: false, restored: false, photoNote: null
+    dirty: false, photosChanged: false, pending: 0, showErrors: false, restored: false, photoNote: null,
+    saving: null // set while the store saves this draft (the form is busy)
   };
 }
 function shopToDraft(shop) {
@@ -31,9 +33,10 @@ function shopToDraft(shop) {
     photos: shop.photos.slice()
   });
 }
-// A draft saved in this tab before a reload. Photos are too big for session storage, so they are not kept.
+// A draft saved on this device earlier (this tab before a reload, or a closed tab).
+// Photos are not kept with it yet, so the owner is told to add them again.
 function readStoredDraft(slot, editing) {
-  const raw = storage.get("sessionStorage", DRAFT_PREFIX + slot, null);
+  const raw = draftStore.read(slot);
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const d = editing ? shopToDraft(editing) : emptyDraft(slot);
   ["name", "category", "about", "address", "phone", "email"].forEach(k => { if (typeof raw[k] === "string") d[k] = raw[k]; });
@@ -49,14 +52,10 @@ function readStoredDraft(slot, editing) {
   else if (!editing && Number(raw.photoCount) > 0) d.photoNote = Math.min(MAX_PHOTOS, Math.round(Number(raw.photoCount)));
   return d;
 }
-// Older versions kept one shared draft; move a new-shop draft over and drop the rest.
-// main.js calls this when the app starts.
-function migrateOldKeys() {
-  const old = storage.get("sessionStorage", OLD_KEYS[0], null);
-  if (old && typeof old === "object" && !old.editId && storage.get("sessionStorage", DRAFT_PREFIX + "new", null) === null) {
-    storage.save("sessionStorage", DRAFT_PREFIX + "new", Object.assign({}, old, { dirty: true }));
-  }
-  OLD_KEYS.forEach(k => storage.del("sessionStorage", k));
+// main.js calls this once when the app starts: drafts that older versions kept in
+// session storage move to the device (draftStore.migrate).
+function startDrafts() {
+  draftStore.migrate();
 }
 
 function getDraft(slot, editing) {
@@ -67,17 +66,21 @@ function getDraft(slot, editing) {
 }
 function saveDraft(d) {
   if (state.drafts[d.slot] !== d) return; // discarded meanwhile
-  storage.save("sessionStorage", DRAFT_PREFIX + d.slot, {
+  draftStore.write(d.slot, {
     name: d.name, category: d.category, about: d.about, address: d.address, phone: d.phone, email: d.email, pos: d.pos,
     hours: d.hours, services: d.services.map(s => ({ name: s.name, price: s.price, minutes: s.minutes })),
     dirty: d.dirty, photosChanged: d.photosChanged, photoCount: d.photos.length
   });
 }
+// Throws a draft away (Start over, Cancel, published, the shop was deleted). A draft
+// that is being saved (d.saving) is kept: the save's own end clears d.saving first.
 function discardDraft(slot) {
+  const d = state.drafts[slot];
+  if (d && d.saving) return;
   delete state.drafts[slot];
-  storage.del("sessionStorage", DRAFT_PREFIX + slot);
+  draftStore.remove(slot);
   if (state.draft && state.draft.slot === slot) state.draft = null;
 }
 const isLive = d => !!state.formUi && state.formUi.d === d;
 
-export { blankService, migrateOldKeys, getDraft, saveDraft, discardDraft, isLive };
+export { blankService, startDrafts, getDraft, saveDraft, discardDraft, isLive };

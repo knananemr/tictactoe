@@ -2,14 +2,15 @@
 import { state } from "../state.js";
 import { nav } from "../nav.js";
 import { L, tx, langAttr, linkify, money, formatDistance } from "../text.js";
-import { esc, phoneDigits, whatsappNumber, app } from "../util.js";
+import { esc, phoneDigits, whatsappNumber, normHash, app } from "../util.js";
 import { ICON, catIcon } from "../icons.js";
 import { category, APP_NAME } from "../categories.js";
-import { allShops, loadMyShops, toStored, shopDistance } from "../shops.js";
-import { storage, STORE_KEY } from "../storage.js";
-import { openState, stateDetail, statusPill, hoursListHtml } from "../hours.js";
+import { shopDistance, sameShop } from "../shops.js";
+import { store, errorCode } from "../store/index.js";
+import { nowIn, openState, stateDetail, statusPill, hoursListHtml } from "../hours.js";
 import { noticeHtml, announce, showToast, hideToast } from "../notices.js";
 import { discardDraft } from "../drafts.js";
+import { keepFocus, deleteErrorText } from "./states.js";
 
 const newTabNote = () => `<span class="sr-only"> ${esc(L().newTab)}</span>`;
 
@@ -23,10 +24,16 @@ function renderNotFound(title, sub, link) {
         ${link ? `<a class="btn" href="${esc(link)}">${esc(t.viewShop)}</a>` : `<a class="btn" href="#/" data-back>${esc(t.back)}</a>`}</div>`;
 }
 
-function renderShop(id) {
+let drawn = null;    // the shop this page drew (the minute tick and store changes compare with it)
+let deleting = null; // id of the shop this tab is deleting (refuses a second delete)
+
+// entering: the user just came to this page (main.js); a redraw passes false.
+function renderShop(id, entering) {
+  drawn = null;
   const t = L();
-  const shop = allShops().find(s => s.id === id);
+  const shop = store.snapshot().shops.find(s => s.id === id);
   if (!shop) { renderNotFound(); return; }
+  drawn = shop;
   state.lastShopId = shop.id;
   const name = tx(shop.name);
   document.title = name + " — " + tx(APP_NAME);
@@ -149,21 +156,49 @@ function renderShop(id) {
 }
 
 function deleteShop(shop, ask) {
-  const t = L();
-  const next = loadMyShops().filter(s => s.id !== shop.id).map(toStored);
-  const err = storage.save("localStorage", STORE_KEY, next);
-  if (err) {
+  if (deleting) return;
+  const id = shop.id, page = normHash(location.hash);
+  deleting = id;
+  const done = () => {
+    deleting = null;
+    discardDraft("edit." + id);
+    if (normHash(location.hash) !== page) return; // the user left meanwhile
+    state.pageNotice = { hash: "#/", kind: "removed" };
+    announce(L().removed);
+    nav.navigate("#/", { replace: true });
+  };
+  store.deleteShop(id).then(done, err => {
+    if (errorCode(err) === "not-found") { done(); return; } // already gone
+    deleting = null;
     const box = document.getElementById("ownerError");
-    box.textContent = err === "full" ? t.errStorageFull : t.errStorageBlocked;
+    if (!box || normHash(location.hash) !== page) return;
+    box.textContent = deleteErrorText(err);
     box.hidden = false;
     ask(false);
-    return;
-  }
-  state.myShops = loadMyShops();
-  discardDraft("edit." + shop.id);
-  state.pageNotice = { hash: "#/", kind: "removed" };
-  announce(t.removed);
-  nav.navigate("#/", { replace: true });
+  });
+}
+
+// The minute tick (main.js): keep the open state and today's row of the drawn shop honest.
+function shopTick() {
+  const st = document.getElementById("shopStatus");
+  const shop = drawn;
+  if (!st || !shop || st.dataset.id !== shop.id) return;
+  const os = openState(shop);
+  const sig = os.open + "|" + stateDetail(os);
+  if (st.dataset.sig !== sig) { st.innerHTML = statusPill(os) + " <span>" + esc(stateDetail(os)) + "</span>"; st.dataset.sig = sig; }
+  const list = document.getElementById("hoursList");
+  if (list && Number(list.dataset.day) !== nowIn(shop.tz).day) list.outerHTML = hoursListHtml(shop);
+}
+// The store changed while this shop's page (#/shop/<id>) is on screen (main.js dispatches it):
+// redraw when this shop changed or went (e.g. edited or deleted in another tab), keeping focus.
+// This tab's own delete is not redrawn: its end navigates home.
+function shopStoreChanged(change, id) {
+  if (!change || change.type !== "shops" || change.source === "detail") return;
+  if (change.source === "delete" && deleting === id) return;
+  const gone = (change.removed || []).includes(id), changed = (change.changed || []).includes(id);
+  if (!gone && !changed) return;
+  if (!gone && drawn && drawn.id === id && sameShop(store.snapshot().shops.find(s => s.id === id), drawn)) return;
+  keepFocus(() => nav.render());
 }
 
 // Previous / next buttons and a "2 / 4" counter for the shop photos.
@@ -188,4 +223,4 @@ function setupGallery(gallery, n) {
   sync();
 }
 
-export { backLink, renderNotFound, renderShop };
+export { backLink, renderNotFound, renderShop, shopTick, shopStoreChanged };

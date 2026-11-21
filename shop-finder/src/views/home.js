@@ -4,9 +4,11 @@ import { L, tx, formatDistance } from "../text.js";
 import { esc, normalizeText, HE_PREFIX, setText, app } from "../util.js";
 import { ICON, catIcon, awningSvg } from "../icons.js";
 import { CATEGORIES, category } from "../categories.js";
-import { allShops, shopDistance } from "../shops.js";
+import { shopDistance } from "../shops.js";
+import { store } from "../store/index.js";
 import { openState, stateDetail } from "../hours.js";
 import { noticeHtml } from "../notices.js";
+import { keepFocus } from "./states.js";
 import { cardHtml } from "./card.js";
 
 const DEMO_POS = { lat: 32.0753, lng: 34.7749 }; // Dizengoff Center, for trying "near me" without location access
@@ -32,7 +34,7 @@ function wordMatches(hay, w) {
 function renderHome() {
   const t = L();
   document.title = t.titleHome;
-  const shops = allShops();
+  const shops = store.snapshot().shops;
   const counts = {};
   shops.forEach(s => { counts[s.category] = (counts[s.category] || 0) + 1; });
   const catTile = (c, label, n, extraClass, icon) => `
@@ -143,7 +145,7 @@ function renderHome() {
 
 function filteredShops() {
   const words = normalizeText(state.filter.q).split(/\s+/).filter(Boolean);
-  const list = allShops().map(shop => ({ shop, dist: shopDistance(shop) })).filter(({ shop, dist }) => {
+  const list = store.snapshot().shops.map(shop => ({ shop, dist: shopDistance(shop) })).filter(({ shop, dist }) => {
     if (state.filter.category && shop.category !== state.filter.category) return false;
     if (state.filter.openNow && !openState(shop).open) return false;
     if (state.userPos && state.filter.radius && (dist === null || dist > state.filter.radius)) return false;
@@ -222,11 +224,23 @@ function toggleNearMe() {
 // The counts in the hero and on the category tiles (another tab changed the shops).
 function refreshHomeCounts() {
   const t = L();
-  const shops = allShops();
+  const shops = store.snapshot().shops;
   const counts = {};
   shops.forEach(s => { counts[s.category] = (counts[s.category] || 0) + 1; });
   setText(document.querySelector("#eyebrow > span:last-child"), t.eyebrow(shops.length));
   document.querySelectorAll("#street [data-count]").forEach(el => setText(el, t.places(el.dataset.count ? counts[el.dataset.count] || 0 : shops.length)));
 }
 
-export { renderHome, filteredShops, resultsSignature, updateResults, refreshHomeCounts };
+// The minute tick (main.js): keep "Open / Closed" honest; redraw only when the list would change.
+function homeTick() {
+  if (!document.getElementById("grid")) return;
+  if (resultsSignature(filteredShops()) !== state.homeSig) keepFocus(() => updateResults(false));
+}
+// The store changed while home is on screen (main.js dispatches it): e.g. another tab
+// added, changed or deleted a shop. Redraw the counts and the list, keeping focus.
+function homeStoreChanged(change) {
+  if (!change || change.type !== "shops") return;
+  keepFocus(() => { refreshHomeCounts(); updateResults(false); });
+}
+
+export { renderHome, filteredShops, resultsSignature, updateResults, refreshHomeCounts, homeTick, homeStoreChanged };

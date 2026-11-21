@@ -5,10 +5,10 @@ import { L, tx, langAttr, dayName } from "../text.js";
 import { esc, MAX_PHOTOS, DEFAULT_TZ, TIME_RE, EMAIL_RE, ALL_DAY, toMin, validPhone, app } from "../util.js";
 import { ICON } from "../icons.js";
 import { CATEGORIES } from "../categories.js";
-import { sampleShops, loadMyShops, cleanShop, toStored } from "../shops.js";
-import { storage, STORE_KEY } from "../storage.js";
+import { store } from "../store/index.js";
 import { announce } from "../notices.js";
 import { blankService, getDraft, saveDraft, discardDraft, isLive } from "../drafts.js";
+import { saveErrorText } from "./states.js";
 import { renderNotFound, backLink } from "./shop.js";
 import { cardHtml } from "./card.js";
 
@@ -22,10 +22,10 @@ function renderForm(editId, entering) {
   const t = L();
   let editing = null;
   if (editId !== null) {
-    editing = state.myShops.find(s => s.id === editId) || null;
+    const hit = store.snapshot().shops.find(s => s.id === editId) || null;
+    editing = hit && hit.mine ? hit : null;
     if (!editing) {
-      const sample = editId ? sampleShops.find(s => s.id === editId) : null;
-      if (sample) renderNotFound(t.ownerOnly, t.ownerOnlySub, "#/shop/" + encodeURIComponent(sample.id));
+      if (hit) renderNotFound(t.ownerOnly, t.ownerOnlySub, "#/shop/" + encodeURIComponent(hit.id));
       else renderNotFound();
       return;
     }
@@ -182,7 +182,7 @@ function renderForm(editId, entering) {
   }
   function updateSubmit() {
     const btn = $("submitBtn");
-    btn.disabled = d.pending > 0;
+    btn.disabled = d.pending > 0 || !!d.saving;
     btn.textContent = d.pending > 0 ? t.photosProcessing : (editing ? t.saveChanges : t.publish);
   }
 
@@ -396,36 +396,51 @@ function renderForm(editId, entering) {
     box.hidden = false;
   }
 
-  let submitting = false;
+  let submitting = false; // stays true after a successful save: this form is done
   form.addEventListener("submit", e => {
     e.preventDefault();
-    if (d.pending > 0 || submitting) return;
+    if (d.pending > 0 || d.saving || submitting) return;
     collect(false);
     const errors = validate();
     d.showErrors = true;
     showValidation(errors, true);
     if (Object.keys(errors).length) return;
 
-    const current = loadMyShops(); // re-read: another tab may have changed it
-    if (editing && !current.some(s => s.id === editing.id)) { showFormError(t.errDeleted); return; }
-    const shop = draftToShop(d);
-    shop.id = editing ? editing.id : "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const saved = cleanShop(shop, true);
-    const next = (editing ? current.map(s => s.id === saved.id ? saved : s) : [saved].concat(current)).map(toStored);
+    // The store re-reads the saved shops (another tab may have changed them), cleans the
+    // shop and gives a new shop its id. d.saving guards against a second submit meanwhile.
     submitting = true;
-    const err = storage.save("localStorage", STORE_KEY, next);
-    if (err) {
+    d.saving = { step: "saving" };
+    updateSubmit();
+    const draft = Object.assign(draftToShop(d), { id: editing ? editing.id : undefined, photos: d.photos.map(url => ({ url })) });
+    store.saveShop(draft).then(({ shop }) => {
+      d.saving = null;
+      discardDraft(d.slot);
+      if (!isLive(d)) return;
+      const dest = "#/shop/" + encodeURIComponent(shop.id);
+      state.pageNotice = { hash: dest, kind: editing ? "edit" : "new" };
+      announce(editing ? L().saved : L().published);
+      nav.navigate(dest, { replace: true });
+    }, err => {
+      d.saving = null;
       submitting = false;
-      showFormError(err === "full" ? t.errStorageFull : t.errStorageBlocked);
-      return;
-    }
-    state.myShops = loadMyShops();
-    discardDraft(slot);
-    const dest = "#/shop/" + encodeURIComponent(saved.id);
-    state.pageNotice = { hash: dest, kind: editing ? "edit" : "new" };
-    announce(editing ? t.saved : t.published);
-    nav.navigate(dest, { replace: true });
+      if (!isLive(d)) return;
+      updateSubmit();
+      showFormError(saveErrorText(err));
+    });
   });
+}
+
+// The store changed while an edit form (#/edit/<id>) is on screen (main.js dispatches it):
+// the shop was deleted in another tab, so the edits cannot be saved.
+function formStoreChanged(change, editId) {
+  if (!change || change.type !== "shops" || change.source === "detail") return;
+  if (!(change.removed || []).includes(editId)) return;
+  const d = state.drafts["edit." + editId];
+  if (d && d.saving) return;
+  discardDraft("edit." + editId);
+  state.formUi = null;
+  renderNotFound(change.source === "other-tab" ? L().deletedTab : L().notFound, L().notFoundSub);
+  app.querySelector("h1").focus({ preventScroll: true });
 }
 
 function draftToShop(d) {
@@ -469,4 +484,4 @@ function shrinkImage(file) {
   });
 }
 
-export { renderForm };
+export { renderForm, formStoreChanged };

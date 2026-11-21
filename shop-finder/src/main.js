@@ -7,18 +7,17 @@ import "./fonts.css";
 import "./styles.css";
 import { state } from "./state.js";
 import { nav } from "./nav.js";
-import { storage, LANG_KEY, STORE_KEY } from "./storage.js";
+import { store } from "./store/index.js";
+import { savedLang, saveLang } from "./prefs.js";
 import { L, tx } from "./text.js";
 import { APP_NAME } from "./categories.js";
 import { ICON } from "./icons.js";
 import { esc, normHash, app } from "./util.js";
-import { loadMyShops, allShops, toStored } from "./shops.js";
-import { nowIn, openState, stateDetail, statusPill, hoursListHtml } from "./hours.js";
-import { hideToast } from "./notices.js";
-import { migrateOldKeys, discardDraft } from "./drafts.js";
-import { renderHome, filteredShops, resultsSignature, updateResults, refreshHomeCounts } from "./views/home.js";
-import { renderShop, renderNotFound } from "./views/shop.js";
-import { renderForm } from "./views/form.js";
+import { hideToast, announce } from "./notices.js";
+import { startDrafts, discardDraft } from "./drafts.js";
+import { renderHome, homeTick, homeStoreChanged } from "./views/home.js";
+import { renderShop, shopTick, shopStoreChanged } from "./views/shop.js";
+import { renderForm, formStoreChanged } from "./views/form.js";
 
 // "#/", "#/shop/<id>", "#/edit/<id>", "#/new". Anything else shows home.
 function currentRoute() {
@@ -46,14 +45,34 @@ function renderChrome() {
   lb.textContent = t.langBtn;
   lb.setAttribute("aria-label", t.langLabel); // starts with the visible text (EN / עב)
   lb.lang = state.lang === "he" ? "en" : "he";
+  renderNetBanner();
+}
+
+// The offline banner under the header: shown while the store says the device is offline
+// (local mode only follows the connection when the test seam is installed). A change
+// after start-up is also announced.
+let bannerOnline = null;
+function renderNetBanner() {
+  const box = document.getElementById("netBanner");
+  if (!box) return;
+  const online = store.snapshot().online;
+  const sig = online ? "" : state.lang;
+  if (box.dataset.sig !== sig) {
+    box.innerHTML = online ? "" : `${ICON.offline}<span>${esc(L().offlineBanner)}</span>`;
+    box.hidden = online;
+    box.dataset.sig = sig;
+  }
+  if (bannerOnline !== null && bannerOnline !== online) announce(online ? L().backOnline : L().offlineBanner);
+  bannerOnline = online;
 }
 
 function render(opts) {
   opts = opts || {};
+  state.routeToken++; // late store answers for the drawing being replaced are dropped
   state.formUi = null;
   renderChrome();
   const route = currentRoute();
-  if (route === "shop") renderShop(routeId("#/shop/"));
+  if (route === "shop") renderShop(routeId("#/shop/"), !!opts.entering);
   else if (route === "edit") renderForm(routeId("#/edit/"), !!opts.entering);
   else if (route === "new") renderForm(null, !!opts.entering);
   else renderHome();
@@ -67,25 +86,6 @@ function render(opts) {
   }
   state.firstRender = false;
   state.lastRoute = route;
-}
-
-// Re-render without losing keyboard focus (used when data changes under the user).
-function keepFocus(fn) {
-  const a = document.activeElement;
-  let sel = "";
-  if (a && a !== document.body && app.contains(a)) {
-    if (a.id) sel = "#" + CSS.escape(a.id);
-    else if (a.getAttribute("href")) sel = `[href="${CSS.escape(a.getAttribute("href"))}"]`;
-    else if (a.dataset.cat !== undefined) sel = `[data-cat="${CSS.escape(a.dataset.cat)}"]`;
-  }
-  const value = a && a.id === "q" ? { start: a.selectionStart, end: a.selectionEnd } : null;
-  fn();
-  if (!sel) return;
-  const el = app.querySelector(sel);
-  if (el && el !== document.activeElement) {
-    el.focus({ preventScroll: true });
-    if (value && el.setSelectionRange) try { el.setSelectionRange(value.start, value.end); } catch (e) { /* ignore */ }
-  }
 }
 
 // Guards against going back twice on a double click (see the click listener in init).
@@ -115,33 +115,32 @@ function onRoute(fromRoute) {
   else window.scrollTo(0, 0);
 }
 
-// Keep "Open / Closed" honest while the page stays open, on the minute.
+// Keep "Open / Closed" honest while the page stays open, on the minute. Each screen
+// redraws from what it has (never waits for the store).
 function refreshOpenState() {
   const route = currentRoute();
-  if (route === "home" && document.getElementById("grid")) {
-    if (resultsSignature(filteredShops()) !== state.homeSig) keepFocus(() => updateResults(false));
-  }
-  const st = document.getElementById("shopStatus");
-  if (route === "shop" && st) {
-    const shop = allShops().find(s => s.id === st.dataset.id);
-    if (shop) {
-      const os = openState(shop);
-      const sig = os.open + "|" + stateDetail(os);
-      if (st.dataset.sig !== sig) { st.innerHTML = statusPill(os) + " <span>" + esc(stateDetail(os)) + "</span>"; st.dataset.sig = sig; }
-      const list = document.getElementById("hoursList");
-      if (list && Number(list.dataset.day) !== nowIn(shop.tz).day) list.outerHTML = hoursListHtml(shop);
-    }
-  }
+  if (route === "home") homeTick();
+  else if (route === "shop") shopTick();
   if ((route === "new" || route === "edit") && state.formUi) state.formUi.renderPreview();
+}
+
+// The store changed (a list landed, another tab saved or deleted a shop, online / offline):
+// the banner, then the screen on display. Only the current route hears it.
+function onStoreChange(change) {
+  renderNetBanner();
+  if (change.type !== "shops" && change.type !== "status") return; // "session" and later types: Step 4
+  const route = currentRoute();
+  if (route === "home") homeStoreChanged(change);
+  else if (route === "shop") shopStoreChanged(change, routeId("#/shop/"));
+  else if (route === "edit") formStoreChanged(change, routeId("#/edit/"));
 }
 
 // Start-up, in the order the old single script ran it. Everything before this point only
 // defines things; importing a module never touches storage, history or listeners.
 function init() {
-  state.lang = storage.get("localStorage", LANG_KEY, "he");
-  if (state.lang !== "he" && state.lang !== "en") state.lang = "he";
-  state.myShops = loadMyShops();
-  migrateOldKeys();
+  state.lang = savedLang();
+  store.start();  // fills the snapshot (local: before it returns); listens for other tabs and the connection
+  startDrafts();  // drafts kept by older versions move to the device
 
   // Each history entry remembers the page before it (history.state.prev), so in-app
   // "back" links can really go back (keeping the list's place) only when that is where they lead.
@@ -181,7 +180,7 @@ function init() {
     const form = document.getElementById("shopForm");
     if (form && form._collect) form._collect(); // keep what the owner typed
     state.lang = state.lang === "he" ? "en" : "he";
-    storage.save("localStorage", LANG_KEY, state.lang);
+    saveLang(state.lang);
     const y = window.scrollY;
     hideToast();
     render();
@@ -200,29 +199,8 @@ function init() {
   })();
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshOpenState(); });
 
-  // Another tab added, changed or deleted a shop.
-  window.addEventListener("storage", e => {
-    if (e.key !== STORE_KEY) return;
-    const before = {};
-    state.myShops.forEach(s => { before[s.id] = JSON.stringify(toStored(s)); });
-    state.myShops = loadMyShops();
-    const route = currentRoute();
-    if (route === "home") {
-      keepFocus(() => { refreshHomeCounts(); updateResults(false); });
-    } else if (route === "shop") {
-      const id = routeId("#/shop/");
-      const now = state.myShops.find(s => s.id === id);
-      if ((now ? JSON.stringify(toStored(now)) : undefined) !== before[id]) keepFocus(() => render());
-    } else if (route === "edit") {
-      const id = routeId("#/edit/");
-      if (before[id] && !state.myShops.some(s => s.id === id)) {
-        discardDraft("edit." + id);
-        state.formUi = null;
-        renderNotFound(L().deletedTab, L().notFoundSub);
-        app.querySelector("h1").focus({ preventScroll: true });
-      }
-    }
-  });
+  // The store's changes (another tab added, changed or deleted a shop; a late answer).
+  store.onChange(onStoreChange);
 
   render({ entering: true });
 }
