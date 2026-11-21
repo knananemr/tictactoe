@@ -26,9 +26,10 @@ Never copy `core/` into a client folder.
    - Each dish needs its own `id`. Empty categories are hidden automatically.
    - If `info` has no about text, hours, address or phone, the About page is left out of the menu.
    - `price` can be a number (`32` or `32.5`) or free text (`{ he: "מחיר שוק", en: "Market price" }`).
-   - `phone` can hold several numbers separated by commas. Star numbers (`*6060`) and numbers with letters (`1-800-FLOWERS`) work, and an extension (`ext. 5`, `(ext. 5)`, `שלוחה 5`) is shown but not dialled.
+   - `phone` can hold several numbers separated by commas. Star numbers (`*6060`) and numbers with letters (`1-800-FLOWERS`) work, and an extension (`ext. 5`, `(ext. 5)`, `שלוחה 5`) is shown but not dialled. Words and notes around a number (`Delivery 24/7: 050-123-4567`, `03-555-1234 (9:00–17:00)`) are shown too; only the number is dialled.
+   - `tags` can also hold the client's own tags, as text or per language (`{ he: "ללא גלוטן", en: "Gluten free" }`).
 3. In `index.html`: set `<title>`, `description`, `og:title`, `og:description` and the icon. Once hosted, add `og:image` with the full web address of a cover photo. These control what WhatsApp shows when the link is shared.
-4. Put photos in `clients/<restaurant-name>/images/` and set `image: "images/name.jpg"` on each dish. Use 4:3 photos, about 800 px wide, JPEG or WebP under 150 KB each. A missing photo falls back to the dish's emoji.
+4. Put photos in `clients/<restaurant-name>/images/` and set `image: "images/name.jpg"` on each dish. Use 4:3 photos, about 800 px wide, JPEG or WebP under 150 KB each. On a phone held sideways the menu shows them a little wider (16:9), so keep the dish near the middle of the photo. A missing photo falls back to the dish's emoji.
 5. Open `clients/<restaurant-name>/index.html` and check every category on a phone.
 6. Host the whole `qr-menu` folder (any static hosting) and make the QR code point at `https://YOUR-DOMAIN/clients/<restaurant-name>/`. On GitHub Pages, add an empty `.nojekyll` file at the site root, or the `_default` folder is not published.
 

@@ -53,7 +53,8 @@ window.MENU_CONFIG = {
    *   calories          – approximate kcal (a number)
    *   (text in price, time or calories can be one string or { en, he }, like every other text)
    *   ingredients       – list per language
-   *   tags              – any of: "popular", "new", "spicy", "vegan"
+   *   tags              – any of: "popular", "new", "spicy", "vegan", or your own text,
+   *                       e.g. { en: "Gluten free", he: "ללא גלוטן" }
    *   featured: true    – shows in "Today's picks" on the home page
    */
   categories: [

@@ -276,15 +276,18 @@ a { color: inherit; text-decoration: none; }
   height: 2.6em; overflow: hidden; overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
+/* A name or a free-text price in the other script carries its own direction, so its "…" falls at
+   its end. The box hugs the text and sits on the page's side, so it still lines up with the others. */
+.card-name, .card .price { align-self: flex-start; max-width: calc(100% - 8px); text-align: start; }
 .card-tag {
   margin: 4px 4px 0; height: 16px; font-size: 11px; line-height: 16px; font-weight: 600; color: var(--muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .card-tag.hot { color: var(--accent); }
-/* A name or tag in the other script carries its own direction (so its "…" falls at its end),
+/* A one-line tag or name in the other script carries its own direction (so its "…" falls at its end),
    but still lines up with the page like the others. */
-html[dir="rtl"] .card-name, html[dir="rtl"] .card-tag, html[dir="rtl"] .drawer-brand { text-align: right; }
-html[dir="ltr"] .card-name, html[dir="ltr"] .card-tag, html[dir="ltr"] .drawer-brand { text-align: left; }
+html[dir="rtl"] .card-tag, html[dir="rtl"] .drawer-brand { text-align: right; }
+html[dir="ltr"] .card-tag, html[dir="ltr"] .drawer-brand { text-align: left; }
 /* Keyboard focus: a focused card or button scrolls clear of the sticky bars, with room for its ring. */
 .card, .cat-tile, .btn, .search, .info-val a {
   scroll-margin: calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + 8px) 0 8px;
@@ -368,11 +371,22 @@ html[dir="ltr"] .card-name, html[dir="ltr"] .card-tag, html[dir="ltr"] .drawer-b
   .cat-tile { padding: 12px 10px; gap: 8px; }
   .cat-tile .emoji { font-size: 22px; }
 }
-/* The smallest phones (320 px): enough room for a 10-letter name such as "Hamburgers" */
-@media (max-width: 359px) {
+/* Below 375 px: enough room for a 13-letter name such as "Mediterranean" */
+@media (max-width: 374px) {
   .cat-tile { padding: 12px 8px; gap: 6px; }
   .cat-tile .emoji { font-size: 20px; }
   .cat-tile > span:last-child { font-size: 14px; }
+}
+/* The smallest phones (320 px) */
+@media (max-width: 339px) {
+  .cat-tiles { gap: 8px; padding-inline: 12px; }
+  .cat-tile { padding: 12px 6px; gap: 4px; }
+  .cat-tile .emoji { font-size: 18px; }
+  .cat-tile > span:last-child { font-size: 13.5px; }
+}
+/* Phones held sideways: a shorter photo, so a whole dish card fits under the bars */
+@media (max-height: 500px) and (min-width: 600px) {
+  .grid .thumb { aspect-ratio: 16 / 9; }
 }
 
 

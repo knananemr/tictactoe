@@ -1,7 +1,7 @@
 # QR Menu — test findings and fix list
 
 > **Status:** every item below (F1–F14, A1–A7, U1–U9, B1) is fixed in `core/`.
-> Three more rounds of independent browser testers then tried to break the fixes.
+> Several more rounds of independent browser testers then tried to break the fixes.
 > Everything they confirmed is fixed and re-tested:
 > - **Round 2:** drawer links not scrolling, a single text `tags` blanking the
 >   page, the name running under the language button, long About values,
@@ -29,10 +29,31 @@
 >     reload return to the same results.
 >   - A focused card is no longer hidden under the top bars.
 >   - High-contrast fixes.
+> - **Round 5:**
+>   - Phone links dial only the phone number. Words and other numbers around it
+>     ("Delivery 24/7:", "(9:00–17:00)", "(24 שעות)") are shown but not dialled.
+>     "+972 (0)50" dials +97250, and "1 800 FLOWERS" works with spaces too.
+>   - Brackets around Hebrew words in phone and hours text face the right way.
+>   - Opening hours without words always read left to right.
+>   - A long dish name in the other script shows its "…" again. A free-text
+>     price lines up with the other prices.
+>   - Names, About text and descriptions written as a list are shown. Your own
+>     tags can be written per language. An hours row can be one text.
+>   - A category named from its id keeps the id's own direction.
+>   - Phone text and the logo's alt text carry their language for screen readers.
+>   - A drawer link on a searched menu is a new history entry, so Back brings the
+>     search back. A cleared search no longer comes back after reload. Search
+>     text typed just before Back or reload is kept.
+>   - Turning the phone during a category tap's scroll keeps that category.
+>   - Back during a fling returns to the exact pixel.
+>   - Closing a drawer or dish reopened from an older history entry stays on the
+>     menu.
+>   - Typing in the search box after scrolling down keeps the box in view.
+>   - Tiles fit "Mediterranean" on one line down to 320 px.
+>   - In phone landscape, dish photos are shorter (16:9), so a whole card fits
+>     under the bars when focused with a keyboard.
 >
-> Known limits:
-> - In phone landscape, a dish card is taller than the space under the two bars,
->   so keyboard focus cannot show all of it.
+> Known limit:
 > - If the browser blocks sessionStorage, a position saved less than 0.3 s
 >   before Back can be lost after a reload.
 >
