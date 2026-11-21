@@ -1,5 +1,13 @@
 # QR Menu — test findings and fix list
 
+> **Status:** every item below (F1–F14, A1–A7, U1–U9, B1) is fixed in `core/`.
+> Independent browser testers then re-checked each fix. The issues they found
+> (drawer links not scrolling, a single text `tags` blanking the page, the name
+> running under the language button, long About values, keyboard scrolling of
+> the dish sheet, the hero focus ring, and about 15 smaller ones) are fixed and
+> re-tested too. The **Owner decisions** at the end are still open: nothing there
+> has been built.
+
 Audit of the default template in `qr-menu/` (commit `783dcd8`). Nothing in the
 template was changed by this audit. This file is the work order for whoever
 fixes it.

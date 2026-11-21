@@ -1,5 +1,6 @@
 /*
- * CLIENT CONFIG — the only file that changes per client.
+ * CLIENT CONFIG — all the menu content for this client.
+ * (Also edit index.html in this folder: page title and link-preview tags.)
  * Every text is written as { en: "...", he: "..." }.
  * To add a photo to an item, set  image: "images/my-photo.jpg".
  * Items without a photo show their emoji on a neutral tile.
@@ -47,9 +48,9 @@ window.MENU_CONFIG = {
   /*
    * Categories appear in this order. Item fields:
    *   name, desc        – texts
-   *   price             – number
-   *   time              – preparation time in minutes
-   *   calories          – approximate kcal
+   *   price             – number (32 or 32.5), or text such as "Market price"
+   *   time              – preparation time in minutes (a number, or a range such as "20-30")
+   *   calories          – approximate kcal (a number)
    *   ingredients       – list per language
    *   tags              – any of: "popular", "new", "spicy", "vegan"
    *   featured: true    – shows in "Today's picks" on the home page

@@ -51,12 +51,16 @@
     }
   };
 
-  var VIEWS = ["home", "menu", "about"];
   var LANGS = (Array.isArray(cfg.languages) && cfg.languages.length ? cfg.languages : [cfg.defaultLang || "en"])
     .filter(function (l) { return UI[l]; });
   if (!LANGS.length) LANGS = ["en"];
   var DEFAULT_LANG = LANGS.indexOf(cfg.defaultLang) >= 0 ? cfg.defaultLang : LANGS[0];
   var brandCfg = cfg.brand || {}, homeCfg = cfg.home || {}, infoCfg = cfg.info || {};
+
+  // The About page is left out when the client gave nothing to put on it.
+  var HAS_ABOUT = allText([infoCfg.about, infoCfg.address, infoCfg.phone]).join("").trim() !== "" ||
+    (Array.isArray(infoCfg.hours) && infoCfg.hours.length > 0);
+  var VIEWS = HAS_ABOUT ? ["home", "menu", "about"] : ["home", "menu"];
 
   var lang = pickLang();
   var view = null;
@@ -77,8 +81,10 @@
     var fromUrl = null, saved = null;
     try { fromUrl = new URLSearchParams(location.search).get("lang"); } catch (e) {}
     try { saved = localStorage.getItem("menu-lang"); } catch (e) {}
-    var want = fromUrl || saved || DEFAULT_LANG;
-    return LANGS.indexOf(want) >= 0 ? want : DEFAULT_LANG;
+    // A language the customer picked themselves wins over ?lang= in the link,
+    // so an old history entry that still carries ?lang= cannot switch it back.
+    var want = [saved, fromUrl].filter(function (l) { return LANGS.indexOf(l) >= 0; })[0];
+    return want || DEFAULT_LANG;
   }
   function nextLang() { return LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length]; }
 
@@ -104,17 +110,28 @@
     return Array.isArray(r) ? r : [];
   }
 
+  // A number, or a string that holds only a number ("32", "32.5").
+  function num(v) {
+    if (typeof v === "number") return isFinite(v) ? v : NaN;
+    return typeof v === "string" && /^\s*\d+(\.\d+)?\s*$/.test(v) ? Number(v) : NaN;
+  }
   function priceText(p) {
     if (p == null || p === "") return "";
-    if (typeof p === "string" && /^\s*\d+(\.\d+)?\s*$/.test(p)) p = Number(p);
-    if (typeof p === "number" && isFinite(p)) {
-      return (cfg.currency || "") + (Number.isInteger(p) ? String(p) : p.toFixed(2));
-    }
+    var n = num(p);
+    if (!isNaN(n)) return (cfg.currency || "") + (Number.isInteger(n) ? String(n) : n.toFixed(2));
     return String(p); // free text such as "Market price" is shown as written
   }
   function price(p) {
     var s = priceText(p);
-    return s ? '<bdi class="price">' + esc(s) + "</bdi>" : "";
+    if (!s) return "";
+    return '<bdi class="price' + (isNaN(num(p)) ? " free" : "") + '">' + esc(s) + "</bdi>";
+  }
+  // "~30 min" for a number; a range such as "20-30" gets the unit; other text is shown as written.
+  function approx(v, unit) {
+    var u = UI[lang], n = num(v);
+    if (!isNaN(n)) return u.approx + n.toLocaleString("en") + " " + unit;
+    var s = String(v).trim();
+    return /^[\d\s.,\-–]+$/.test(s) ? s + " " + unit : s;
   }
 
   /* ---------- Search normalisation ---------- */
@@ -133,10 +150,11 @@
     if (typeof v === "object") return Object.keys(v).reduce(function (a, k) { return a.concat(allText(v[k])); }, []);
     return [];
   }
-  function haystack(it) {
+  function haystack(it, catName) {
     // Every language, so a search works whichever language is on screen.
-    var parts = allText(it.name).concat(allText(it.desc), allText(it.ingredients));
-    (it.tags || []).forEach(function (g) {
+    // The category name is included, so typing "desserts" lists the desserts.
+    var parts = allText(it.name).concat(allText(it.desc), allText(it.ingredients), allText(catName));
+    it.tags.forEach(function (g) {
       Object.keys(UI).forEach(function (l) { if (UI[l].tags[g]) parts.push(UI[l].tags[g]); });
     });
     return norm(parts.join(" "));
@@ -144,34 +162,47 @@
 
   /* ---------- Normalise the client's categories ---------- */
   var cats = [], itemsByKey = {}, hayByKey = {};
-  (function () {
-    var seenCat = {}, seenItem = {};
+  // Ids end up in element ids and attribute selectors, so keep only letters (any script), digits, _ and -.
+  var UNSAFE_ID = (function () {
+    try { return new RegExp("[^\\p{L}\\p{N}_-]", "gu"); } catch (e) { return /[^A-Za-z0-9_-]/g; }
+  })();
+  function unique(base, seen) {
+    var id = base, n = 2;
+    while (seen[id]) id = base + "-" + n++;
+    seen[id] = true;
+    return id;
+  }
+  function given(v) { return v != null && String(v).trim() !== ""; }
+  function normalise() {
+    var seenCat = {}, seenKey = {}, rawCat = {}, rawItem = {};
     cfg.categories.forEach(function (c, ci) {
       if (!c || !Array.isArray(c.items)) return;
-      var id = String(c.id != null && c.id !== "" ? c.id : "c" + ci).replace(/[^A-Za-z0-9_-]/g, "-");
-      if (seenCat[id]) {
+      if (given(c.id) && rawCat[c.id]) {
         console.warn('[menu] Two categories use the id "' + c.id + '". Give each category its own id in config.js.');
-        id += "-" + ci;
       }
-      seenCat[id] = true;
+      if (given(c.id)) rawCat[c.id] = true;
+      var id = unique(given(c.id) ? String(c.id).trim().replace(UNSAFE_ID, "-") : "c" + ci, seenCat);
       var items = [];
       c.items.forEach(function (it, ii) {
         if (!it || typeof it !== "object") return;
-        if (it.id != null && seenItem[it.id]) {
-          console.warn('[menu] Two dishes use the id "' + it.id + '" (in "' + seenItem[it.id] + '" and "' + id +
+        if (given(it.id) && rawItem[it.id]) {
+          console.warn('[menu] Two dishes use the id "' + it.id + '" (in "' + rawItem[it.id] + '" and "' + id +
             '"). Give each dish its own id in config.js.');
         }
-        if (it.id != null && !seenItem[it.id]) seenItem[it.id] = id;
-        var key = id + "/" + (it.id != null && it.id !== "" ? it.id : ii);
-        if (itemsByKey[key]) key += "~" + ii;
+        if (given(it.id) && !rawItem[it.id]) rawItem[it.id] = id;
+        // A single tag written as text ("spicy") works the same as a list (["spicy"]).
+        var tags = Array.isArray(it.tags) ? it.tags : [it.tags];
+        it.tags = tags.filter(function (g) { return typeof g === "number" || (typeof g === "string" && g.trim()); })
+          .map(function (g) { return String(g).trim(); });
+        var key = unique(id + "/" + (given(it.id) ? String(it.id).trim() : ii), seenKey);
         it._key = key;
         itemsByKey[key] = it;
-        hayByKey[key] = haystack(it);
+        hayByKey[key] = haystack(it, c.name);
         items.push(it);
       });
       if (items.length) cats.push({ id: id, name: c.name, emoji: c.emoji, items: items }); // empty categories are skipped
     });
-  })();
+  }
 
   /* ---------- Page shell ---------- */
   var SEARCH_ICON =
@@ -213,7 +244,8 @@
     '<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-hidden="true" inert>' +
       '<div class="sheet-handle" aria-hidden="true"></div>' +
       '<button class="icon-btn close sheet-close" id="sheetClose"><span aria-hidden="true">✕</span></button>' +
-      '<div class="sheet-body" id="sheetBody"></div>' +
+      // tabindex: long dish text can be scrolled with the keyboard too.
+      '<div class="sheet-body" id="sheetBody" tabindex="0"></div>' +
     "</div>";
 
   function applyTheme() {
@@ -239,7 +271,7 @@
       (it.image ? '<img src="' + esc(it.image) + '" alt="" loading="lazy" decoding="async">' : "") + "</span>";
   }
   function card(it) {
-    var u = UI[lang], tag = (it.tags || [])[0];
+    var u = UI[lang], tag = it.tags[0];
     return '<button class="card" data-item="' + esc(it._key) + '">' + thumb(it) +
       '<span class="card-name">' + esc(t(it.name)) + "</span>" +
       '<span class="card-tag' + (tag === "popular" ? " hot" : "") + '">' + (tag ? esc(u.tags[tag] || tag) : "") + "</span>" +
@@ -275,7 +307,7 @@
     $("sideCats").setAttribute("aria-label", u.categoriesNav);
     $("chipsBar").setAttribute("aria-label", u.categoriesNav);
 
-    $("drawerLinks").innerHTML = [["home", u.home], ["menu", u.menu], ["about", u.about]].map(function (l) {
+    $("drawerLinks").innerHTML = VIEWS.map(function (v) { return [v, u[v]]; }).map(function (l) {
       var html = '<button class="drawer-link" data-view="' + l[0] + '">' + esc(l[1]) + "</button>";
       if (l[0] === "menu" && cats.length) {
         html += '<div class="drawer-sub">' + cats.map(function (c) {
@@ -291,9 +323,9 @@
   function renderHome() {
     var u = UI[lang], picks = [];
     cats.forEach(function (c) { c.items.forEach(function (it) { if (it.featured) picks.push(it); }); });
-    var subtitle = t(homeCfg.subtitle);
+    var subtitle = t(homeCfg.subtitle), title = t(homeCfg.headline) || t(brandCfg.name);
     $("view-home").innerHTML =
-      '<div class="hero"><h1>' + esc(t(homeCfg.headline) || t(brandCfg.name)) + "</h1>" +
+      '<div class="hero">' + (title ? "<h1>" + esc(title) + "</h1>" : '<h1 class="sr-only">' + esc(u.home) + "</h1>") +
       (subtitle ? "<p>" + esc(subtitle) + "</p>" : "") +
       '<button class="btn" data-view="menu">' + esc(u.viewMenu) + "</button></div>" +
       (picks.length ? '<div class="section-title"><h2>' + esc(u.picks) + '</h2></div><div class="h-scroll">' +
@@ -362,17 +394,26 @@
     var u = UI[lang], hours = Array.isArray(infoCfg.hours) ? infoCfg.hours : [];
     var about = t(infoCfg.about), address = t(infoCfg.address), phone = infoCfg.phone ? String(infoCfg.phone) : "";
     function row(key, valHtml) {
-      return '<div class="info-row"><span class="info-key">' + esc(key) + "</span>" + valHtml + "</div>";
+      return '<div class="info-row"><span class="info-key">' + esc(key) + '</span><span class="info-val">' + valHtml + "</span></div>";
     }
+    // "12:00 – 15:30, 18:00 – 23:30": each part stays on one line; a long value wraps between parts.
+    function parts(s) {
+      return String(s).split(/(\s*[,\/|]\s*)/).map(function (p, i) {
+        return i % 2 ? esc(p) : '<span class="nw">' + esc(p) + "</span>";
+      }).join("");
+    }
+    // Several numbers ("03-555-1234 / 050-123-4567") each get their own call link.
+    var phones = phone.split(/\s*[,\/|]\s*/).filter(function (p) { return p.trim(); }).map(function (p) {
+      return '<a class="nw" dir="ltr" href="tel:' + esc(p.replace(/[^\d+]/g, "")) + '">' + esc(p.trim()) + "</a>";
+    });
     $("view-about").innerHTML = '<h1 class="sr-only">' + esc(u.about) + '</h1><div class="info-wrap">' +
       (about ? '<div class="info-card"><h2>' + esc(u.aboutUs) + "</h2><p>" + esc(about) + "</p></div>" : "") +
       (hours.length ? '<div class="info-card"><h2>' + esc(u.hours) + "</h2>" + hours.map(function (h) {
-        return row(t(h && h.days), '<span class="info-val" dir="ltr">' + esc(t(h && h.time)) + "</span>");
+        return row(t(h && h.days), '<span dir="ltr">' + parts(t(h && h.time)) + "</span>");
       }).join("") + "</div>" : "") +
-      (address || phone ? '<div class="info-card"><h2>' + esc(u.contact) + "</h2>" +
-        (address ? row(u.address, '<span class="info-val">' + esc(address) + "</span>") : "") +
-        (phone ? row(u.phone, '<a class="info-val" dir="ltr" href="tel:' + esc(phone.replace(/[^\d+]/g, "")) + '">' +
-          esc(phone) + "</a>") : "") +
+      (address || phones.length ? '<div class="info-card"><h2>' + esc(u.contact) + "</h2>" +
+        (address ? row(u.address, esc(address)) : "") +
+        (phones.length ? row(u.phone, phones.join("<br>")) : "") +
         "</div>" : "") +
       "</div>";
   }
@@ -411,15 +452,43 @@
   function navigate(v, catId) {
     v = VIEWS.indexOf(v) >= 0 ? v : "home";
     if (v !== view) {
+      saveScroll();
       try { history.pushState({ view: v }, "", "#" + v); } catch (e) {}
     }
     show(v, catId);
   }
+  function state() {
+    try { return history.state || {}; } catch (e) { return {}; }
+  }
+  function merge(a, b) {
+    var o = {}, k;
+    for (k in a) if (Object.prototype.hasOwnProperty.call(a, k)) o[k] = a[k];
+    for (k in b) if (Object.prototype.hasOwnProperty.call(b, k)) o[k] = b[k];
+    return o;
+  }
+  // The page restores its own scroll position (scrollRestoration is "manual"), so Back
+  // and a reload return the customer to the same place in the menu.
+  function saveScroll() {
+    try { history.replaceState(merge(state(), { y: Math.round(window.scrollY) }), ""); } catch (e) {}
+  }
+  function restoreScroll(st) {
+    if (st.y > 0) window.scrollTo({ top: st.y, behavior: "instant" });
+  }
 
   /* ---------- Category highlighting ---------- */
+  // While a tap scrolls to a category, the highlight stays on that category. The lock ends
+  // when the scroll ends (scrollend, or no scroll event for 250 ms), on wheel or touch, or
+  // after 900 ms if nothing scrolled at all.
   var spyLock = false, lockTimer = 0;
   function lockSpy() { spyLock = true; clearTimeout(lockTimer); lockTimer = setTimeout(unlockSpy, 900); }
   function unlockSpy() { spyLock = false; clearTimeout(lockTimer); }
+  var saveTimer = 0;
+  function onScroll() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveScroll, 300); // the position is kept on the current history entry
+    if (spyLock) { clearTimeout(lockTimer); lockTimer = setTimeout(unlockSpy, 250); return; }
+    spy();
+  }
 
   function setActive(id) {
     activeCat = id;
@@ -428,10 +497,18 @@
       b.classList.toggle("active", on);
       if (on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
     });
+    // Keep the active chip (phones) or sidebar entry (desktop) in view inside its own list.
     var chip = id ? document.querySelector('#chips [data-cat="' + id + '"]') : null, strip = $("chips");
     if (chip && strip.offsetParent) {
       var cr = chip.getBoundingClientRect(), sr = strip.getBoundingClientRect();
       strip.scrollBy({ left: cr.left + cr.width / 2 - (sr.left + sr.width / 2), behavior: motion() });
+    }
+    var side = id ? document.querySelector('#sideCats [data-cat="' + id + '"]') : null, list = $("sideCats");
+    if (side && list.offsetParent && list.scrollHeight > list.clientHeight + 1) {
+      var br = side.getBoundingClientRect(), lr = list.getBoundingClientRect();
+      if (br.top < lr.top || br.bottom > lr.bottom) {
+        list.scrollBy({ top: br.top + br.height / 2 - (lr.top + lr.height / 2), behavior: motion() });
+      }
     }
   }
   // Highlights the category currently on screen.
@@ -447,7 +524,7 @@
   }
 
   /* ---------- Drawer and item sheet ---------- */
-  var lastFocus = null, popping = false, afterPop = null, popTimer = 0;
+  var lastFocus = null, popping = false, afterPop = null, popTimer = 0, closedAt = 0;
 
   function setOpen(el, open) {
     el.classList.toggle("open", open);
@@ -464,13 +541,27 @@
     $("main").inert = open;
     $("topbar").inert = open;
   }
-  function overlayEntry() {
-    try { return !!(history.state && history.state.overlay); } catch (e) { return false; }
-  }
-  // An open drawer or sheet gets its own history entry, so Back closes it.
-  function pushOverlay() {
+  function overlayEntry() { return !!state().overlay; }
+  // An open drawer or sheet gets its own history entry, so Back closes it. The entry
+  // records what was open, so Forward or a reload can open it again.
+  function pushOverlay(kind, key) {
     if (overlayEntry()) return;
-    try { history.pushState({ overlay: true, view: view }, ""); } catch (e) {}
+    saveScroll();
+    try {
+      history.pushState({ overlay: kind, item: key || null, view: view, y: Math.round(window.scrollY) }, "");
+    } catch (e) {}
+  }
+  function reopen(st) {
+    if (st.overlay === "drawer") { openDrawer(); return true; }
+    if (st.overlay === "sheet" && itemsByKey[st.item]) {
+      var from = null;
+      document.querySelectorAll("#view-" + view + " [data-item]").forEach(function (el) {
+        if (!from && el.dataset.item === st.item) from = el;
+      });
+      openItem(st.item, from);
+      return true;
+    }
+    return false;
   }
   function focusNoScroll(el) {
     if (!el || !el.focus) return;
@@ -482,21 +573,20 @@
     lastFocus = document.activeElement;
     setOpen($("drawer"), true);
     $("menuBtn").setAttribute("aria-expanded", "true");
-    pushOverlay();
+    pushOverlay("drawer");
     syncOverlay();
     focusNoScroll($("drawerClose"));
   }
 
-  function openItem(key) {
+  function openItem(key, from) {
     var it = itemsByKey[key];
     if (!it || anyOpen()) return;
     var u = UI[lang], ing = list(it.ingredients), desc = t(it.desc), stats = [];
-    if (it.time) stats.push('<div class="stat"><small>' + esc(u.prep) + "</small><b>" + esc(u.approx) + esc(it.time) + " " + esc(u.min) + "</b></div>");
-    if (it.calories) stats.push('<div class="stat"><small>' + esc(u.calories) + "</small><b>" + esc(u.approx) +
-      esc(Number(it.calories).toLocaleString("en")) + " " + esc(u.kcal) + "</b></div>");
+    if (it.time && given(it.time)) stats.push('<div class="stat"><small>' + esc(u.prep) + "</small><b>" + esc(approx(it.time, u.min)) + "</b></div>");
+    if (it.calories && given(it.calories)) stats.push('<div class="stat"><small>' + esc(u.calories) + "</small><b>" + esc(approx(it.calories, u.kcal)) + "</b></div>");
     $("sheetBody").innerHTML = thumb(it) +
       '<div class="sheet-head"><h2 id="sheetTitle">' + esc(t(it.name)) + "</h2>" + price(it.price) + "</div>" +
-      ((it.tags || []).length ? '<div class="tags">' + it.tags.map(function (g) {
+      (it.tags.length ? '<div class="tags">' + it.tags.map(function (g) {
         return '<span class="tag' + (g === "popular" ? " hot" : "") + '">' + esc(u.tags[g] || g) + "</span>";
       }).join("") + "</div>" : "") +
       (desc ? '<p class="sheet-desc">' + esc(desc) + "</p>" : "") +
@@ -504,16 +594,17 @@
       (ing.length ? "<h3>" + esc(u.ingredients) + '</h3><ul class="ingredients">' +
         ing.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "");
     $("sheet").setAttribute("aria-labelledby", "sheetTitle");
-    lastFocus = document.activeElement;
+    lastFocus = from || document.activeElement;
     $("sheetBody").scrollTop = 0;
     setOpen($("sheet"), true);
-    pushOverlay();
+    pushOverlay("sheet", key);
     syncOverlay();
     focusNoScroll($("sheetClose"));
   }
 
   function closeAll() {
     if (!anyOpen()) return;
+    closedAt = Date.now();
     var sheet = $("sheet");
     setOpen($("drawer"), false);
     setOpen(sheet, false);
@@ -536,14 +627,20 @@
     history.back();
   }
   function settlePop() {
+    var ours = popping; // true when popOverlay() stepped back, false for the browser's Back or Forward
     popping = false;
     clearTimeout(popTimer);
+    clearTimeout(saveTimer); // a pending save belongs to the entry we just left
     closeAll();
-    var v = viewFromHash();
-    if (v !== view) show(v);
+    var st = state(), v = viewFromHash();
+    if (v !== view) {
+      show(v);
+      restoreScroll(st);
+    }
     var fn = afterPop;
     afterPop = null;
     if (fn) fn();
+    else if (!ours && st.overlay) reopen(st); // Forward onto an open dish or drawer opens it again
   }
 
   /* ---------- Swipe down to close the sheet (phones and tablets) ---------- */
@@ -582,10 +679,18 @@
 
   /* ---------- Events ---------- */
   function bind() {
+    // The sheet and drawer stop catching taps the moment they close, while they are still
+    // sliding away. A quick second tap must not land on the dish or link underneath.
+    document.addEventListener("click", function (e) {
+      if (e.detail && Date.now() - closedAt < 400) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
+
     $("menuBtn").addEventListener("click", openDrawer);
     $("drawerClose").addEventListener("click", function () { popOverlay(); });
     $("sheetClose").addEventListener("click", function () { popOverlay(); });
     $("backdrop").addEventListener("click", function () { popOverlay(); });
+    // A flick on the dim area must not start a fling: Chrome would then swallow the next tap.
+    $("backdrop").addEventListener("touchmove", function (e) { e.preventDefault(); }, { passive: false });
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && anyOpen()) popOverlay();
     });
@@ -612,10 +717,13 @@
     });
 
     $("langBtn").addEventListener("click", function () {
+      // Keep the reading position: the same distance from the top of the same category.
       var keep = view === "menu" ? activeCat : null, y = window.scrollY;
+      var old = keep ? $("cat-" + keep) : null;
+      var off = old && !old.hidden ? old.getBoundingClientRect().top : null;
       lang = nextLang();
       try { localStorage.setItem("menu-lang", lang); } catch (e) {}
-      // The customer's own choice now wins over a ?lang= in the link.
+      // The customer's own choice wins over a ?lang= in the link; drop it from the address too.
       try {
         var url = new URL(location.href);
         if (url.searchParams.has("lang")) {
@@ -625,10 +733,10 @@
       } catch (e) {}
       renderAll();
       var sec = keep ? $("cat-" + keep) : null;
-      if (sec && !sec.hidden) {
+      if (off !== null && sec && !sec.hidden) {
         setActive(keep);
         lockSpy();
-        sec.scrollIntoView({ block: "start", behavior: "instant" });
+        window.scrollTo({ top: sec.getBoundingClientRect().top + window.scrollY - off, behavior: "instant" });
       } else {
         window.scrollTo({ top: y, behavior: "instant" });
       }
@@ -645,7 +753,11 @@
       focusNoScroll(search);
     });
 
-    window.addEventListener("scroll", spy, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pagehide", saveScroll);
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "hidden") saveScroll(); // phones may discard a tab without pagehide
+    });
     window.addEventListener("scrollend", function () { if (spyLock) unlockSpy(); });
     window.addEventListener("wheel", unlockSpy, { passive: true });
     window.addEventListener("touchstart", unlockSpy, { passive: true });
@@ -663,12 +775,26 @@
   }, true);
 
   try {
+    normalise();
+    if (!cats.length) {
+      console.error("[menu] config.js has no dishes to show.");
+      fatal();
+      return;
+    }
+    // Scroll positions are handled by the page. With the browser's own restoration, the
+    // history.back() that closes the drawer would undo the scroll to the tapped category.
+    try { if ("scrollRestoration" in history) history.scrollRestoration = "manual"; } catch (e) {}
     document.body.insertAdjacentHTML("afterbegin", SHELL);
     applyTheme();
     bind();
     renderAll();
+    var st = state();
     show(viewFromHash());
-    try { history.replaceState({ view: view }, "", "#" + view); } catch (e) {}
+    if (st.view === view) restoreScroll(st);
+    // After a reload with a dish or the drawer open, open it again on the same history entry.
+    if (!(st.overlay && st.view === view && reopen(st))) {
+      try { history.replaceState({ view: view, y: st.view === view ? st.y : 0 }, "", "#" + view); } catch (e) {}
+    }
   } catch (err) {
     console.error("[menu] Could not build the menu:", err);
     fatal();
