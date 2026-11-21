@@ -58,14 +58,17 @@
   };
 
   var LANGS = (Array.isArray(cfg.languages) && cfg.languages.length ? cfg.languages : [cfg.defaultLang || "en"])
-    .filter(function (l) { return UI[l]; });
+    .filter(function (l) { return own(UI, l); });
   if (!LANGS.length) LANGS = ["en"];
   var DEFAULT_LANG = LANGS.indexOf(cfg.defaultLang) >= 0 ? cfg.defaultLang : LANGS[0];
   var brandCfg = cfg.brand || {}, homeCfg = cfg.home || {}, infoCfg = cfg.info || {};
 
+  // Opening-hours rows with neither days nor time are ignored.
+  var HOURS = (Array.isArray(infoCfg.hours) ? infoCfg.hours : []).filter(function (h) {
+    return h && allText([h.days, h.time]).join("").trim() !== "";
+  });
   // The About page is left out when the client gave nothing to put on it.
-  var HAS_ABOUT = allText([infoCfg.about, infoCfg.address, infoCfg.phone]).join("").trim() !== "" ||
-    (Array.isArray(infoCfg.hours) && infoCfg.hours.length > 0);
+  var HAS_ABOUT = allText([infoCfg.about, infoCfg.address, infoCfg.phone]).join("").trim() !== "" || HOURS.length > 0;
   var VIEWS = HAS_ABOUT ? ["home", "menu", "about"] : ["home", "menu"];
 
   var lang = pickLang();
@@ -73,11 +76,16 @@
   var activeCat;
 
   /* ---------- Small helpers ---------- */
+  // Own keys only, so a tag or id such as "constructor" is not mistaken for a built-in.
+  function own(o, k) { return o != null && Object.prototype.hasOwnProperty.call(o, k); }
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
+  // Client text, isolated so a name in the other script keeps its own order
+  // (an English "Fish & Chips!" on the Hebrew page keeps its "!" at the end).
+  function bdi(s) { return s === "" ? "" : "<bdi>" + esc(s) + "</bdi>"; }
   function pad2(n) { return n < 10 ? "0" + n : "" + n; }
   function motion() {
     return window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
@@ -116,29 +124,35 @@
     return Array.isArray(r) ? r : [];
   }
 
+  // A value that may be written per language ({ en, he }) or once for all languages.
+  function val(v) { return v && typeof v === "object" && !Array.isArray(v) ? t(v) : v; }
   // A number, or a string that holds only a number ("32", "32.5").
   function num(v) {
     if (typeof v === "number") return isFinite(v) ? v : NaN;
     return typeof v === "string" && /^\s*\d+(\.\d+)?\s*$/.test(v) ? Number(v) : NaN;
   }
   function priceText(p) {
-    if (p == null || p === "") return "";
+    p = val(p);
+    if (p == null || String(p).trim() === "") return "";
     var n = num(p);
     if (!isNaN(n)) return (cfg.currency || "") + (Number.isInteger(n) ? String(n) : n.toFixed(2));
-    return String(p); // free text such as "Market price" is shown as written
+    return String(p).trim(); // free text such as "Market price" is shown as written
   }
   function price(p) {
     var s = priceText(p);
     if (!s) return "";
-    return '<bdi class="price' + (isNaN(num(p)) ? " free" : "") + '">' + esc(s) + "</bdi>";
+    return '<bdi class="price' + (isNaN(num(val(p))) ? " free" : "") + '">' + esc(s) + "</bdi>";
   }
   // "~30 min" for a number; a range such as "20-30" gets the unit; other text is shown as written.
   function approx(v, unit) {
+    v = val(v);
+    if (v == null) return "";
     var u = UI[lang], n = num(v);
     if (!isNaN(n)) return u.approx + n.toLocaleString("en") + " " + unit;
     var s = String(v).trim();
     return /^[\d\s.,\-–]+$/.test(s) ? s + " " + unit : s;
   }
+  function tagLabel(g, l) { var tags = UI[l || lang].tags; return own(tags, g) ? tags[g] : g; }
 
   /* ---------- Search normalisation ---------- */
   var FINALS = { "ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ" };
@@ -161,13 +175,13 @@
     // The category name is included, so typing "desserts" lists the desserts.
     var parts = allText(it.name).concat(allText(it.desc), allText(it.ingredients), allText(catName));
     it.tags.forEach(function (g) {
-      Object.keys(UI).forEach(function (l) { if (UI[l].tags[g]) parts.push(UI[l].tags[g]); });
+      Object.keys(UI).forEach(function (l) { if (own(UI[l].tags, g)) parts.push(UI[l].tags[g]); });
     });
     return norm(parts.join(" "));
   }
 
   /* ---------- Normalise the client's categories ---------- */
-  var cats = [], itemsByKey = {}, hayByKey = {};
+  var cats = [], itemsByKey = Object.create(null), hayByKey = Object.create(null);
   // Ids end up in element ids and attribute selectors, so keep only letters (any script), digits, _ and -.
   var UNSAFE_ID = (function () {
     try { return new RegExp("[^\\p{L}\\p{N}_-]", "gu"); } catch (e) { return /[^A-Za-z0-9_-]/g; }
@@ -179,8 +193,10 @@
     return id;
   }
   function given(v) { return v != null && String(v).trim() !== ""; }
+  function hasText(v) { return allText(v).join("").trim() !== ""; }
   function normalise() {
-    var seenCat = {}, seenKey = {}, rawCat = {}, rawItem = {};
+    var seenCat = Object.create(null), seenKey = Object.create(null);
+    var rawCat = Object.create(null), rawItem = Object.create(null);
     cfg.categories.forEach(function (c, ci) {
       if (!c || !Array.isArray(c.items)) return;
       if (given(c.id) && rawCat[c.id]) {
@@ -188,14 +204,27 @@
       }
       if (given(c.id)) rawCat[c.id] = true;
       var id = unique(given(c.id) ? String(c.id).trim().replace(UNSAFE_ID, "-") : "c" + ci, seenCat);
+      var name = c.name;
+      if (!hasText(name)) {
+        // A nameless category would show an empty chip and heading: use its id, or "Menu 3".
+        console.warn("[menu] Category " + (ci + 1) + " has no name. Give it a name in config.js.");
+        name = {};
+        Object.keys(UI).forEach(function (l) { name[l] = given(c.id) ? String(c.id).trim() : UI[l].menu + " " + (ci + 1); });
+      }
       var items = [];
-      c.items.forEach(function (it, ii) {
-        if (!it || typeof it !== "object") return;
+      c.items.forEach(function (raw, ii) {
+        if (!raw || typeof raw !== "object") return;
+        // Work on a copy: the same dish object may be listed in two categories.
+        var it = merge(raw, {});
         if (given(it.id) && rawItem[it.id]) {
           console.warn('[menu] Two dishes use the id "' + it.id + '" (in "' + rawItem[it.id] + '" and "' + id +
             '"). Give each dish its own id in config.js.');
         }
         if (given(it.id) && !rawItem[it.id]) rawItem[it.id] = id;
+        if (!hasText(it.name)) {
+          console.warn('[menu] A dish in "' + id + '" has no name. Give it a name in config.js.');
+          if (given(it.id)) it.name = String(it.id).trim();
+        }
         // A single tag written as text ("spicy") works the same as a list (["spicy"]).
         var tags = Array.isArray(it.tags) ? it.tags : [it.tags];
         it.tags = tags.filter(function (g) { return typeof g === "number" || (typeof g === "string" && g.trim()); })
@@ -203,10 +232,10 @@
         var key = unique(id + "/" + (given(it.id) ? String(it.id).trim() : ii), seenKey);
         it._key = key;
         itemsByKey[key] = it;
-        hayByKey[key] = haystack(it, c.name);
+        hayByKey[key] = haystack(it, name);
         items.push(it);
       });
-      if (items.length) cats.push({ id: id, name: c.name, emoji: c.emoji, items: items }); // empty categories are skipped
+      if (items.length) cats.push({ id: id, name: name, emoji: c.emoji, items: items }); // empty categories are skipped
     });
   }
 
@@ -277,13 +306,19 @@
       (it.image ? '<img src="' + esc(it.image) + '" alt="" loading="lazy" decoding="async">' : "") + "</span>";
   }
   function card(it) {
-    var u = UI[lang], tag = it.tags[0];
+    var tag = it.tags[0];
     return '<button class="card" data-item="' + esc(it._key) + '">' + thumb(it) +
-      '<span class="card-name">' + esc(t(it.name)) + "</span>" +
-      '<span class="card-tag' + (tag === "popular" ? " hot" : "") + '">' + (tag ? esc(u.tags[tag] || tag) : "") + "</span>" +
+      '<span class="card-name">' + bdi(t(it.name)) + "</span>" +
+      '<span class="card-tag' + (tag === "popular" ? " hot" : "") + '">' + (tag ? bdi(tagLabel(tag)) : "") + "</span>" +
       price(it.price) + "</button>";
   }
   function countLabel(n) { var u = UI[lang]; return n + " " + (n === 1 ? u.item : u.items); }
+  function brandHtml() {
+    var name = t(brandCfg.name);
+    return brandCfg.logo
+      ? '<img src="' + esc(brandCfg.logo) + '" alt="' + esc(name || UI[lang].home) + '">'
+      : '<span class="brand-text">' + bdi(name) + "</span>";
+  }
 
   function renderChrome() {
     var u = UI[lang], name = t(brandCfg.name), root = document.documentElement;
@@ -291,10 +326,10 @@
     root.dir = u.dir;
     document.title = (name ? name + " · " : "") + u.menu;
 
-    $("brand").innerHTML = brandCfg.logo
-      ? '<img src="' + esc(brandCfg.logo) + '" alt="' + esc(name) + '">'
-      : '<span class="brand-text">' + esc(name) + "</span>";
-    $("drawerBrand").textContent = name;
+    $("brand").innerHTML = brandHtml();
+    // Without a name the link would have nothing to read out.
+    if (name) $("brand").removeAttribute("aria-label"); else $("brand").setAttribute("aria-label", u.home);
+    $("drawerBrand").innerHTML = bdi(name);
     $("drawer").setAttribute("aria-label", u.menu);
     $("menuBtn").setAttribute("aria-label", u.openMenu);
     $("drawerClose").setAttribute("aria-label", u.close);
@@ -317,7 +352,7 @@
       var html = '<button class="drawer-link" data-view="' + l[0] + '">' + esc(l[1]) + "</button>";
       if (l[0] === "menu" && cats.length) {
         html += '<div class="drawer-sub">' + cats.map(function (c) {
-          return '<button data-cat="' + c.id + '"><span>' + esc(t(c.name)) + '</span><span class="count">' +
+          return '<button data-cat="' + c.id + '"><span>' + bdi(t(c.name)) + '</span><span class="count">' +
             pad2(c.items.length) + "</span></button>";
         }).join("") + "</div>";
       }
@@ -331,8 +366,8 @@
     cats.forEach(function (c) { c.items.forEach(function (it) { if (it.featured) picks.push(it); }); });
     var subtitle = t(homeCfg.subtitle), title = t(homeCfg.headline) || t(brandCfg.name);
     $("view-home").innerHTML =
-      '<div class="hero">' + (title ? "<h1>" + esc(title) + "</h1>" : '<h1 class="sr-only">' + esc(u.home) + "</h1>") +
-      (subtitle ? "<p>" + esc(subtitle) + "</p>" : "") +
+      '<div class="hero">' + (title ? "<h1>" + bdi(title) + "</h1>" : '<h1 class="sr-only">' + esc(u.home) + "</h1>") +
+      (subtitle ? "<p>" + bdi(subtitle) + "</p>" : "") +
       '<button class="btn" data-view="menu">' + esc(u.viewMenu) + "</button></div>" +
       (picks.length ? '<div class="section-title"><h2>' + esc(u.picks) + '</h2></div><div class="h-scroll">' +
         picks.map(card).join("") + "</div>" : "") +
@@ -340,7 +375,7 @@
         cats.map(function (c) {
           return '<button class="cat-tile" data-cat="' + c.id + '">' +
             (c.emoji ? '<span class="emoji" aria-hidden="true">' + esc(c.emoji) + "</span>" : "") +
-            "<span>" + esc(t(c.name)) + "<small>" + esc(countLabel(c.items.length)) + "</small></span></button>";
+            "<span>" + bdi(t(c.name)) + "<small>" + esc(countLabel(c.items.length)) + "</small></span></button>";
         }).join("") + "</div>" : "");
   }
 
@@ -349,16 +384,16 @@
     var u = UI[lang];
     $("sections").innerHTML = cats.map(function (c) {
       return '<section class="cat-section" id="cat-' + c.id + '" data-cat-id="' + c.id + '" aria-labelledby="h-' + c.id + '">' +
-        '<div class="section-title"><h2 id="h-' + c.id + '">' + esc(t(c.name)) + '</h2><span class="count">' +
+        '<div class="section-title"><h2 id="h-' + c.id + '">' + bdi(t(c.name)) + '</h2><span class="count">' +
         pad2(c.items.length) + "</span></div>" +
         '<div class="grid">' + c.items.map(card).join("") + "</div></section>";
     }).join("") + '<p class="empty" id="noResults" hidden>' + esc(u.noResults) + "</p>";
 
     $("chips").innerHTML = cats.map(function (c) {
-      return '<button class="chip" data-cat="' + c.id + '">' + esc(t(c.name)) + "</button>";
+      return '<button class="chip" data-cat="' + c.id + '">' + bdi(t(c.name)) + "</button>";
     }).join("");
     $("sideCats").innerHTML = cats.map(function (c) {
-      return '<button data-cat="' + c.id + '"><span>' + esc(t(c.name)) + '</span><span class="count">' +
+      return '<button data-cat="' + c.id + '"><span>' + bdi(t(c.name)) + '</span><span class="count">' +
         pad2(c.items.length) + "</span></button>";
     }).join("");
     filterMenu();
@@ -366,9 +401,10 @@
 
   function filterMenu() {
     var terms = norm($("search").value).trim().split(" ").filter(Boolean);
-    var any = false;
+    var any = false, last = null;
     cats.forEach(function (c) {
       var sec = $("cat-" + c.id), n = 0;
+      sec.classList.remove("is-last");
       sec.querySelectorAll(".card").forEach(function (el) {
         var hay = hayByKey[el.dataset.item] || "";
         var ok = terms.every(function (w) { return hay.indexOf(w) >= 0; });
@@ -382,8 +418,10 @@
         var count = b.querySelector(".count");
         if (count) count.textContent = pad2(n);
       });
-      if (n) any = true;
+      if (n) { any = true; last = sec; }
     });
+    // The last category shown gets room below it, so a tap on it can bring its title to the top.
+    if (last) last.classList.add("is-last");
     $("noResults").hidden = any;
     unlockSpy();
     activeCat = undefined;
@@ -397,28 +435,33 @@
   }
 
   function renderAbout() {
-    var u = UI[lang], hours = Array.isArray(infoCfg.hours) ? infoCfg.hours : [];
-    var about = t(infoCfg.about), address = t(infoCfg.address), phone = infoCfg.phone ? String(infoCfg.phone) : "";
+    var u = UI[lang], hours = HOURS;
+    var about = t(infoCfg.about), address = t(infoCfg.address);
+    var phone = Array.isArray(infoCfg.phone) ? infoCfg.phone.map(val).join(", ") : String(val(infoCfg.phone) || "");
     function row(key, valHtml) {
-      return '<div class="info-row"><span class="info-key">' + esc(key) + '</span><span class="info-val">' + valHtml + "</span></div>";
+      return '<div class="info-row"><span class="info-key">' + bdi(key) + '</span><span class="info-val">' + valHtml + "</span></div>";
     }
-    // "12:00 – 15:30, 18:00 – 23:30": each part stays on one line; a long value wraps between parts.
+    // "12:00 – 15:30, 18:00 – 23:30": each part stays on one line when it fits; a long value wraps between parts.
     function parts(s) {
       return String(s).split(/(\s*[,\/|]\s*)/).map(function (p, i) {
         return i % 2 ? esc(p) : '<span class="nw">' + esc(p) + "</span>";
       }).join("");
     }
-    // Several numbers ("03-555-1234 / 050-123-4567") each get their own call link.
-    var phones = phone.split(/\s*[,\/|]\s*/).filter(function (p) { return p.trim(); }).map(function (p) {
-      return '<a class="nw" dir="ltr" href="tel:' + esc(p.replace(/[^\d+]/g, "")) + '">' + esc(p.trim()) + "</a>";
+    // Several numbers ("03-555-1234 / 050-123-4567", "... or ...", "... או ...") each get their own call link.
+    // The link keeps digits, + and star codes (*6060); an extension ("ext. 5", "שלוחה 5") is not dialled.
+    var phones = phone.split(/\s*[,\/|;]\s*|\s+(?:or|או)\s+/i).filter(function (p) { return p.trim(); }).map(function (p) {
+      var dial = p.replace(/\s*(?:ext\.?|extension|x|שלוחה)\s*:?\s*\d[\d\s-]*$/i, "")
+        .replace(/[^\d+*#]/g, "").replace(/#/g, "%23");
+      var text = '<span class="nw" dir="ltr">' + esc(p.trim()) + "</span>";
+      return dial.replace(/[^\d]/g, "") ? '<a href="tel:' + dial + '">' + text + "</a>" : text;
     });
     $("view-about").innerHTML = '<h1 class="sr-only">' + esc(u.about) + '</h1><div class="info-wrap">' +
-      (about ? '<div class="info-card"><h2>' + esc(u.aboutUs) + "</h2><p>" + esc(about) + "</p></div>" : "") +
+      (about ? '<div class="info-card"><h2>' + esc(u.aboutUs) + "</h2><p>" + bdi(about) + "</p></div>" : "") +
       (hours.length ? '<div class="info-card"><h2>' + esc(u.hours) + "</h2>" + hours.map(function (h) {
-        return row(t(h && h.days), '<span dir="ltr">' + parts(t(h && h.time)) + "</span>");
+        return row(t(h.days), '<span dir="ltr">' + parts(t(h.time)) + "</span>");
       }).join("") + "</div>" : "") +
       (address || phones.length ? '<div class="info-card"><h2>' + esc(u.contact) + "</h2>" +
-        (address ? row(u.address, esc(address)) : "") +
+        (address ? row(u.address, bdi(address)) : "") +
         (phones.length ? row(u.phone, phones.join("<br>")) : "") +
         "</div>" : "") +
       "</div>";
@@ -446,11 +489,12 @@
     markView();
     var target = catId && view === "menu" ? $("cat-" + catId) : null;
     if (target && !target.hidden) {
+      pinTok++; // a new scroll replaces any pending scrollNow()
       setActive(catId);
       lockSpy();
       target.scrollIntoView({ block: "start", behavior: prev === view ? motion() : "instant" });
     } else {
-      window.scrollTo({ top: 0, behavior: "instant" });
+      scrollNow(0);
     }
     spy();
   }
@@ -459,7 +503,7 @@
     v = VIEWS.indexOf(v) >= 0 ? v : "home";
     if (v !== view) {
       saveScroll();
-      try { history.pushState({ view: v }, "", "#" + v); } catch (e) {}
+      push({ view: v }, "#" + v);
     }
     show(v, catId);
   }
@@ -468,17 +512,55 @@
   }
   function merge(a, b) {
     var o = {}, k;
-    for (k in a) if (Object.prototype.hasOwnProperty.call(a, k)) o[k] = a[k];
-    for (k in b) if (Object.prototype.hasOwnProperty.call(b, k)) o[k] = b[k];
+    for (k in a) if (own(a, k)) o[k] = a[k];
+    for (k in b) if (own(b, k)) o[k] = b[k];
     return o;
   }
-  // The page restores its own scroll position (scrollRestoration is "manual"), so Back
-  // and a reload return the customer to the same place in the menu.
+
+  /* ---------- Scroll positions ---------- */
+  // The page restores its own scroll position (scrollRestoration is "manual"), so Back,
+  // Forward and a reload return the customer to the same place in the menu. Every history
+  // entry gets an id. Its position is updated on every scroll, kept in memory and in
+  // sessionStorage (which, unlike history, a reload cannot drop), and also on the entry itself.
+  var POS_KEY = "menu-pos:" + location.pathname, curId = null, pinTok = 0;
+  var pos = (function () {
+    try {
+      var o = JSON.parse(sessionStorage.getItem(POS_KEY) || "{}");
+      return o && typeof o === "object" && !Array.isArray(o) ? o : {};
+    } catch (e) { return {}; }
+  })();
+  function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function remember() { if (curId) pos[curId] = Math.round(window.scrollY); }
+  function writePos() {
+    try {
+      var keys = Object.keys(pos);
+      while (keys.length > 60) delete pos[keys.shift()]; // only recent entries matter
+      sessionStorage.setItem(POS_KEY, JSON.stringify(pos));
+    } catch (e) {}
+  }
+  function posOf(st) { return st.id && typeof pos[st.id] === "number" ? pos[st.id] : st.y > 0 ? st.y : 0; }
   function saveScroll() {
+    remember();
+    writePos();
     try { history.replaceState(merge(state(), { y: Math.round(window.scrollY) }), ""); } catch (e) {}
   }
-  function restoreScroll(st) {
-    if (st.y > 0) window.scrollTo({ top: st.y, behavior: "instant" });
+  function push(st, url) {
+    st = merge(st, { id: newId() });
+    try {
+      if (url) history.pushState(st, "", url); else history.pushState(st, "");
+      curId = st.id;
+    } catch (e) {}
+  }
+  // Scrolls at once. A smooth scroll that was still running (a category tap just before
+  // Back) can land one more frame after that, so the position is applied again two frames later.
+  function scrollNow(y) {
+    var tk = ++pinTok;
+    window.scrollTo({ top: y, behavior: "instant" });
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        if (tk === pinTok && Math.abs(window.scrollY - y) > 1) window.scrollTo({ top: y, behavior: "instant" });
+      });
+    });
   }
 
   /* ---------- Category highlighting ---------- */
@@ -490,8 +572,9 @@
   function unlockSpy() { spyLock = false; clearTimeout(lockTimer); }
   var saveTimer = 0;
   function onScroll() {
+    remember();
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveScroll, 300); // the position is kept on the current history entry
+    saveTimer = setTimeout(saveScroll, 300);
     if (spyLock) { clearTimeout(lockTimer); lockTimer = setTimeout(unlockSpy, 250); return; }
     spy();
   }
@@ -553,9 +636,7 @@
   function pushOverlay(kind, key) {
     if (overlayEntry()) return;
     saveScroll();
-    try {
-      history.pushState({ overlay: kind, item: key || null, view: view, y: Math.round(window.scrollY) }, "");
-    } catch (e) {}
+    push({ overlay: kind, item: key || null, view: view, y: Math.round(window.scrollY) });
   }
   function reopen(st) {
     if (st.overlay === "drawer") { openDrawer(); return true; }
@@ -587,18 +668,20 @@
   function openItem(key, from) {
     var it = itemsByKey[key];
     if (!it || anyOpen()) return;
-    var u = UI[lang], ing = list(it.ingredients), desc = t(it.desc), stats = [];
-    if (it.time && given(it.time)) stats.push('<div class="stat"><small>' + esc(u.prep) + "</small><b>" + esc(approx(it.time, u.min)) + "</b></div>");
-    if (it.calories && given(it.calories)) stats.push('<div class="stat"><small>' + esc(u.calories) + "</small><b>" + esc(approx(it.calories, u.kcal)) + "</b></div>");
+    var u = UI[lang], desc = t(it.desc), stats = [];
+    var ing = list(it.ingredients).map(t).filter(function (x) { return x.trim() !== ""; });
+    var time = val(it.time), kcal = val(it.calories);
+    if (time && given(time)) stats.push('<div class="stat"><small>' + esc(u.prep) + "</small><b>" + bdi(approx(time, u.min)) + "</b></div>");
+    if (kcal && given(kcal)) stats.push('<div class="stat"><small>' + esc(u.calories) + "</small><b>" + bdi(approx(kcal, u.kcal)) + "</b></div>");
     $("sheetBody").innerHTML = thumb(it) +
-      '<div class="sheet-head"><h2 id="sheetTitle">' + esc(t(it.name)) + "</h2>" + price(it.price) + "</div>" +
+      '<div class="sheet-head"><h2 id="sheetTitle">' + bdi(t(it.name)) + "</h2>" + price(it.price) + "</div>" +
       (it.tags.length ? '<div class="tags">' + it.tags.map(function (g) {
-        return '<span class="tag' + (g === "popular" ? " hot" : "") + '">' + esc(u.tags[g] || g) + "</span>";
+        return '<span class="tag' + (g === "popular" ? " hot" : "") + '">' + bdi(tagLabel(g)) + "</span>";
       }).join("") + "</div>" : "") +
-      (desc ? '<p class="sheet-desc">' + esc(desc) + "</p>" : "") +
+      (desc ? '<p class="sheet-desc">' + bdi(desc) + "</p>" : "") +
       (stats.length ? '<div class="stats">' + stats.join("") + "</div>" : "") +
       (ing.length ? "<h3>" + esc(u.ingredients) + '</h3><ul class="ingredients">' +
-        ing.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "");
+        ing.map(function (x) { return "<li>" + bdi(t(x)) + "</li>"; }).join("") + "</ul>" : "");
     $("sheet").setAttribute("aria-labelledby", "sheetTitle");
     lastFocus = from || document.activeElement;
     $("sheetBody").scrollTop = 0;
@@ -608,9 +691,12 @@
     focusNoScroll($("sheetClose"));
   }
 
+  // A close started by a tap blocks taps for 400 ms (see bind), counted from when it really closes.
+  // Escape, the Back button and a swipe do not: no second tap can follow them.
+  function tapClose(e) { if (e && e.detail) closedAt = Date.now(); }
   function closeAll() {
     if (!anyOpen()) return;
-    closedAt = Date.now();
+    if (Date.now() - closedAt < 400) closedAt = Date.now();
     var sheet = $("sheet");
     setOpen($("drawer"), false);
     setOpen(sheet, false);
@@ -626,27 +712,43 @@
   function popOverlay(then) {
     if (popping) return;
     if (!overlayEntry()) { closeAll(); if (then) then(); return; }
-    popping = true;
     afterPop = then || null;
+    stepBack();
+  }
+  // An overlay entry always sits right on top of the entry for the same view without it.
+  function stepBack() {
+    popping = true;
     clearTimeout(popTimer);
     popTimer = setTimeout(function () { if (popping) settlePop(); }, 700); // in case popstate never arrives
     history.back();
   }
   function settlePop() {
-    var ours = popping; // true when popOverlay() stepped back, false for the browser's Back or Forward
+    var ours = popping; // true when the page stepped back itself, false for the browser's Back or Forward
     popping = false;
     clearTimeout(popTimer);
     clearTimeout(saveTimer); // a pending save belongs to the entry we just left
-    closeAll();
+    // scrollRestoration is "manual", so the page has not moved yet: this is the position of the entry left.
+    var y = Math.round(window.scrollY);
+    if (curId) pos[curId] = y;
     var st = state(), v = viewFromHash();
+    if (!st.id) { // an entry the page did not make, such as a #about typed into the address bar
+      st = merge(st, { id: newId(), view: v });
+      try { history.replaceState(st, ""); } catch (e) {}
+    }
+    curId = st.id;
+    closeAll();
     if (v !== view) {
       show(v);
-      restoreScroll(st);
+      scrollNow(posOf(st));
+    } else {
+      pos[curId] = y; // an overlay opened or closed: the page stays where it is
     }
+    saveScroll();
     var fn = afterPop;
     afterPop = null;
     if (fn) fn();
-    else if (!ours && st.overlay) reopen(st); // Forward onto an open dish or drawer opens it again
+    else if (!ours && st.overlay && !reopen(st)) stepBack(); // a dish no longer in config.js: skip its entry
+    // (Forward onto an open dish or drawer opens it again.)
   }
 
   /* ---------- Swipe down to close the sheet (phones and tablets) ---------- */
@@ -692,9 +794,9 @@
     }, true);
 
     $("menuBtn").addEventListener("click", openDrawer);
-    $("drawerClose").addEventListener("click", function () { popOverlay(); });
-    $("sheetClose").addEventListener("click", function () { popOverlay(); });
-    $("backdrop").addEventListener("click", function () { popOverlay(); });
+    ["drawerClose", "sheetClose", "backdrop"].forEach(function (id) {
+      $(id).addEventListener("click", function (e) { tapClose(e); popOverlay(); });
+    });
     // A flick on the dim area must not start a fling: Chrome would then swallow the next tap.
     $("backdrop").addEventListener("touchmove", function (e) { e.preventDefault(); }, { passive: false });
     document.addEventListener("keydown", function (e) {
@@ -713,7 +815,16 @@
         if (!keepSearch) clearSearch();
         navigate(v, cat);
       };
-      if (el.closest("#drawer")) popOverlay(go); else go();
+      if (el.closest("#drawer")) { tapClose(e); popOverlay(go); } else go();
+    });
+
+    // A keyboard user tabbing along the category chips or "Today's picks" sees the whole item.
+    document.addEventListener("focusin", function (e) {
+      var el = e.target;
+      if (!el.closest || !el.closest(".h-scroll, #chips, #sideCats")) return;
+      var keyboard = true;
+      try { keyboard = el.matches(":focus-visible"); } catch (x) {}
+      if (keyboard && el.scrollIntoView) el.scrollIntoView({ block: "nearest", inline: "nearest" });
     });
 
     $("brand").addEventListener("click", function (e) {
@@ -760,7 +871,7 @@
     });
 
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("pagehide", saveScroll);
+    window.addEventListener("pagehide", saveScroll); // sessionStorage keeps it through a reload
     document.addEventListener("visibilitychange", function () {
       if (document.visibilityState === "hidden") saveScroll(); // phones may discard a tab without pagehide
     });
@@ -777,7 +888,7 @@
     var el = e.target;
     if (!el || el.tagName !== "IMG") return;
     if (el.closest(".thumb")) el.remove();
-    else if (el.closest("#brand")) $("brand").innerHTML = '<span class="brand-text">' + esc(t(brandCfg.name)) + "</span>";
+    else if (el.closest("#brand")) $("brand").innerHTML = '<span class="brand-text">' + bdi(t(brandCfg.name)) + "</span>";
   }, true);
 
   try {
@@ -796,10 +907,22 @@
     renderAll();
     var st = state();
     show(viewFromHash());
-    if (st.view === view) restoreScroll(st);
+    var same = st.view === view, y = same ? posOf(st) : 0;
+    curId = st.id && same ? st.id : newId();
+    if (y > 0) scrollNow(y);
+    var here = { view: view, id: curId, y: y };
     // After a reload with a dish or the drawer open, open it again on the same history entry.
-    if (!(st.overlay && st.view === view && reopen(st))) {
-      try { history.replaceState({ view: view, y: st.view === view ? st.y : 0 }, "", "#" + view); } catch (e) {}
+    if (same && st.overlay) {
+      if (reopen(st)) here = merge(st, here);
+      else {
+        // That dish is no longer in config.js: go back to the entry under it, so Back is not a dead press.
+        try { history.replaceState(merge(st, here), ""); } catch (e) {}
+        stepBack();
+        here = null;
+      }
+    }
+    if (here) {
+      try { history.replaceState(here, "", "#" + view); } catch (e) {}
     }
   } catch (err) {
     console.error("[menu] Could not build the menu:", err);

@@ -37,7 +37,7 @@ window.MENU_CONFIG = {
       he: "מטבח שכונתי שמבשל אוכל טרי כל יום מחומרי גלם מקומיים."
     },
     address: { en: "12 Example St., Tel Aviv", he: "רחוב הדוגמה 12, תל אביב" },
-    phone: "03-000-0000",
+    phone: "03-000-0000", // several numbers: "03-000-0000, 050-000-0000"; star numbers such as "*6060" work too
     hours: [
       { days: { en: "Sunday – Thursday", he: "ראשון – חמישי" }, time: "12:00 – 23:00" },
       { days: { en: "Friday", he: "שישי" }, time: "11:00 – 16:00" },
@@ -48,9 +48,10 @@ window.MENU_CONFIG = {
   /*
    * Categories appear in this order. Item fields:
    *   name, desc        – texts
-   *   price             – number (32 or 32.5), or text such as "Market price"
+   *   price             – number (32 or 32.5), or text such as { en: "Market price", he: "מחיר שוק" }
    *   time              – preparation time in minutes (a number, or a range such as "20-30")
    *   calories          – approximate kcal (a number)
+   *   (text in price, time or calories can be one string or { en, he }, like every other text)
    *   ingredients       – list per language
    *   tags              – any of: "popular", "new", "spicy", "vegan"
    *   featured: true    – shows in "Today's picks" on the home page
