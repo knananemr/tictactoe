@@ -1,0 +1,11 @@
+# build output and installed packages
+dist/
+node_modules/
+# test output
+tests/suite-out/
+tests/screenshots-out/
+# secrets: never commit
+.env
+.env.*
+!.env.example
+*.p8

@@ -1,8 +1,13 @@
-// Final screenshots for the Indigo re-skin -> theme-final/
+// Screenshots of the main screens -> tests/screenshots-out/
+// Usage: node tests/screenshots.js [folder to serve] [home|shop|photos|form|desk ...]
+// The folder defaults to dist/ (run `npm run build` first); no group names = all groups.
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
-const DIR = path.resolve(__dirname, '..'), OUT = path.join(__dirname, 'screenshots-out');
+const GROUPS = ['home', 'shop', 'photos', 'form', 'desk'];
+const args = process.argv.slice(2), dirArg = args.find(a => !GROUPS.includes(a));
+const DIR = path.resolve(dirArg || path.join(__dirname, '..', 'dist')), OUT = path.join(__dirname, 'screenshots-out');
+if (!fs.existsSync(path.join(DIR, 'index.html'))) { console.log('No index.html in ' + DIR + ' (build first: npm run build)'); process.exit(1); }
 fs.mkdirSync(OUT, { recursive: true });
-const TYPES = { html: 'text/html', js: 'text/javascript', css: 'text/css' };
+const TYPES = { html: 'text/html', js: 'text/javascript', css: 'text/css', woff2: 'font/woff2', woff: 'font/woff', svg: 'image/svg+xml', json: 'application/json', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
 const IL = iso => new Date(iso + '+02:00');
 async function ctxFor(b, lang, phone, extra) {
   const ctx = await b.newContext(Object.assign(phone
@@ -27,7 +32,7 @@ async function fillPhotoShop(p, lang) {
   await p.click('#fLocBtn').catch(() => {}); await p.waitForTimeout(300);
 }
 const scrollTo = (p, sel, off = 80) => p.evaluate(([sel, off]) => { const e = document.querySelector(sel); if (e) window.scrollTo(0, e.getBoundingClientRect().top + scrollY - off); }, [sel, off]);
-const which = process.argv.slice(2); const want = n => !which.length || which.includes(n);
+const which = args.filter(a => GROUPS.includes(a)); const want = n => !which.length || which.includes(n);
 (async () => {
   const b = await chromium.launch();
   const shot = (p, n, o) => p.screenshot(Object.assign({ path: path.join(OUT, n + '.png') }, o || {}));

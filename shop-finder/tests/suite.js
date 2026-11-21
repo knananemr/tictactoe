@@ -1,9 +1,12 @@
-// End-to-end checks for shop-finder. Usage: node suite.js <dir containing index.html>
+// End-to-end checks for shop-finder. Usage: node suite.js [dir containing index.html]
+// The folder defaults to dist/ (the build): run `npm test`, or `npm run build` first.
 const { chromium } = require('playwright');
 const path = require('path');
-const DIR = path.resolve(process.argv[2] || path.join(__dirname, '..'));
+const DIR = path.resolve(process.argv[2] || path.join(__dirname, '..', 'dist'));
 const URL = 'https://nearby.test/index.html'; // served from DIR via request interception
-const fs = require('fs'); const TYPES = { html: 'text/html', js: 'text/javascript', css: 'text/css' };
+const fs = require('fs');
+const TYPES = { html: 'text/html', js: 'text/javascript', css: 'text/css', woff2: 'font/woff2', woff: 'font/woff', svg: 'image/svg+xml', json: 'application/json', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
+if (!fs.existsSync(path.join(DIR, 'index.html'))) { console.log('No index.html in ' + DIR + ' (build first: npm run build, or run npm test)'); process.exit(1); }
 const OUT = path.join(__dirname, 'suite-out');
 require('fs').mkdirSync(OUT, { recursive: true });
 
@@ -12,6 +15,8 @@ const ok = (cond, name, extra) => { if (cond) { pass++; } else { fail++; console
 
 // Israel is UTC+2 in November. 2026-11-22 is a Sunday.
 const IL = (iso) => new Date(iso + '+02:00');
+
+const FONT_FILE = /\.(woff2?|ttf|otf)([?#]|$)/; // what the noFonts option blocks
 
 async function newPage(browser, opts = {}) {
   const ctx = await browser.newContext({
@@ -26,7 +31,7 @@ async function newPage(browser, opts = {}) {
     try { r.fulfill({ status: 200, contentType: TYPES[f.split('.').pop()] || 'application/octet-stream', body: fs.readFileSync(path.join(DIR, f)) }); }
     catch (e) { r.fulfill({ status: 404, body: '' }); }
   });
-  if (opts.noFonts) await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
+  if (opts.noFonts) await ctx.route(FONT_FILE, r => r.abort());
   if (opts.reducedMotion) await ctx.addInitScript(() => {});
   if (opts.time) await ctx.clock.install({ time: opts.time });
   if (opts.seed) await ctx.addInitScript(([k, v]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(k, v); sessionStorage.setItem('seeded', '1'); } }, opts.seed);
@@ -38,7 +43,7 @@ async function newPage(browser, opts = {}) {
   if (opts.reducedMotion) await page.emulateMedia({ reducedMotion: 'reduce' });
   page.errors = [];
   page.on('pageerror', e => page.errors.push(e.message));
-  page.on('console', m => { if (m.type() === 'error' && !/fonts\.g/.test(m.text())) page.errors.push(m.text()); });
+  page.on('console', m => { if (m.type() === 'error' && !(opts.noFonts && FONT_FILE.test((m.location() || {}).url || ''))) page.errors.push(m.text()); });
   page.on('dialog', d => d.accept());
   return page;
 }
@@ -746,6 +751,22 @@ const names = p => p.locator('#grid .card h3').allTextContents();
     await q.waitForTimeout(100);
     ok(await q.evaluate(() => document.querySelector('#grid .card').getBoundingClientRect().top) < 768, '1024x768: first result on the first screen', await q.evaluate(() => document.querySelector('#grid .card').getBoundingClientRect().top));
     await q.context().close();
+  }
+
+  // 15. Self-contained: home, a shop page and the form, in Hebrew and English, request nothing outside nearby.test
+  {
+    const outside = [];
+    for (const lang of ['he', 'en']) {
+      const p = await newPage(browser, { lang });
+      p.context().on('request', r => { const u = r.url(); if (!/^(data|blob):/.test(u) && !u.startsWith('https://nearby.test/')) outside.push(lang + ' ' + u); });
+      for (const route of ['', '#/shop/s1', '#/new']) {
+        await p.goto(URL + route);
+        await p.waitForTimeout(500);
+        await p.evaluate(() => document.fonts.ready);
+      }
+      await p.context().close();
+    }
+    ok(outside.length === 0, 'no request to any host other than nearby.test (home, shop, form; he and en)', outside);
   }
 
   // 12. Screenshots for review
