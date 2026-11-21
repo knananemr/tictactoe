@@ -6,7 +6,7 @@ Personal projects workspace on macOS.
 ## Current Projects
 - `tictactoe.html` — web-based Tic-Tac-Toe game (playable in browser)
 - `tictactoe.py` — terminal-based Tic-Tac-Toe game
-- `qr-menu/` — QR-code digital menu template (Hebrew + English, view-only); per-client content lives in `qr-menu/config.js`
+- `qr-menu/` — QR-code digital menu template (Hebrew + English, view-only). Shared code in `qr-menu/core/`; each client is a folder in `qr-menu/clients/` (copy `_default`) holding only `index.html` + `config.js` + images
 
 ## GitHub
 - Repo: https://github.com/knananemr/tictactoe

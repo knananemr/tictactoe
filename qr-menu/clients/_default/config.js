@@ -15,7 +15,7 @@ window.MENU_CONFIG = {
     bg: "#f3f3f3",
     card: "#ffffff",
     ink: "#111111",
-    muted: "#7a7a7a",
+    muted: "#666666",
     line: "#e4e4e4",
     accent: "#c62828",
     radius: "18px"
