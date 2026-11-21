@@ -37,7 +37,7 @@
       dir: "ltr", langName: "English",
       home: "Home", menu: "Menu", about: "About & Hours",
       viewMenu: "View the menu", picks: "Today's picks", categories: "Categories",
-      item: "item", items: "items",
+      item: "item", items: "items", dish: "Dish",
       search: "Search the menu…", searchLabel: "Search the menu", noResults: "Nothing found. Try another word.",
       prep: "Preparation", approx: "~", min: "min", calories: "Calories", kcal: "kcal", ingredients: "Ingredients",
       aboutUs: "About us", hours: "Opening hours", contact: "Contact", address: "Address", phone: "Phone",
@@ -48,7 +48,7 @@
       dir: "rtl", langName: "עברית",
       home: "בית", menu: "תפריט", about: "אודות ושעות פתיחה",
       viewMenu: "לתפריט", picks: "המומלצים של היום", categories: "קטגוריות",
-      item: "מנה", items: "מנות",
+      item: "מנה", items: "מנות", dish: "מנה",
       search: "חיפוש בתפריט…", searchLabel: "חיפוש בתפריט", noResults: "לא נמצאו תוצאות. נסו מילה אחרת.",
       prep: "זמן הכנה", approx: "כ-", min: "דק׳", calories: "קלוריות", kcal: "קק״ל", ingredients: "מרכיבים",
       aboutUs: "עלינו", hours: "שעות פתיחה", contact: "יצירת קשר", address: "כתובת", phone: "טלפון",
@@ -63,17 +63,18 @@
   var DEFAULT_LANG = LANGS.indexOf(cfg.defaultLang) >= 0 ? cfg.defaultLang : LANGS[0];
   var brandCfg = cfg.brand || {}, homeCfg = cfg.home || {}, infoCfg = cfg.info || {};
 
-  // Opening-hours rows with neither days nor time are ignored.
-  var HOURS = (Array.isArray(infoCfg.hours) ? infoCfg.hours : []).filter(function (h) {
-    return h && allText([h.days, h.time]).join("").trim() !== "";
-  });
-  // The About page is left out when the client gave nothing to put on it.
-  var HAS_ABOUT = allText([infoCfg.about, infoCfg.address, infoCfg.phone]).join("").trim() !== "" || HOURS.length > 0;
-  var VIEWS = HAS_ABOUT ? ["home", "menu", "about"] : ["home", "menu"];
-
   var lang = pickLang();
   var view = null;
   var activeCat;
+
+  // Opening-hours rows with neither days nor time are ignored.
+  var HOURS = (Array.isArray(infoCfg.hours) ? infoCfg.hours : []).filter(function (h) {
+    return h && typeof h === "object" && (t(h.days).trim() !== "" || t(h.time).trim() !== "");
+  });
+  // The About page is left out when the client gave nothing it can show.
+  var HAS_ABOUT = t(infoCfg.about).trim() !== "" || t(infoCfg.address).trim() !== "" ||
+    texts(infoCfg.phone).length > 0 || HOURS.length > 0;
+  var VIEWS = HAS_ABOUT ? ["home", "menu", "about"] : ["home", "menu"];
 
   /* ---------- Small helpers ---------- */
   // Own keys only, so a tag or id such as "constructor" is not mistaken for a built-in.
@@ -83,9 +84,25 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
-  // Client text, isolated so a name in the other script keeps its own order
-  // (an English "Fish & Chips!" on the Hebrew page keeps its "!" at the end).
-  function bdi(s) { return s === "" ? "" : "<bdi>" + esc(s) + "</bdi>"; }
+  // Client text is { s: text, l: the language it was written in, or null when it is written once for all }.
+  // Its direction comes from that language, so "BBQ צלעות" reads right to left on the Hebrew page and
+  // an English "Fish & Chips!" shown there keeps its "!" at the end. Text written once for all languages
+  // takes its direction from its first letter. Text in another language than the page also gets its
+  // lang, so screen readers use the right voice.
+  function attrs(r) {
+    if (!r.l) return ' dir="auto"';
+    return ' dir="' + UI[r.l].dir + '"' + (r.l !== lang ? ' lang="' + r.l + '"' : "");
+  }
+  function bdi(r) {
+    if (typeof r !== "object" || !r) r = { s: r == null ? "" : String(r), l: null };
+    return r.s === "" ? "" : "<bdi" + attrs(r) + ">" + esc(r.s) + "</bdi>";
+  }
+  function ui(s) { return { s: s, l: lang }; } // interface text, always in the page language
+  function setText(el, r) {
+    el.textContent = r.s;
+    el.dir = r.l ? UI[r.l].dir : "auto";
+    if (r.l && r.l !== lang) el.lang = r.l; else el.removeAttribute("lang");
+  }
   function pad2(n) { return n < 10 ? "0" + n : "" + n; }
   function motion() {
     return window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
@@ -103,56 +120,60 @@
   function nextLang() { return LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length]; }
 
   // Pick the current language out of { en, he }; fall back to the default
-  // language, then to any language that has a value.
-  function pickValue(v, ok) {
-    if (ok(v[lang])) return v[lang];
-    if (ok(v[DEFAULT_LANG])) return v[DEFAULT_LANG];
-    for (var k in v) if (Object.prototype.hasOwnProperty.call(v, k) && ok(v[k])) return v[k];
-    return undefined;
+  // language, then to any language that has a value. Returns the key used.
+  function pickKey(v, ok) {
+    if (own(v, lang) && ok(v[lang])) return lang;
+    if (own(v, DEFAULT_LANG) && ok(v[DEFAULT_LANG])) return DEFAULT_LANG;
+    for (var k in v) if (own(v, k) && ok(v[k])) return k;
+    return null;
   }
-  function t(v) {
-    if (v == null) return "";
-    if (typeof v === "string" || typeof v === "number") return String(v);
-    if (typeof v !== "object" || Array.isArray(v)) return "";
-    var r = pickValue(v, function (x) { return typeof x === "string" && x.trim() !== ""; });
-    return r == null ? "" : r;
+  // One text (a string, a number, or either one per language) → { s, l }.
+  function tl(v, l0) {
+    if (typeof v === "string") return { s: v, l: l0 || null };
+    if (typeof v === "number") return { s: isFinite(v) ? String(v) : "", l: l0 || null };
+    if (!v || typeof v !== "object" || Array.isArray(v)) return { s: "", l: null };
+    var k = pickKey(v, function (x) { return tl(x).s.trim() !== ""; });
+    return k == null ? { s: "", l: null } : tl(v[k], own(UI, k) ? k : null);
   }
-  function list(v) {
-    if (Array.isArray(v)) return v;
-    if (!v || typeof v !== "object") return [];
-    var r = pickValue(v, function (x) { return Array.isArray(x) && x.length > 0; });
-    return Array.isArray(r) ? r : [];
+  function t(v) { return tl(v).s; }
+  // A list of texts (one text, a list, or a list per language) → [{ s, l }], empty entries left out.
+  function texts(v, l0) {
+    if (Array.isArray(v)) return v.reduce(function (a, x) { return a.concat(texts(x, l0)); }, []);
+    if (v && typeof v === "object") {
+      var k = pickKey(v, function (x) { return texts(x).length > 0; });
+      return k == null ? [] : texts(v[k], own(UI, k) ? k : l0);
+    }
+    var r = tl(v, l0);
+    return r.s.trim() === "" ? [] : [{ s: r.s.trim(), l: r.l }];
   }
 
-  // A value that may be written per language ({ en, he }) or once for all languages.
-  function val(v) { return v && typeof v === "object" && !Array.isArray(v) ? t(v) : v; }
   // A number, or a string that holds only a number ("32", "32.5").
   function num(v) {
     if (typeof v === "number") return isFinite(v) ? v : NaN;
     return typeof v === "string" && /^\s*\d+(\.\d+)?\s*$/.test(v) ? Number(v) : NaN;
   }
   function priceText(p) {
-    p = val(p);
-    if (p == null || String(p).trim() === "") return "";
-    var n = num(p);
-    if (!isNaN(n)) return (cfg.currency || "") + (Number.isInteger(n) ? String(n) : n.toFixed(2));
-    return String(p).trim(); // free text such as "Market price" is shown as written
+    var r = tl(p), s = r.s.trim();
+    if (!s) return { s: "", l: null };
+    var n = num(s);
+    if (!isNaN(n)) return { s: (cfg.currency || "") + (Number.isInteger(n) ? String(n) : n.toFixed(2)), l: null };
+    return { s: s, l: r.l, free: true }; // free text such as "Market price" is shown as written
   }
   function price(p) {
-    var s = priceText(p);
-    if (!s) return "";
-    return '<bdi class="price' + (isNaN(num(val(p))) ? " free" : "") + '">' + esc(s) + "</bdi>";
+    var r = priceText(p);
+    if (!r.s) return "";
+    return '<bdi class="price' + (r.free ? " free" : "") + '"' + attrs(r) + ">" + esc(r.s) + "</bdi>";
   }
   // "~30 min" for a number; a range such as "20-30" gets the unit; other text is shown as written.
   function approx(v, unit) {
-    v = val(v);
-    if (v == null) return "";
-    var u = UI[lang], n = num(v);
-    if (!isNaN(n)) return u.approx + n.toLocaleString("en") + " " + unit;
-    var s = String(v).trim();
-    return /^[\d\s.,\-–]+$/.test(s) ? s + " " + unit : s;
+    var r = tl(v), s = r.s.trim();
+    if (!s) return { s: "", l: null };
+    var n = num(s);
+    if (n === 0) return { s: "", l: null }; // 0 means "not given", as before
+    if (!isNaN(n)) return ui(UI[lang].approx + n.toLocaleString("en") + " " + unit);
+    return /^[\d\s.,\-–]+$/.test(s) ? ui(s + " " + unit) : { s: s, l: r.l };
   }
-  function tagLabel(g, l) { var tags = UI[l || lang].tags; return own(tags, g) ? tags[g] : g; }
+  function tagText(g) { var tags = UI[lang].tags; return own(tags, g) ? ui(tags[g]) : { s: g, l: null }; }
 
   /* ---------- Search normalisation ---------- */
   var FINALS = { "ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ" };
@@ -215,15 +236,21 @@
       c.items.forEach(function (raw, ii) {
         if (!raw || typeof raw !== "object") return;
         // Work on a copy: the same dish object may be listed in two categories.
-        var it = merge(raw, {});
-        if (given(it.id) && rawItem[it.id]) {
-          console.warn('[menu] Two dishes use the id "' + it.id + '" (in "' + rawItem[it.id] + '" and "' + id +
+        var it = merge(raw, {}), seen = given(it.id) ? rawItem[it.id] : null;
+        it._raw = raw;
+        if (seen && seen.raw !== raw) {
+          console.warn('[menu] Two dishes use the id "' + it.id + '" (in "' + seen.cat + '" and "' + id +
             '"). Give each dish its own id in config.js.');
         }
-        if (given(it.id) && !rawItem[it.id]) rawItem[it.id] = id;
+        if (given(it.id) && !seen) rawItem[it.id] = { cat: id, raw: raw };
         if (!hasText(it.name)) {
           console.warn('[menu] A dish in "' + id + '" has no name. Give it a name in config.js.');
           if (given(it.id)) it.name = String(it.id).trim();
+          else {
+            // Without a name or an id the card would have nothing to read out: "Dish 4".
+            it.name = {};
+            Object.keys(UI).forEach(function (l) { it.name[l] = UI[l].dish + " " + (ii + 1); });
+          }
         }
         // A single tag written as text ("spicy") works the same as a list (["spicy"]).
         var tags = Array.isArray(it.tags) ? it.tags : [it.tags];
@@ -305,19 +332,25 @@
     return '<span class="thumb"><span class="thumb-emoji" aria-hidden="true">' + esc(it.emoji || "🍽️") + "</span>" +
       (it.image ? '<img src="' + esc(it.image) + '" alt="" loading="lazy" decoding="async">' : "") + "</span>";
   }
+  // Text that is cut short with "…" carries its own direction (not an inner <bdi>),
+  // so the "…" lands at the end of the text even when it is in the other script.
   function card(it) {
-    var tag = it.tags[0];
+    var g = it.tags[0], name = tl(it.name), tag = g ? tagText(g) : { s: "", l: lang };
     return '<button class="card" data-item="' + esc(it._key) + '">' + thumb(it) +
-      '<span class="card-name">' + bdi(t(it.name)) + "</span>" +
-      '<span class="card-tag' + (tag === "popular" ? " hot" : "") + '">' + (tag ? bdi(tagLabel(tag)) : "") + "</span>" +
+      '<span class="card-name"' + attrs(name) + ">" + esc(name.s) + "</span>" +
+      '<span class="card-tag' + (g === "popular" ? " hot" : "") + '"' + attrs(tag) + ">" + esc(tag.s) + "</span>" +
       price(it.price) + "</button>";
   }
   function countLabel(n) { var u = UI[lang]; return n + " " + (n === 1 ? u.item : u.items); }
+  function brandText() {
+    var name = tl(brandCfg.name);
+    return '<span class="brand-text"' + attrs(name) + ">" + esc(name.s) + "</span>";
+  }
   function brandHtml() {
     var name = t(brandCfg.name);
     return brandCfg.logo
       ? '<img src="' + esc(brandCfg.logo) + '" alt="' + esc(name || UI[lang].home) + '">'
-      : '<span class="brand-text">' + bdi(name) + "</span>";
+      : brandText();
   }
 
   function renderChrome() {
@@ -329,7 +362,7 @@
     $("brand").innerHTML = brandHtml();
     // Without a name the link would have nothing to read out.
     if (name) $("brand").removeAttribute("aria-label"); else $("brand").setAttribute("aria-label", u.home);
-    $("drawerBrand").innerHTML = bdi(name);
+    setText($("drawerBrand"), tl(brandCfg.name));
     $("drawer").setAttribute("aria-label", u.menu);
     $("menuBtn").setAttribute("aria-label", u.openMenu);
     $("drawerClose").setAttribute("aria-label", u.close);
@@ -352,7 +385,7 @@
       var html = '<button class="drawer-link" data-view="' + l[0] + '">' + esc(l[1]) + "</button>";
       if (l[0] === "menu" && cats.length) {
         html += '<div class="drawer-sub">' + cats.map(function (c) {
-          return '<button data-cat="' + c.id + '"><span>' + bdi(t(c.name)) + '</span><span class="count">' +
+          return '<button data-cat="' + c.id + '"><span>' + bdi(tl(c.name)) + '</span><span class="count">' +
             pad2(c.items.length) + "</span></button>";
         }).join("") + "</div>";
       }
@@ -362,12 +395,18 @@
   }
 
   function renderHome() {
-    var u = UI[lang], picks = [];
-    cats.forEach(function (c) { c.items.forEach(function (it) { if (it.featured) picks.push(it); }); });
-    var subtitle = t(homeCfg.subtitle), title = t(homeCfg.headline) || t(brandCfg.name);
+    var u = UI[lang], picks = [], picked = [];
+    // A dish listed in two categories is still one pick.
+    cats.forEach(function (c) {
+      c.items.forEach(function (it) {
+        if (it.featured && picked.indexOf(it._raw) < 0) { picked.push(it._raw); picks.push(it); }
+      });
+    });
+    var subtitle = tl(homeCfg.subtitle), title = tl(homeCfg.headline);
+    if (!title.s.trim()) title = tl(brandCfg.name);
     $("view-home").innerHTML =
-      '<div class="hero">' + (title ? "<h1>" + bdi(title) + "</h1>" : '<h1 class="sr-only">' + esc(u.home) + "</h1>") +
-      (subtitle ? "<p>" + bdi(subtitle) + "</p>" : "") +
+      '<div class="hero">' + (title.s ? "<h1>" + bdi(title) + "</h1>" : '<h1 class="sr-only">' + esc(u.home) + "</h1>") +
+      (subtitle.s ? "<p>" + bdi(subtitle) + "</p>" : "") +
       '<button class="btn" data-view="menu">' + esc(u.viewMenu) + "</button></div>" +
       (picks.length ? '<div class="section-title"><h2>' + esc(u.picks) + '</h2></div><div class="h-scroll">' +
         picks.map(card).join("") + "</div>" : "") +
@@ -375,7 +414,7 @@
         cats.map(function (c) {
           return '<button class="cat-tile" data-cat="' + c.id + '">' +
             (c.emoji ? '<span class="emoji" aria-hidden="true">' + esc(c.emoji) + "</span>" : "") +
-            "<span>" + bdi(t(c.name)) + "<small>" + esc(countLabel(c.items.length)) + "</small></span></button>";
+            "<span>" + bdi(tl(c.name)) + "<small>" + esc(countLabel(c.items.length)) + "</small></span></button>";
         }).join("") + "</div>" : "");
   }
 
@@ -384,16 +423,17 @@
     var u = UI[lang];
     $("sections").innerHTML = cats.map(function (c) {
       return '<section class="cat-section" id="cat-' + c.id + '" data-cat-id="' + c.id + '" aria-labelledby="h-' + c.id + '">' +
-        '<div class="section-title"><h2 id="h-' + c.id + '">' + bdi(t(c.name)) + '</h2><span class="count">' +
+        '<div class="section-title"><h2 id="h-' + c.id + '">' + bdi(tl(c.name)) + '</h2><span class="count">' +
         pad2(c.items.length) + "</span></div>" +
         '<div class="grid">' + c.items.map(card).join("") + "</div></section>";
     }).join("") + '<p class="empty" id="noResults" hidden>' + esc(u.noResults) + "</p>";
 
     $("chips").innerHTML = cats.map(function (c) {
-      return '<button class="chip" data-cat="' + c.id + '">' + bdi(t(c.name)) + "</button>";
+      var name = tl(c.name);
+      return '<button class="chip" data-cat="' + c.id + '"' + attrs(name) + ">" + esc(name.s) + "</button>";
     }).join("");
     $("sideCats").innerHTML = cats.map(function (c) {
-      return '<button data-cat="' + c.id + '"><span>' + bdi(t(c.name)) + '</span><span class="count">' +
+      return '<button data-cat="' + c.id + '"><span>' + bdi(tl(c.name)) + '</span><span class="count">' +
         pad2(c.items.length) + "</span></button>";
     }).join("");
     filterMenu();
@@ -434,35 +474,59 @@
     }
   }
 
+  // Numbers in a phone or hours text ("*6060", "12:00 – 23:00") always read left to right;
+  // the words around them ("24 שעות", "מוקד הזמנות") keep the direction of their own language.
+  var NUM_RUN = /[+*#(]?\d(?:[\d\s().:*#\/–—-]*[\d)])?/g;
+  function nums(s) {
+    var out = "", last = 0;
+    s.replace(NUM_RUN, function (m, i) {
+      out += esc(s.slice(last, i)) + '<bdi dir="ltr">' + esc(m) + "</bdi>";
+      last = i + m.length;
+      return m;
+    });
+    return out + esc(s.slice(last));
+  }
+  // The number a phone text dials. An extension ("ext. 5", "(ext. 5)", "שלוחה 5") is not dialled,
+  // and a number written with letters (1-800-FLOWERS) dials the keypad digits.
+  var EXT = /\s*[(\[]?\s*(?:ext\.?|extension|x|שלוחה)\s*:?\s*\d[\d\s-]*[)\]]?\s*$/i;
+  var KEYPAD = "22233344455566677778889999";
+  function dialOf(p) {
+    var n = p.replace(EXT, "").trim();
+    if (/^\+?[\d\s().-]*\d-?[A-Za-z][A-Za-z\d-]*$/.test(n)) {
+      n = n.replace(/[A-Za-z]/g, function (c) { return KEYPAD.charAt(c.toUpperCase().charCodeAt(0) - 65); });
+    }
+    return n.replace(/[^\d+*#]/g, "").replace(/#/g, "%23");
+  }
+
   function renderAbout() {
     var u = UI[lang], hours = HOURS;
-    var about = t(infoCfg.about), address = t(infoCfg.address);
-    var phone = Array.isArray(infoCfg.phone) ? infoCfg.phone.map(val).join(", ") : String(val(infoCfg.phone) || "");
+    var about = tl(infoCfg.about), address = tl(infoCfg.address);
+    var phone = texts(infoCfg.phone).map(function (r) { return r.s; }).join(", ");
     function row(key, valHtml) {
       return '<div class="info-row"><span class="info-key">' + bdi(key) + '</span><span class="info-val">' + valHtml + "</span></div>";
     }
     // "12:00 – 15:30, 18:00 – 23:30": each part stays on one line when it fits; a long value wraps between parts.
     function parts(s) {
       return String(s).split(/(\s*[,\/|]\s*)/).map(function (p, i) {
-        return i % 2 ? esc(p) : '<span class="nw">' + esc(p) + "</span>";
+        return i % 2 ? esc(p) : '<span class="nw">' + nums(p) + "</span>";
       }).join("");
     }
     // Several numbers ("03-555-1234 / 050-123-4567", "... or ...", "... או ...") each get their own call link.
-    // The link keeps digits, + and star codes (*6060); an extension ("ext. 5", "שלוחה 5") is not dialled.
+    // The link keeps digits, + and star codes (*6060).
     var phones = phone.split(/\s*[,\/|;]\s*|\s+(?:or|או)\s+/i).filter(function (p) { return p.trim(); }).map(function (p) {
-      var dial = p.replace(/\s*(?:ext\.?|extension|x|שלוחה)\s*:?\s*\d[\d\s-]*$/i, "")
-        .replace(/[^\d+*#]/g, "").replace(/#/g, "%23");
-      var text = '<span class="nw" dir="ltr">' + esc(p.trim()) + "</span>";
+      var dial = dialOf(p);
+      var text = '<span class="nw" dir="auto">' + nums(p.trim()) + "</span>";
       return dial.replace(/[^\d]/g, "") ? '<a href="tel:' + dial + '">' + text + "</a>" : text;
     });
     $("view-about").innerHTML = '<h1 class="sr-only">' + esc(u.about) + '</h1><div class="info-wrap">' +
-      (about ? '<div class="info-card"><h2>' + esc(u.aboutUs) + "</h2><p>" + bdi(about) + "</p></div>" : "") +
+      (about.s.trim() ? '<div class="info-card"><h2>' + esc(u.aboutUs) + "</h2><p>" + bdi(about) + "</p></div>" : "") +
       (hours.length ? '<div class="info-card"><h2>' + esc(u.hours) + "</h2>" + hours.map(function (h) {
-        return row(t(h.days), '<span dir="ltr">' + parts(t(h.time)) + "</span>");
+        var time = tl(h.time);
+        return row(tl(h.days), "<span" + attrs(time) + ">" + parts(time.s) + "</span>");
       }).join("") + "</div>" : "") +
-      (address || phones.length ? '<div class="info-card"><h2>' + esc(u.contact) + "</h2>" +
-        (address ? row(u.address, bdi(address)) : "") +
-        (phones.length ? row(u.phone, phones.join("<br>")) : "") +
+      (address.s.trim() || phones.length ? '<div class="info-card"><h2>' + esc(u.contact) + "</h2>" +
+        (address.s.trim() ? row(ui(u.address), bdi(address)) : "") +
+        (phones.length ? row(ui(u.phone), phones.join("<br>")) : "") +
         "</div>" : "") +
       "</div>";
   }
@@ -489,9 +553,10 @@
     markView();
     var target = catId && view === "menu" ? $("cat-" + catId) : null;
     if (target && !target.hidden) {
-      pinTok++; // a new scroll replaces any pending scrollNow()
+      unpin(); // a new scroll replaces any pending scrollNow()
       setActive(catId);
       lockSpy();
+      anchor = { cat: catId, off: 0 }; // where the scroll will end, should the phone turn before then
       target.scrollIntoView({ block: "start", behavior: prev === view ? motion() : "instant" });
     } else {
       scrollNow(0);
@@ -499,12 +564,14 @@
     spy();
   }
   // Each view change is a history entry, so the phone's Back button moves between views.
-  function navigate(v, catId) {
+  // `clear` empties the search, after the entry being left has saved it with its position.
+  function navigate(v, catId, clear) {
     v = VIEWS.indexOf(v) >= 0 ? v : "home";
     if (v !== view) {
       saveScroll();
       push({ view: v }, "#" + v);
     }
+    if (clear) clearSearch();
     show(v, catId);
   }
   function state() {
@@ -522,7 +589,8 @@
   // Forward and a reload return the customer to the same place in the menu. Every history
   // entry gets an id. Its position is updated on every scroll, kept in memory and in
   // sessionStorage (which, unlike history, a reload cannot drop), and also on the entry itself.
-  var POS_KEY = "menu-pos:" + location.pathname, curId = null, pinTok = 0;
+  // The entry also keeps the search text, so its position matches the list it was taken on.
+  var POS_KEY = "menu-pos:" + location.pathname, curId = null, curOv = false, pinTok = 0;
   var pos = (function () {
     try {
       var o = JSON.parse(sessionStorage.getItem(POS_KEY) || "{}");
@@ -542,25 +610,53 @@
   function saveScroll() {
     remember();
     writePos();
-    try { history.replaceState(merge(state(), { y: Math.round(window.scrollY) }), ""); } catch (e) {}
+    try { history.replaceState(merge(state(), { y: Math.round(window.scrollY), q: $("search").value }), ""); } catch (e) {}
   }
   function push(st, url) {
     st = merge(st, { id: newId() });
     try {
       if (url) history.pushState(st, "", url); else history.pushState(st, "");
       curId = st.id;
+      curOv = !!st.overlay;
     } catch (e) {}
   }
-  // Scrolls at once. A smooth scroll that was still running (a category tap just before
-  // Back) can land one more frame after that, so the position is applied again two frames later.
+  // An entry without the drawer or a dish on it.
+  function plain(st) {
+    var o = merge(st, {});
+    delete o.overlay; delete o.item; delete o.under;
+    return o;
+  }
+  function setSearch(q) {
+    q = typeof q === "string" ? q : "";
+    if ($("search").value !== q) { $("search").value = q; filterMenu(); }
+  }
+  // Scrolls at once, then holds that position while something keeps moving the page: a smooth
+  // scroll that was still running (a category tap just before Back), or a finger fling. The hold
+  // ends 150 ms after the page stops drifting (at most 1.5 s), and at once on any touch, wheel,
+  // key or focus change by the customer.
+  var pinY = null, pinEnd = 0, pinMax = 0;
   function scrollNow(y) {
-    var tk = ++pinTok;
+    var tk = ++pinTok, now = Date.now();
+    pinY = y;
+    pinEnd = now + 150;
+    pinMax = now + 1500;
     window.scrollTo({ top: y, behavior: "instant" });
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
-        if (tk === pinTok && Math.abs(window.scrollY - y) > 1) window.scrollTo({ top: y, behavior: "instant" });
+        if (tk === pinTok && pinY !== null && Math.abs(window.scrollY - y) > 1) window.scrollTo({ top: y, behavior: "instant" });
       });
     });
+  }
+  function unpin() { pinTok++; pinY = null; }
+  // Runs in the scroll event, before the frame is painted. True when the page was put back.
+  function holdPin() {
+    if (pinY === null) return false;
+    var now = Date.now();
+    if (now > pinEnd || now > pinMax) { pinY = null; return false; }
+    if (Math.abs(window.scrollY - pinY) <= 1) return false;
+    window.scrollTo({ top: pinY, behavior: "instant" });
+    pinEnd = now + 150;
+    return true;
   }
 
   /* ---------- Category highlighting ---------- */
@@ -569,13 +665,36 @@
   // after 900 ms if nothing scrolled at all.
   var spyLock = false, lockTimer = 0;
   function lockSpy() { spyLock = true; clearTimeout(lockTimer); lockTimer = setTimeout(unlockSpy, 900); }
-  function unlockSpy() { spyLock = false; clearTimeout(lockTimer); }
+  function unlockSpy() { spyLock = false; clearTimeout(lockTimer); keepAnchor(); }
   var saveTimer = 0;
   function onScroll() {
+    holdPin();
     remember();
     clearTimeout(saveTimer);
     saveTimer = setTimeout(saveScroll, 300);
     if (spyLock) { clearTimeout(lockTimer); lockTimer = setTimeout(unlockSpy, 250); return; }
+    spy();
+  }
+  // The category being read and how far its title is from the top, so turning the phone
+  // (or resizing the window) keeps the same place even though the layout changes.
+  var anchor = null, lastW = window.innerWidth;
+  function marginTop(el) { return parseFloat(getComputedStyle(el).scrollMarginTop) || 0; }
+  function keepAnchor() {
+    var sec = view === "menu" && activeCat ? $("cat-" + activeCat) : null;
+    anchor = sec && !sec.hidden ? { cat: activeCat, off: sec.getBoundingClientRect().top - marginTop(sec) } : null;
+  }
+  function onResize() {
+    var a = anchor, w = window.innerWidth;
+    // Only a change of width moves the layout; the phone's toolbar or keyboard only change the height.
+    if (w !== lastW && a && view === "menu") {
+      var sec = $("cat-" + a.cat);
+      if (sec && !sec.hidden) {
+        unpin();
+        window.scrollTo({ top: sec.getBoundingClientRect().top + window.scrollY - marginTop(sec) - a.off, behavior: "instant" });
+      }
+    }
+    lastW = w;
+    activeCat = undefined;
     spy();
   }
 
@@ -605,11 +724,12 @@
     if (view !== "menu" || spyLock) return;
     var sections = document.querySelectorAll(".cat-section:not([hidden])");
     if (!sections.length) { if (activeCat !== null) setActive(null); return; }
-    var line = parseFloat(getComputedStyle(sections[0]).scrollMarginTop) + 12;
+    var line = marginTop(sections[0]) + 12 + 1; // 1px for a title that sits a fraction of a pixel low
     var current = sections[0];
     sections.forEach(function (s) { if (s.getBoundingClientRect().top <= line) current = s; });
     if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) current = sections[sections.length - 1];
     if (current.dataset.catId !== activeCat) setActive(current.dataset.catId);
+    keepAnchor();
   }
 
   /* ---------- Drawer and item sheet ---------- */
@@ -633,10 +753,18 @@
   function overlayEntry() { return !!state().overlay; }
   // An open drawer or sheet gets its own history entry, so Back closes it. The entry
   // records what was open, so Forward or a reload can open it again.
+  // `under` marks an entry the page pushed on top of its own entry for the same view.
   function pushOverlay(kind, key) {
     if (overlayEntry()) return;
     saveScroll();
-    push({ overlay: kind, item: key || null, view: view, y: Math.round(window.scrollY) });
+    push({ overlay: kind, item: key || null, view: view, y: Math.round(window.scrollY), q: $("search").value, under: curId });
+  }
+  // A drawer or dish entry that cannot be opened again (that dish is no longer in config.js).
+  function deadOverlay(st) {
+    if (st.under) { stepBack(); return; } // go back to the entry under it, so Back is not a dead press
+    // Not one the page made: there may be nothing under it, so stay and drop the overlay from it.
+    try { history.replaceState(plain(st), ""); } catch (e) {}
+    curOv = false;
   }
   function reopen(st) {
     if (st.overlay === "drawer") { openDrawer(); return true; }
@@ -668,20 +796,20 @@
   function openItem(key, from) {
     var it = itemsByKey[key];
     if (!it || anyOpen()) return;
-    var u = UI[lang], desc = t(it.desc), stats = [];
-    var ing = list(it.ingredients).map(t).filter(function (x) { return x.trim() !== ""; });
-    var time = val(it.time), kcal = val(it.calories);
-    if (time && given(time)) stats.push('<div class="stat"><small>' + esc(u.prep) + "</small><b>" + bdi(approx(time, u.min)) + "</b></div>");
-    if (kcal && given(kcal)) stats.push('<div class="stat"><small>' + esc(u.calories) + "</small><b>" + bdi(approx(kcal, u.kcal)) + "</b></div>");
+    var u = UI[lang], desc = tl(it.desc), stats = [];
+    var ing = texts(it.ingredients);
+    var time = approx(it.time, u.min), kcal = approx(it.calories, u.kcal);
+    if (time.s) stats.push('<div class="stat"><small>' + esc(u.prep) + "</small><b>" + bdi(time) + "</b></div>");
+    if (kcal.s) stats.push('<div class="stat"><small>' + esc(u.calories) + "</small><b>" + bdi(kcal) + "</b></div>");
     $("sheetBody").innerHTML = thumb(it) +
-      '<div class="sheet-head"><h2 id="sheetTitle">' + bdi(t(it.name)) + "</h2>" + price(it.price) + "</div>" +
+      '<div class="sheet-head"><h2 id="sheetTitle">' + bdi(tl(it.name)) + "</h2>" + price(it.price) + "</div>" +
       (it.tags.length ? '<div class="tags">' + it.tags.map(function (g) {
-        return '<span class="tag' + (g === "popular" ? " hot" : "") + '">' + bdi(tagLabel(g)) + "</span>";
+        return '<span class="tag' + (g === "popular" ? " hot" : "") + '">' + bdi(tagText(g)) + "</span>";
       }).join("") + "</div>" : "") +
-      (desc ? '<p class="sheet-desc">' + bdi(desc) + "</p>" : "") +
+      (desc.s.trim() ? '<p class="sheet-desc">' + bdi(desc) + "</p>" : "") +
       (stats.length ? '<div class="stats">' + stats.join("") + "</div>" : "") +
       (ing.length ? "<h3>" + esc(u.ingredients) + '</h3><ul class="ingredients">' +
-        ing.map(function (x) { return "<li>" + bdi(t(x)) + "</li>"; }).join("") + "</ul>" : "");
+        ing.map(function (x) { return "<li>" + bdi(x) + "</li>"; }).join("") + "</ul>" : "");
     $("sheet").setAttribute("aria-labelledby", "sheetTitle");
     lastFocus = from || document.activeElement;
     $("sheetBody").scrollTop = 0;
@@ -719,7 +847,11 @@
   function stepBack() {
     popping = true;
     clearTimeout(popTimer);
-    popTimer = setTimeout(function () { if (popping) settlePop(); }, 700); // in case popstate never arrives
+    popTimer = setTimeout(function () { // in case popstate never arrives: there was nothing to go back to
+      if (!popping) return;
+      try { history.replaceState(plain(state()), ""); } catch (e) {}
+      settlePop();
+    }, 700);
     history.back();
   }
   function settlePop() {
@@ -728,26 +860,32 @@
     clearTimeout(popTimer);
     clearTimeout(saveTimer); // a pending save belongs to the entry we just left
     // scrollRestoration is "manual", so the page has not moved yet: this is the position of the entry left.
-    var y = Math.round(window.scrollY);
+    var y = Math.round(window.scrollY), leftOv = curOv;
     if (curId) pos[curId] = y;
-    var st = state(), v = viewFromHash();
-    if (!st.id) { // an entry the page did not make, such as a #about typed into the address bar
+    var st = state(), v = viewFromHash(), fresh = !st.id;
+    if (fresh) { // an entry the page did not make, such as a #about typed into the address bar
       st = merge(st, { id: newId(), view: v });
       try { history.replaceState(st, ""); } catch (e) {}
     }
     curId = st.id;
+    curOv = !!st.overlay;
     closeAll();
     if (v !== view) {
+      if (v === "menu") setSearch(st.q);
       show(v);
       scrollNow(posOf(st));
+    } else if (fresh || leftOv || st.overlay) {
+      pos[curId] = y; // an overlay opened or closed, or a new entry: the page stays where it is
     } else {
-      pos[curId] = y; // an overlay opened or closed: the page stays where it is
+      // Two entries of the same view (#menu typed in the address bar while on the menu).
+      if (v === "menu") setSearch(st.q);
+      scrollNow(posOf(st));
     }
     saveScroll();
     var fn = afterPop;
     afterPop = null;
     if (fn) fn();
-    else if (!ours && st.overlay && !reopen(st)) stepBack(); // a dish no longer in config.js: skip its entry
+    else if (!ours && st.overlay && !reopen(st)) deadOverlay(st);
     // (Forward onto an open dish or drawer opens it again.)
   }
 
@@ -811,10 +949,7 @@
       // Category chips and the sidebar list only show matching categories, so they keep the search.
       // Every other link clears it, so a category link always shows the whole category.
       var keepSearch = !!el.closest("#chips, #sideCats");
-      var go = function () {
-        if (!keepSearch) clearSearch();
-        navigate(v, cat);
-      };
+      var go = function () { navigate(v, cat, !keepSearch); };
       if (el.closest("#drawer")) { tapClose(e); popOverlay(go); } else go();
     });
 
@@ -829,11 +964,11 @@
 
     $("brand").addEventListener("click", function (e) {
       e.preventDefault();
-      clearSearch();
-      navigate("home");
+      navigate("home", null, true);
     });
 
     $("langBtn").addEventListener("click", function () {
+      unpin();
       // Keep the reading position: the same distance from the top of the same category.
       var keep = view === "menu" ? activeCat : null, y = window.scrollY;
       var old = keep ? $("cat-" + keep) : null;
@@ -854,6 +989,7 @@
         setActive(keep);
         lockSpy();
         window.scrollTo({ top: sec.getBoundingClientRect().top + window.scrollY - off, behavior: "instant" });
+        keepAnchor();
       } else {
         window.scrollTo({ top: y, behavior: "instant" });
       }
@@ -861,11 +997,16 @@
     });
 
     var search = $("search");
-    search.addEventListener("input", filterMenu);
+    search.addEventListener("input", function () {
+      filterMenu();
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveScroll, 300); // the entry keeps the search text too
+    });
     search.addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); search.blur(); } // closes the phone keyboard
     });
     $("searchJump").addEventListener("click", function () {
+      unpin();
       window.scrollTo({ top: 0, behavior: motion() });
       focusNoScroll(search);
     });
@@ -876,9 +1017,11 @@
       if (document.visibilityState === "hidden") saveScroll(); // phones may discard a tab without pagehide
     });
     window.addEventListener("scrollend", function () { if (spyLock) unlockSpy(); });
-    window.addEventListener("wheel", unlockSpy, { passive: true });
-    window.addEventListener("touchstart", unlockSpy, { passive: true });
-    window.addEventListener("resize", function () { activeCat = undefined; spy(); });
+    // The customer scrolling themselves ends both the highlight lock and the position hold.
+    window.addEventListener("wheel", function () { unpin(); unlockSpy(); }, { passive: true });
+    window.addEventListener("touchstart", function () { unpin(); unlockSpy(); }, { passive: true });
+    ["pointerdown", "keydown", "focusin"].forEach(function (type) { window.addEventListener(type, unpin, true); });
+    window.addEventListener("resize", onResize);
     window.addEventListener("popstate", settlePop);
     bindSwipe();
   }
@@ -888,7 +1031,7 @@
     var el = e.target;
     if (!el || el.tagName !== "IMG") return;
     if (el.closest(".thumb")) el.remove();
-    else if (el.closest("#brand")) $("brand").innerHTML = '<span class="brand-text">' + bdi(t(brandCfg.name)) + "</span>";
+    else if (el.closest("#brand")) $("brand").innerHTML = brandText();
   }, true);
 
   try {
@@ -907,18 +1050,24 @@
     renderAll();
     var st = state();
     show(viewFromHash());
-    var same = st.view === view, y = same ? posOf(st) : 0;
+    var same = st.view === view;
+    if (same && view === "menu") setSearch(st.q); // the search the position was taken on
+    var y = same ? posOf(st) : 0;
     curId = st.id && same ? st.id : newId();
     if (y > 0) scrollNow(y);
-    var here = { view: view, id: curId, y: y };
+    var here = { view: view, id: curId, y: y, q: $("search").value };
     // After a reload with a dish or the drawer open, open it again on the same history entry.
     if (same && st.overlay) {
+      curOv = true;
       if (reopen(st)) here = merge(st, here);
-      else {
+      else if (st.under) {
         // That dish is no longer in config.js: go back to the entry under it, so Back is not a dead press.
         try { history.replaceState(merge(st, here), ""); } catch (e) {}
         stepBack();
         here = null;
+      } else {
+        curOv = false; // not an entry the page made: stay on it, without the overlay
+        here = merge(plain(st), here);
       }
     }
     if (here) {

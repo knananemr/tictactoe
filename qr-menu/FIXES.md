@@ -1,12 +1,42 @@
 # QR Menu — test findings and fix list
 
 > **Status:** every item below (F1–F14, A1–A7, U1–U9, B1) is fixed in `core/`.
-> Independent browser testers then re-checked each fix. The issues they found
-> (drawer links not scrolling, a single text `tags` blanking the page, the name
-> running under the language button, long About values, keyboard scrolling of
-> the dish sheet, the hero focus ring, and about 15 smaller ones) are fixed and
-> re-tested too. The **Owner decisions** at the end are still open: nothing there
-> has been built.
+> Three more rounds of independent browser testers then tried to break the fixes.
+> Everything they confirmed is fixed and re-tested:
+> - **Round 2:** drawer links not scrolling, a single text `tags` blanking the
+>   page, the name running under the language button, long About values,
+>   keyboard scrolling of the dish sheet, the hero focus ring, and about 15
+>   smaller issues.
+> - **Round 3:** scroll position kept per history entry (Back, Forward and
+>   reload, even a split second after scrolling), bilingual price, time and
+>   calories, text direction, phone links, empty names and hours, long words,
+>   room below the last category, focus rings, and high-contrast mode.
+> - **Round 4:**
+>   - Text direction comes from the language each text was written in. Fixes
+>     names such as "BBQ צלעות", and adds `lang` for screen readers.
+>   - "…" now cuts the end of a name or tag in the other script, not its start.
+>   - Long chips shorten with "…".
+>   - Phone numbers: letters (1-800-FLOWERS) dial the matching digits, and an
+>     extension in brackets is not dialled. Numbers stay left-to-right beside
+>     Hebrew words.
+>   - Numbers and lists written per language are shown.
+>   - A dish with no name or id is labelled ("Dish 4").
+>   - A dish listed in two categories appears once in Today's picks.
+>   - Tiles fit at 320 px.
+>   - Back during a finger fling keeps the right position.
+>   - Turning the phone keeps the category being read.
+>   - The search box text is part of each history entry, so Back, Forward and
+>     reload return to the same results.
+>   - A focused card is no longer hidden under the top bars.
+>   - High-contrast fixes.
+>
+> Known limits:
+> - In phone landscape, a dish card is taller than the space under the two bars,
+>   so keyboard focus cannot show all of it.
+> - If the browser blocks sessionStorage, a position saved less than 0.3 s
+>   before Back can be lost after a reload.
+>
+> The **Owner decisions** at the end are still open: nothing there has been built.
 
 Audit of the default template in `qr-menu/` (commit `783dcd8`). Nothing in the
 template was changed by this audit. This file is the work order for whoever

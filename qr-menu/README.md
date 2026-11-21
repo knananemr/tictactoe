@@ -26,7 +26,7 @@ Never copy `core/` into a client folder.
    - Each dish needs its own `id`. Empty categories are hidden automatically.
    - If `info` has no about text, hours, address or phone, the About page is left out of the menu.
    - `price` can be a number (`32` or `32.5`) or free text (`{ he: "מחיר שוק", en: "Market price" }`).
-   - `phone` can hold several numbers separated by commas. Star numbers (`*6060`) work, and an extension (`ext. 5`, `שלוחה 5`) is shown but not dialled.
+   - `phone` can hold several numbers separated by commas. Star numbers (`*6060`) and numbers with letters (`1-800-FLOWERS`) work, and an extension (`ext. 5`, `(ext. 5)`, `שלוחה 5`) is shown but not dialled.
 3. In `index.html`: set `<title>`, `description`, `og:title`, `og:description` and the icon. Once hosted, add `og:image` with the full web address of a cover photo. These control what WhatsApp shows when the link is shared.
 4. Put photos in `clients/<restaurant-name>/images/` and set `image: "images/name.jpg"` on each dish. Use 4:3 photos, about 800 px wide, JPEG or WebP under 150 KB each. A missing photo falls back to the dish's emoji.
 5. Open `clients/<restaurant-name>/index.html` and check every category on a phone.
