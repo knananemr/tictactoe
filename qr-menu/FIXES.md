@@ -101,10 +101,41 @@
 >   - Entries from an older version: Forward and a reload no longer give a
 >     press that does nothing.
 >   - Phone parsing stays fast on very long texts.
+> - **Round 8:**
+>   - Numbers written with spaced dashes ("050 - 123 - 45 - 67") dial in full
+>     again, and read as one number in Hebrew.
+>   - A branch, floor or room number before a 1-700 / 1-800 / 1599 number is no
+>     longer dialled with it; "+972-050-…" drops the 0; "+(972) 3 …" keeps the +.
+>   - Counts and years before a word ("1200 guests", "Summer 2024 Special") are
+>     not read as letters on a keypad; "1-800-555 FOOD" and "1 (800) FLOWERS" are.
+>   - More date formats ("2026-01-01", "24-12-2025", "06/2025", "24.12") and the
+>     German "+49 (0)30/1234567" and "030 / 123 456 78" are read right.
+>   - A star number and a regular number in one text each get their own line
+>     and link; a number inside brackets is a note, never split off or dialled
+>     instead of the main number; a short number in a note next to a phone
+>     number ("Room 101,", "Minimum order 100,") gets no link.
+>   - "+ 972 …" shows its + on the right side in Hebrew.
+>   - Hours: "12pm–3pm/6pm–11pm" breaks between the ranges, and { from, to }
+>     works. "NaN" in one language no longer hides the other language's price,
+>     and a phone line of only "NaN" is dropped.
+>   - Accent colours written with var(), light-dark() or system colours are
+>     worked out as the page shows them; "initial", "inherit" and colours that
+>     follow the text ("currentColor") are ignored with a warning. A see-through
+>     card colour is measured over the page background. radius: 0 gives square
+>     corners.
+>   - Without sessionStorage, the search text is written to the history entry at
+>     most once a second (Safari's limit on history writes), and the reading
+>     place is kept on the entry, so a reload after turning the phone still finds
+>     it. A full sessionStorage no longer brings back an old copy after a reload.
+>   - Back during a category tap's scroll keeps the reading place for later.
+>   - Entries from an older version can no longer start an endless Back/Forward loop.
+>   - Phone and hours parsing stays linear on any text.
 >
 > Known limit:
 > - If the browser blocks sessionStorage, the scroll position from the last
->   0.3 s before a reload can be lost.
+>   0.3 s before a reload can be lost, and search text from the last second.
+> - Turning the phone while on a drawer or dish entry left by an older version of
+>   the page can leave one Back press that only moves the page a little.
 >
 > The **Owner decisions** at the end are still open: nothing there has been built.
 
