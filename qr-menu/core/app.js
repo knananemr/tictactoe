@@ -84,8 +84,7 @@
       var one = Array.isArray(x) && x.every(function (y) { return typeof y === "string" || typeof y === "number"; });
       return a.concat(hoursRows(one ? { days: "", time: x } : x, l));
     }, []);
-    if (v && typeof v === "object" && !own(v, "days") && !own(v, "time") && !own(v, "day") && !own(v, "hours") &&
-        !own(v, "open") && !own(v, "close")) {
+    if (v && typeof v === "object" && ["days", "time", "day", "hours", "open", "close", "from", "to"].every(function (k) { return !own(v, k); })) {
       var ks = Object.keys(v);
       if (ks.some(function (k) { return own(UI, k); })) { // written per language
         var k = pickKey(v, function (x) { return hoursRows(x).length > 0; });
@@ -95,9 +94,12 @@
       return ks.reduce(function (a, d) { return a.concat(hoursRows({ days: d, time: v[d] }, l)); }, []);
     }
     var h = v && typeof v === "object" ? v : { days: "", time: v };
-    // Other names for the same fields: { day, hours } or { days, open, close }.
+    // Other names for the same fields: { day, hours }, { days, open, close } or { days, from, to }.
     var days = own(h, "days") ? h.days : h.day, time = own(h, "time") ? h.time : own(h, "hours") ? h.hours :
-      [t(h.open).trim(), t(h.close).trim()].filter(Boolean).join(" – ");
+      [t(own(h, "open") ? h.open : h.from).trim(), t(own(h, "close") ? h.close : h.to).trim()].filter(Boolean).join(" – ");
+    if (time && typeof time === "object" && !Array.isArray(time) && (own(time, "from") || own(time, "open"))) { // time: { from, to }
+      time = [t(own(time, "open") ? time.open : time.from).trim(), t(own(time, "close") ? time.close : time.to).trim()].filter(Boolean).join(" – ");
+    }
     return clean(t(days)) || clean(t(time)) ? [{ days: days, time: time, l: l || null }] : [];
   }
   // Text left over from a broken config ("NaN", "undefined") counts as empty.
@@ -169,6 +171,12 @@
     return k == null ? { s: "", l: null } : tl(v[k], own(UI, k) ? k : null);
   }
   function t(v) { return tl(v).s; }
+  // Like tl(), but text left over from a broken config ("NaN") does not count, so the other language is used.
+  function tlc(v) {
+    if (!v || typeof v !== "object" || Array.isArray(v)) return tl(v);
+    var k = pickKey(v, function (x) { return clean(tl(x).s) !== ""; });
+    return k == null ? { s: "", l: null } : tl(v[k], own(UI, k) ? k : null);
+  }
   // A list of texts (one text, a list, or a list per language) → [{ s, l }], empty entries left out.
   // An object without language keys ({ office: "03-…", mobile: "050-…" }) is a list of its values.
   function texts(v, l0) {
@@ -181,7 +189,7 @@
       return k == null ? [] : texts(v[k], own(UI, k) ? k : l0);
     }
     var r = tl(v, l0);
-    return r.s.trim() === "" ? [] : [{ s: r.s.trim(), l: r.l }];
+    return !clean(r.s) ? [] : [{ s: r.s.trim(), l: r.l }];
   }
 
   // A number, or a string that holds only a number ("32", "32.5").
@@ -190,7 +198,7 @@
     return typeof v === "string" && /^\s*\d+(\.\d+)?\s*$/.test(v) ? Number(v) : NaN;
   }
   function priceText(p) {
-    var r = tl(p), s = clean(r.s);
+    var r = tlc(p), s = clean(r.s);
     if (!s) return { s: "", l: null };
     var n = num(s);
     if (!isNaN(n)) return { s: (cfg.currency || "") + (Number.isInteger(n) ? String(n) : n.toFixed(2)), l: null };
@@ -203,7 +211,7 @@
   }
   // "~30 min" for a number; a range such as "20-30" gets the unit; other text is shown as written.
   function approx(v, unit) {
-    var r = tl(v), s = clean(r.s);
+    var r = tlc(v), s = clean(r.s);
     if (!s) return { s: "", l: null };
     var n = num(s);
     if (n === 0) return { s: "", l: null }; // 0 means "not given", as before
@@ -386,18 +394,39 @@
       '<div class="sheet-body" id="sheetBody" tabindex="0"></div>' +
     "</div>";
 
-  // A CSS colour as [r, g, b] bytes, drawn over `under` (so a see-through colour counts as it looks),
-  // or null when it is not a colour. A canvas reads every colour syntax the browser knows.
-  function isColour(c) { return typeof c === "string" && (!window.CSS || !CSS.supports || CSS.supports("color", c)); }
+  // A CSS colour as the page works it out ("rgb(…)"), or null when it is not one colour on its own:
+  // not a colour, a CSS-wide keyword ("initial"), or a colour that follows the text around it
+  // ("currentColor"). var(), light-dark() and system colours are worked out first, as the page shows them.
+  function resolved(c) {
+    if (typeof c !== "string" || /^\s*(inherit|initial|unset|revert|revert-layer)\s*$/i.test(c) ||
+        (window.CSS && CSS.supports && !CSS.supports("color", c))) return null;
+    try {
+      var box = document.createElement("b"), i = document.createElement("i"), a, b;
+      box.style.cssText = "position:absolute;visibility:hidden;color:#000";
+      i.style.color = c;
+      if (!i.style.color) return null;
+      box.appendChild(i);
+      document.documentElement.appendChild(box);
+      a = getComputedStyle(i).color;
+      box.style.color = "#fff";
+      b = getComputedStyle(i).color;
+      box.parentNode.removeChild(box);
+      return a && a === b ? a : null;
+    } catch (e) { return null; }
+  }
+  function isColour(c) { return !!resolved(c); }
+  // A colour as [r, g, b] bytes, drawn over `under` (so a see-through colour counts as it looks).
+  // A canvas reads every colour syntax the browser works out.
   function rgbOf(c, under) {
     try {
-      if (!isColour(c)) return null;
+      var v = resolved(c);
+      if (!v) return null;
       var cv = document.createElement("canvas"), x;
       cv.width = cv.height = 1;
       x = cv.getContext("2d");
       x.fillStyle = under ? "rgb(" + under.join(",") + ")" : "#fff";
       x.fillRect(0, 0, 1, 1);
-      x.fillStyle = c;
+      x.fillStyle = v;
       x.fillRect(0, 0, 1, 1);
       var d = x.getImageData(0, 0, 1, 1).data;
       return [d[0], d[1], d[2]];
@@ -415,15 +444,18 @@
     var map = { bg: "--bg", card: "--card", ink: "--ink", muted: "--muted", line: "--line", accent: "--accent", radius: "--radius" };
     var th = cfg.theme || {}, root = document.documentElement.style;
     Object.keys(map).forEach(function (k) {
-      if (!th[k]) return;
-      var ok = k === "radius" ? !window.CSS || !CSS.supports || CSS.supports("border-radius", th[k]) : isColour(th[k]);
-      if (ok) root.setProperty(map[k], th[k]);
-      else console.warn("[menu] theme." + k + ' "' + th[k] + '" is not a CSS ' + (k === "radius" ? "size" : "colour") + "; the default is used.");
+      var v = th[k];
+      if (v == null || v === "") return;
+      if (k === "radius" && typeof v === "number") v = v + "px"; // radius: 0 gives square corners
+      // One length for the corners ("18px"): the inner corners are worked out from it.
+      var ok = k === "radius" ? typeof v === "string" && (!window.CSS || !CSS.supports || CSS.supports("width", v)) : isColour(v);
+      if (ok) root.setProperty(map[k], v);
+      else console.warn("[menu] theme." + k + ' "' + v + '" is not a CSS ' + (k === "radius" ? "length" : "colour") + "; the default is used.");
     });
     // Text on the accent ("Best seller" in the dish sheet) is white or black, whichever reads better.
     // "Best seller" on a card is the accent itself, moved toward the ink only as far as it needs to
     // read on the card colour (4.5:1).
-    var card = rgbOf(th.card) || [255, 255, 255], ink = rgbOf(th.ink, card) || [17, 17, 17];
+    var bg = rgbOf(th.bg) || [243, 243, 243], card = rgbOf(th.card, bg) || [255, 255, 255], ink = rgbOf(th.ink, card) || [17, 17, 17];
     var acc = rgbOf(th.accent, card) || rgbOf("#c62828", card);
     if (acc) {
       root.setProperty("--on-accent", contrast(acc, [255, 255, 255]) >= contrast(acc, [0, 0, 0]) ? "#fff" : "#000");
@@ -439,7 +471,7 @@
       meta.name = "theme-color";
       document.head.appendChild(meta);
     }
-    meta.content = isColour(th.card) ? th.card : "#ffffff";
+    meta.content = resolved(th.card) || "#ffffff";
   }
 
   /* ---------- Rendering ---------- */
@@ -600,9 +632,15 @@
     if (!curId || qs[curId] === q) return;
     delete qs[curId];
     qs[curId] = q; // last in the list, so trimming old entries never drops the current one
-    // Without sessionStorage (blocked by the browser), the entry itself keeps it, as before.
-    if (!writeStore(Q_KEY, qs)) try { history.replaceState(merge(state(), { q: q }), ""); } catch (e) {}
+    if (writeStore(Q_KEY, qs)) return;
+    // Without sessionStorage (blocked by the browser), the entry itself keeps it, at most once a
+    // second; the 300 ms save and pagehide write the rest.
+    var now = Date.now();
+    if (now - qHistAt < 1000) return;
+    qHistAt = now;
+    try { history.replaceState(merge(state(), { q: q }), ""); } catch (e) {}
   }
+  var qHistAt = 0;
 
   // Numbers in a phone or hours text ("*6060", "12:00 – 23:00") always read left to right;
   // the words around them ("24 שעות", "מוקד הזמנות") keep the direction of their own language.
@@ -610,7 +648,7 @@
   // ("12:00"), so in "24/7: 050-…" the colon stays with the words. Latin letters stuck to a digit
   // ("24h", "24x7", "9am") read with it.
   var NUM_TOK = "\\d(?:[A-Za-z]{1,3}(?![A-Za-z]))?";
-  var NUM_RUN = new RegExp("(?:\\(\\+|[+*#(])?" + NUM_TOK + "(?:(?:" + NUM_TOK + "|[\\s().*#\\/‐-―−-]|:(?=\\d))*(?:" +
+  var NUM_RUN = new RegExp("(?:\\(\\+|[+*#(])?" + NUM_TOK + "(?:(?:" + NUM_TOK + "|[\\s().*#\\/‐-―−-]|:(?=\\d)){0,48}(?:" +
     NUM_TOK + "|[)#]))?", "g");
   var NUM_END = /[\s.:\/‐-―−-]+$/;
   function count(s, ch) { return s.split(ch).length - 1; }
@@ -651,7 +689,13 @@
     while ((m = re.exec(n))) units.push([m.index, m.index + m[0].length]);
     phoneRuns(n).forEach(function (r) {
       if (r.d < 3) return;
-      var i = r.i, j = r.j, o = count(p.slice(i, j), "("), c = count(p.slice(i, j), ")");
+      var i = r.i, j = r.j;
+      if (n.charAt(i) === "+" && p.charAt(i) !== "+") { // "+ 972 …": the dial text moved the "+"
+        var b0 = i;
+        while (b0 > 0 && /\s/.test(p.charAt(b0))) b0--;
+        if (p.charAt(b0) === "+") i = b0;
+      }
+      var o = count(p.slice(i, j), "("), c = count(p.slice(i, j), ")");
       if (c > o && p.charAt(i - 1) === "(") i--; // "(+972) 3-…"
       else if (o > c && p.charAt(j) === ")") j++;
       if (p.charAt(j) === "#") j++;
@@ -677,9 +721,13 @@
   // a star number (*6060) is dialled as it is, and a number written with letters (1-800-FLOWERS)
   // dials the keypad digits.
   var KEYPAD = "22233344455566677778889999";
-  var EXT = /(^|[^A-Za-z\s])\s*(?:[(\[]\s*)?(?:ext\.?|extension|x|доб\.?)\s*:?\s*\d{1,5}(?!\s*[-–—]?\s*\d)\s*[)\]]?|\s*(?:[(\[]\s*)?שלוחה\s*:?\s*\d{1,5}(?!\s*[-–—]?\s*\d)\s*[)\]]?/gi;
+  var EXT = /(^|[^A-Za-z\s])\s*(?:[(\[]\s*)?(?:ext\.?|extension|x|доб\.?)\s*:?\s*\d{1,5}(?:\/\d{1,5})*(?!\s*[-–—]?\s*\d)\s*[)\]]?|\s*(?:[(\[]\s*)?שלוחה\s*:?\s*\d{1,5}(?:\/\d{1,5})*(?!\s*[-–—]?\s*\d)\s*[)\]]?/gi;
   var VANITY = /(\+?\d[\d ().-]{0,16}?)([ -]?)([A-Za-z][A-Za-z-]{0,14}[A-Za-z])/g;
-  var AREA_SLASH = /(^|[^\d\/])(0\d{1,4}|\+\d{1,3}[\s.-]?\d{1,4})\/(?=\d{3})/g; // "030/1234567", "+49 30/1234567"
+  // "030/1234567", "030 / 123 456 78", "+49 30/1234567": the slash after an area code is a space.
+  var AREA_SLASH = /(^|[^\d\s.\-][.:]?\s*)(0\d{1,4}|\+\d{1,3}[\s.-]*\d{1,4})(\/(?=\d{3})|\s\/\s?(?=[1-9]\d\d)|\/\s(?=[1-9]\d\d))/g;
+  // Countries whose numbers drop their leading 0 after the country code ("+972-050-…" dials +97250…).
+  var TRUNK0 = /(\+(?:972|44|49|33|971|962|43|41|31|32|61|90)|\b00(?:972|44|49|33|971|962|43|41|31|32|61|90))([\s.-]*)0(?=\d)/g;
+  var DATES = /(^|[^\d.\/-])((?:19|20)\d\d-\d{1,2}-\d{1,2}|(?:0?[1-9]|[12]\d|3[01])-(?:0?[1-9]|1[0-2])-(?:19|20)\d\d|(?:0?[1-9]|1[0-2])\/(?:19|20)\d\d|\d{1,2}([.\/])\d{1,2}\3(?:\d{4}|\d{2})|(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2]))(?![\d.\/-])/g;
   function digits(s) { return s.replace(/\D/g, "").length; }
   function blank(n) { return new Array(n + 1).join(" "); }
   function blankAll(m) { return blank(m.length); }
@@ -687,20 +735,26 @@
   // length of the text, so a number found in it is at the same place in the text itself.
   function dialText(p) {
     var n = p.replace(/[‐-‒−]/g, "-").replace(/(\d)[–-―](?=\d)/g, "$1-").replace(/\+(\s+)(?=\d)/g, "$1+");
-    n = n.replace(/(^|[^\d.\/])(\d{1,2}([.\/])\d{1,2}\3(?:\d{4}|\d{2}))(?![\d.\/])/g, function (m, a, d) { return a + blank(d.length); }); // dates
-    n = n.replace(AREA_SLASH, function (m, a, b) { return a + b + " "; });
-    n = n.replace(EXT, function (m, pre) { pre = pre || ""; return pre + blank(m.length - pre.length); });
-    n = n.replace(/\(\s*(\+\d{1,4})\s*\)/g, function (m, cc) { return " " + cc + blank(m.length - cc.length - 1); });
+    n = n.replace(DATES, function (m, a, d) { return a + blank(d.length); });
+    n = n.replace(/\(\s*(\+\d{1,4})\s*\)/g, function (m, cc) { return " " + cc + blank(m.length - cc.length - 1); }); // "(+972)"
+    n = n.replace(/\+\(\s*(\d{1,4})\s*\)/g, function (m, cc) { return "+" + cc + blank(m.length - cc.length - 1); }); // "+(972)"
     n = n.replace(/(\+\d{1,4}|\b00\d{1,4})([\s.-]*\(0\))/g, function (m, cc, z) { return cc + blank(z.length); }); // the 0 is only dialled from inside the country
+    n = n.replace(TRUNK0, function (m, cc, sp) { return cc + sp + " "; });
+    n = n.replace(AREA_SLASH, function (m, a, b, sl) { return a + b + blank(sl.length); });
+    n = n.replace(EXT, function (m, pre) { pre = pre || ""; return pre + blank(m.length - pre.length); });
     n = n.replace(/\b\d{1,2}[.:]\d{2}\s*[-–—]\s*\d{1,2}[.:]\d{2}\b|\d{1,2}:\d{2}|\b\d{1,2}\/\d{1,2}\b/g, blankAll); // hours, "24/7"
     n = n.replace(/[₪$€£]\s*\d[\d,.]{0,12}|\d[\d,.]{0,12}\s*(?:₪|\$|€|£|NIS|ILS|ש["״]ח|שקל)/g, blankAll); // prices
     n = n.replace(/((?:since|est\.?|established|founded|מאז|משנת)\s*)((?:19|20)\d\d)\b/gi, function (m, a, y) { return a + blank(y.length); });
     return n.replace(VANITY, function (m, d, sep, w) {
       var dd = digits(d), all = dd + w.replace(/-/g, "").length;
-      // A real number with letters ("1-800-FLOWERS", "1-800-555-FOOD", 10 to 12 digits), not
-      // "24 hours", "555-0123 Mike" or "03-555-1234 Danny".
-      if (dd < 3 || dd > 7 || (dd === 7 && sep !== "-") || all < 10 || all > 12) return m;
-      return d + sep + w.replace(/[A-Za-z]/g, function (c) { return KEYPAD.charAt(c.toUpperCase().charCodeAt(0) - 65); });
+      var toll = /^(?:\+?1[\s.(-]+(?:8\d\d|[57]00|599)|\(?8(?:00|33|44|55|66|77|88))[\s.)-]*(?:\d{1,4}[\s.-]*)?$/.test(d + sep);
+      // A real number with letters ("1-800-FLOWERS", "1-800-555 FOOD", "1-700-PIZZA", 10 to 12
+      // digits, in capitals unless it is a toll-free number), not "24 hours", "1200 guests",
+      // "555-0123 Mike" or "03-555-1234 Danny".
+      if (!toll && w !== w.toUpperCase()) return m;
+      if (dd < 3 || dd > 7 || (dd === 7 && sep !== "-" && !toll) || all < 10 || all > (toll ? 12 : 11)) return m;
+      // The letters become keypad digits; a "-" between them ("PIZZA-HUT") becomes a mark that joins.
+      return d + sep + w.replace(/[A-Za-z]/g, function (c) { return KEYPAD.charAt(c.toUpperCase().charCodeAt(0) - 65); }).replace(/-/g, "\u0001");
     });
   }
   // The phone numbers in a dial text: groups of digits ("03", "555", "+972", "(03)") joined across
@@ -718,30 +772,51 @@
     return runs;
   }
   var WHOLE = /0\d*(?:(?:\s?[.\-–]\s?|\s+)\d+){0,8}/g; // a number from a 0-group on
+  var TOLL = /^1(?:\s?[.\-–]\s?|\s+)?(?:599|[789]\d\d)(?:(?:\s?[.\-–]\s?|\s+)\d+){1,4}/; // "1-700-…", "1599-…", "1-800-…"
   function joins(run, g, sep, n, at) {
     var dash = /^\s?[.\-–]\s?$/.test(sep), spaced = /\s/.test(sep), gd = digits(g), intl = /^(\+|00)/.test(run.first);
+    if (sep === "\u0001") return true; // inside a number written with letters
     if (!(sep === "" || dash || /^\s+$/.test(sep))) return false;
     if (g.charAt(0) === "+") return false; // a new number
     if (g.charAt(0) === "(") return run.d <= 4; // an area code after a country code: "+1 (212) …"
     if (run.d >= (intl ? 11 : 9) && !(sep === run.sep && gd <= 2 && run.last <= 3 &&
         run.d + gd <= (/^\+/.test(run.first) ? 13 : intl ? 15 : 11))) return false; // the number is already whole
-    if (spaced && run.d >= 7 && (dash || (gd <= 2 && sep !== run.sep))) return false; // "555-1234 - 24 hours", "5551234 24 hours"
-    if (!(spaced && g.charAt(0) === "0" && /^\d/.test(run.first) && !intl)) return true;
-    WHOLE.lastIndex = at;
-    var w = WHOLE.exec(n);
-    return !(w && w.index === at && digits(w[0]) >= 9);
+    // "555-1234 - 24 hours", "5551234 24 hours"; but "050 - 123 - 45 - 67" is one number
+    if (spaced && run.d >= 7 && sep !== run.sep && (dash || gd <= 2)) return false;
+    if (!(spaced && /^[01]/.test(g) && /^\d/.test(run.first) && !intl)) return true;
+    var one = g.charAt(0) === "1", w;
+    if (one && run.d > 4) return true;
+    if (one) w = TOLL.exec(n.slice(at, at + 40)); // "סניף 3 1-700-700-700"
+    else { WHOLE.lastIndex = at; w = WHOLE.exec(n); if (w && w.index !== at) w = null; }
+    return !(w && digits(w[0]) >= (one ? 10 : 9));
+  }
+  var STAR = /\*\d{2,6}#?(?![A-Za-z\d])/g;
+  // How deep in brackets each place of a text is (depth[i] is the depth just before character i).
+  function depths(n) {
+    var d = [0], c = 0;
+    for (var k = 0; k < n.length; k++) {
+      var ch = n.charAt(k);
+      if (ch === "(") c++; else if (ch === ")" && c > 0) c--;
+      d.push(c);
+    }
+    return d;
   }
   function dialOf(p) {
-    var n = dialText(p), star = /\*\d{2,6}#?(?![A-Za-z\d])/.exec(n), first = null, best = null;
-    if (star) return star[0].replace(/#/g, "%23");
+    var n = dialText(p), dep = depths(n), first = null, inner = null, best = null;
+    STAR.lastIndex = 0;
+    var star = STAR.exec(n);
     phoneRuns(n).forEach(function (r) {
-      var s = n.slice(r.i, r.j), next = (/^\s*(\S)/.exec(n.slice(r.j)) || [])[1] || "";
+      var s = n.slice(r.i, r.j), next = (/^[\s\-–]*(\S)/.exec(n.slice(r.j, r.j + 40)) || [])[1] || "";
       if (r.d < 3 || /^\d{1,2}\s?[-–]\s?\d{1,2}$/.test(s) || /^(19|20)\d\d$/.test(s)) return; // "9-17", a year
       if (r.d < 5 && LETTER.test(next)) return; // a count: "120 guests", "365 days"
-      if (!first && r.d >= 7) first = r;
+      // A whole number in brackets is a note ("(fax 03-…)", "(Wolt 03-…)"), unless there is no other.
+      if (r.d >= 7) { if (dep[r.i] > 0) inner = inner || r; else first = first || r; }
       if (!best || r.d > best.d) best = r;
     });
-    best = first || best; // the main number, not a longer one in a note after it ("(fax 153-…)")
+    first = first || inner;
+    // A star number, unless a whole number comes before it ("03-5551234 *6060").
+    if (star && !(first && first.i < star.index)) return star[0].replace(/#/g, "%23");
+    best = first || best; // the main number, not a longer one in a note after it
     return best ? n.slice(best.i, best.j).replace(/[^\d+]/g, "") : "";
   }
   // A phone text → its parts, each on its own line with its own call link. It is split at ",", "/",
@@ -749,35 +824,68 @@
   // between two whole numbers ("03-555-1234 050-123-4567"). A label with no number ("Tel" in
   // "Tel/Fax: 03-…", "Call" in "Call or WhatsApp 050-…") stays with the number after it; a note
   // after a number gets its own line.
-  var PHONE_SEP = /\s*[,\/|;]\s*|\s+(?:or|או)\s+/gi;
-  function phoneParts(s) {
-    var pieces = [], last = 0, depth = 0, seen = 0, m, re = new RegExp(PHONE_SEP.source, "gi");
+  // The separators in a text: each match of `re` (a separator without its spaces) grows over the
+  // spaces around it, unless ok(text, start, end) turns it down. Linear, however many spaces there are.
+  function seps(s, re, ok) {
+    var out = [], m, last = 0;
+    re.lastIndex = 0;
     while ((m = re.exec(s))) {
-      var gap = s.slice(seen, m.index), before = s.slice(Math.max(0, m.index - 12), m.index),
-        after = s.slice(m.index + m[0].length, m.index + m[0].length + 12);
-      depth += count(gap, "(") - count(gap, ")");
-      seen = m.index;
-      if (depth > 0) continue;
-      if (m[0] === "/" && ((/(^|\D)\d{1,2}$/.test(before) && /^\d{1,2}(\D|$)/.test(after)) ||
-          (/\d{1,2}\/\d{1,2}$/.test(before) && /^\d{2,4}(\D|$)/.test(after)) ||
-          (new RegExp(AREA_SLASH.source.replace("\\/(?=\\d{3})", "$")).test(before) && /^\d{3}/.test(after)))) continue;
-      pieces.push({ s: s.slice(last, m.index), sep: m[0] });
-      last = m.index + m[0].length;
+      var i = m.index, j = i + m[0].length, a = i, b = j;
+      while (a > last && /\s/.test(s.charAt(a - 1))) a--;
+      while (b < s.length && /\s/.test(s.charAt(b))) b++;
+      if (ok && !ok(m[0], i, j, a, b)) continue;
+      out.push({ i: a, j: b });
+      last = b;
+      re.lastIndex = Math.max(re.lastIndex, b);
     }
+    return out;
+  }
+  var PHONE_SEP = /[,\/|;]|(?:or|או)(?=\s)/gi;
+  function phoneParts(s) {
+    var nd = dialText(s), depth = 0, seen = 0;
+    var cuts = seps(s, PHONE_SEP, function (m, i, j, a) {
+      if (m.length > 1 && (a === i || i === 0)) return false; // "or" / "או" as a word of its own
+      depth += count(s.slice(seen, i), "(") - count(s.slice(seen, i), ")");
+      seen = i;
+      if (depth > 0) return false; // inside brackets
+      // a "/" that is part of a number, date or "24/7" (the dial text turned it into a space)
+      return !(m === "/" && nd.charAt(i) !== "/");
+    });
+    // A text with a whole number in it: a short number in a note next to it ("Room 101, 03-…",
+    // "Minimum order 100, call 050-…") is not a number to dial.
+    STAR.lastIndex = 0;
+    var whole = STAR.test(nd) || phoneRuns(nd).some(function (r) { return r.d >= 7; });
+    function none(t) { var d = dialOf(t); return !d || (whole && /^\d{3,4}$/.test(d) && LETTER.test(t)); }
+    var pieces = [], last = 0;
+    cuts.forEach(function (c) { pieces.push({ s: s.slice(last, c.i), sep: s.slice(c.i, c.j) }); last = c.j; });
     pieces.push({ s: s.slice(last), sep: "" });
     var out = [];
     pieces.forEach(function (pc) {
-      var prev = out[out.length - 1], none = !dialOf(pc.s);
-      if (prev && prev.none) { prev.s += prev.sep + pc.s; prev.sep = pc.sep; prev.none = none; }
-      else out.push({ s: pc.s, sep: pc.sep, none: none });
+      var prev = out[out.length - 1], no = none(pc.s);
+      if (prev && prev.none) { prev.s += prev.sep + pc.s; prev.sep = pc.sep; prev.none = no; }
+      else out.push({ s: pc.s, sep: pc.sep, none: no });
     });
     var res = [];
     out.forEach(function (pc) {
-      var p = pc.s, at = 0, big = phoneRuns(dialText(p)).filter(function (r) { return r.d >= 7; });
+      var p = pc.s, n = dialText(p), dep = depths(n), at = 0, d = 0, upto = 0, m;
+      // Whole numbers and star numbers in this piece, each starts a line of its own (not those in brackets).
+      var big = phoneRuns(n).filter(function (r) { return r.d >= 7 && !dep[r.i]; });
+      STAR.lastIndex = 0;
+      while ((m = STAR.exec(n))) if (!dep[m.index]) big.push({ i: m.index, j: m.index + m[0].length });
+      big.sort(function (x, y) { return x.i - y.i; });
       for (var k = 1; k < big.length; k++) {
         var cut = big[k - 1].j, note = p.slice(cut, cut + 200).match(/^\s*\([^()]*\)/);
         if (note) cut += note[0].length; // "(office)" after a number stays with it
         if (cut > big[k].i) continue;
+        d += count(p.slice(upto, cut), "(") - count(p.slice(upto, cut), ")");
+        upto = cut;
+        if (d > 0) { // never cut inside brackets: cut after they close, if that is before the next number
+          var x = cut, dd = d;
+          while (x < big[k].i && dd > 0) { var ch = p.charAt(x++); if (ch === "(") dd++; else if (ch === ")") dd--; }
+          if (dd > 0) continue;
+          d = 0;
+          upto = cut = x;
+        }
         res.push(p.slice(at, cut));
         at = cut;
       }
@@ -796,11 +904,16 @@
     // A "/" splits with spaces around it or before a time ("12:00–15:00/18:00–23:00"), so "24/7" and
     // "1/6–30/9" stay whole. The separator stays at the end of its part, so a "," never starts a line.
     function parts(s) {
-      var bits = String(s).split(/(\s*[,|]\s*|\s+\/\s+|\/(?=\d{1,2}[:.]\d\d))/), out = "";
-      for (var i = 0; i < bits.length; i += 2) {
-        var sep = bits[i + 1] || "", end = sep.replace(/\s+$/, "");
-        out += '<span class="nw">' + nums(bits[i]) + esc(end) + "</span>" + (sep === end ? (sep ? "<wbr>" : "") : " ");
-      }
+      s = String(s);
+      var out = "", at = 0, cuts = seps(s, /[,|\/]/g, function (m, i, j, a, b) {
+        return m !== "/" || (a < i && b > j) || /^\d{1,2}(?:[:.]\d\d|\s?[ap]\.?m)/i.test(s.slice(j, j + 8)); // "/" between times
+      });
+      cuts.push({ i: s.length, j: s.length });
+      cuts.forEach(function (c) {
+        var sep = s.slice(c.i, c.j), end = sep.replace(/\s+$/, "");
+        out += '<span class="nw">' + nums(s.slice(at, c.i)) + esc(end) + "</span>" + (sep === end ? (sep ? "<wbr>" : "") : " ");
+        at = c.j;
+      });
       return out;
     }
     // Several numbers ("03-555-1234 / 050-123-4567", "... or ...", "... או ...") each get their own call link.
@@ -890,7 +1003,7 @@
   // sessionStorage (which, unlike history, a reload cannot drop), and also on the entry itself.
   // The entry also keeps the search text, so its position matches the list it was taken on.
   var POS_KEY = "menu-pos:" + location.pathname, Q_KEY = "menu-q:" + location.pathname;
-  var curId = null, curOv = false, curTwin = false, curUnder = false, pinTok = 0;
+  var curId = null, curOv = false, curTwin = false, curUnder = false, curN = null, autoStep = false, pinTok = 0;
   function readStore(key) {
     try {
       var o = JSON.parse(sessionStorage.getItem(key) || "{}");
@@ -903,7 +1016,11 @@
       while (keys.length > 60) delete o[keys.shift()]; // only recent entries matter
       sessionStorage.setItem(key, JSON.stringify(o));
       return true;
-    } catch (e) { return false; }
+    } catch (e) {
+      // Full or blocked: drop the copy saved earlier, so a reload uses the entry's own position and search.
+      try { sessionStorage.removeItem(key); } catch (x) {}
+      return false;
+    }
   }
   var ANC_KEY = "menu-anc:" + location.pathname, pos = readStore(POS_KEY), qs = readStore(Q_KEY), anc = readStore(ANC_KEY);
   function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -915,12 +1032,23 @@
   // instead of to a pixel position from the old layout.
   function keepAnc() {
     if (!curId) return;
-    if (view === "menu" && anchor && anchor.h > 0) {
-      anc[curId] = { w: window.innerWidth, l: lang, c: anchor.cat, o: Math.round(anchor.off), h: Math.round(anchor.h) };
-    } else delete anc[curId];
+    // While a tap still scrolls, the highlight is held on its target: measure what is on screen.
+    var a = view !== "menu" ? null : spyLock || !anchor || !(anchor.h > 0) ? readingNow() : anchor;
+    if (a && a.h > 0) anc[curId] = { w: window.innerWidth, l: lang, c: a.cat, o: Math.round(a.off), h: Math.round(a.h) };
+    else delete anc[curId];
+  }
+  // The category on screen and how far its title is from the top, found the same way as spy().
+  function readingNow() {
+    var sections = document.querySelectorAll(".cat-section:not([hidden])");
+    if (!sections.length) return null;
+    var line = marginTop(sections[0]) + 13, cur = sections[0];
+    sections.forEach(function (sec) { if (sec.getBoundingClientRect().top <= line) cur = sec; });
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) cur = sections[sections.length - 1];
+    var r = cur.getBoundingClientRect();
+    return { cat: cur.dataset.catId, off: r.top - marginTop(cur), h: r.height };
   }
   function yOf(st) {
-    var y = posOf(st), a = st.id ? anc[st.id] : null;
+    var y = posOf(st), a = (st.id && anc[st.id]) || st.a || null; // the entry keeps it too, for when storage is blocked
     var sec = a && view === "menu" && (a.w !== window.innerWidth || a.l !== lang) ? $("cat-" + a.c) : null;
     if (!sec || sec.hidden) return y;
     var r = sec.getBoundingClientRect(), off = a.o < 0 && a.h > 0 ? a.o * r.height / a.h : a.o;
@@ -932,14 +1060,23 @@
     keepAnc();
     writeStore(ANC_KEY, anc);
     saveQuery();
-    try { history.replaceState(merge(state(), { y: Math.round(window.scrollY), q: $("search").value }), ""); } catch (e) {}
+    try { history.replaceState(merge(state(), { y: Math.round(window.scrollY), q: $("search").value, a: anc[curId] || null }), ""); } catch (e) {}
+  }
+  // Each entry the page writes is stamped with the time (n), so the page can tell whether Back or
+  // Forward was pressed: 1 when `to` is newer than `from`, -1 when older, 0 when it cannot tell.
+  // Entries from older versions of the page have no stamp and count as older.
+  function moved(from, to) {
+    var a = typeof from === "number", b = typeof to === "number";
+    return a && b ? (to > from ? 1 : to < from ? -1 : 0) : a ? -1 : b ? 1 : 0;
   }
   function push(st, url) {
-    st = merge(st, { id: newId() });
+    st = merge(st, { id: newId(), n: Date.now() });
     try {
       if (url) history.pushState(st, "", url); else history.pushState(st, "");
       curId = st.id;
       curOv = !!st.overlay;
+      curTwin = curUnder = false;
+      curN = st.n;
     } catch (e) {}
   }
   // An entry without the drawer or a dish on it.
@@ -1193,17 +1330,21 @@
     clearTimeout(popTimer);
     clearTimeout(saveTimer); // a pending save belongs to the entry we just left
     // scrollRestoration is "manual", so the page has not moved yet: this is the position of the entry left.
-    var y = Math.round(window.scrollY), leftOv = curOv, leftTwin = curTwin, leftUnder = curUnder;
+    var y = Math.round(window.scrollY), leftOv = curOv, leftTwin = curTwin, leftUnder = curUnder, leftN = curN, auto = autoStep;
+    autoStep = false;
     if (curId) { pos[curId] = y; keepAnc(); }
     var st = state(), v = viewFromHash(), fresh = !st.id;
     if (fresh) { // an entry the page did not make, such as a #about typed into the address bar
-      st = merge(st, { id: newId(), view: v });
+      st = merge(st, { id: newId(), view: v, n: Date.now() });
       try { history.replaceState(st, ""); } catch (e) {}
     }
     curId = st.id;
     curOv = !!st.overlay;
     curTwin = !!st.twin;
     curUnder = !!st.twinUnder;
+    curN = st.n;
+    // Stepping over a twin (below) goes one way only, and never twice in a row, so it cannot loop.
+    var dir = moved(leftN, st.n), same = Math.abs(posOf(st) - y) <= 2 && (v !== "menu" || (qOf(st) || "") === $("search").value);
     closeAll();
     if (v !== view) {
       if (v === "menu") setSearch(qOf(st));
@@ -1211,15 +1352,17 @@
       scrollNow(yOf(st));
     } else if (fresh || leftOv || st.overlay) {
       pos[curId] = y; // an overlay opened or closed, or a new entry: the page stays where it is
-    } else if (!ours && leftTwin && Math.abs(posOf(st) - y) <= 2 && (v !== "menu" || (qOf(st) || "") === $("search").value)) {
+    } else if (!ours && !auto && dir <= 0 && leftTwin && same) {
       // Back from an entry made from an older version's open drawer or dish (see the start-up code)
       // reached the entry it was made over, which shows exactly the same: step over it. That entry
       // is marked, so Forward from it steps over the twin the same way.
       try { history.replaceState(merge(st, { twinUnder: true }), ""); } catch (e) {}
       curUnder = true;
+      autoStep = true;
       history.back();
       return;
-    } else if (!ours && leftUnder && st.twin && Math.abs(posOf(st) - y) <= 2 && (v !== "menu" || (qOf(st) || "") === $("search").value)) {
+    } else if (!ours && !auto && dir >= 0 && leftUnder && st.twin && same) {
+      autoStep = true;
       history.forward();
       return;
     } else {
@@ -1411,6 +1554,8 @@
     var here = { view: view, id: curId, y: y, q: $("search").value };
     if (same && st.twin) here.twin = true; // a reload keeps the marks (see settlePop)
     if (same && st.twinUnder) here.twinUnder = true;
+    if (!(same && st.id)) here.n = Date.now(); // a new entry; an older version's entry keeps no stamp
+    else if (typeof st.n === "number") here.n = st.n;
     // After a reload with a dish or the drawer open, open it again on the same history entry.
     if (same && st.overlay && !st.under && canReopen(st)) {
       // An open drawer or dish the page did not put on an entry of its own (older versions wrote
@@ -1418,7 +1563,7 @@
       // safe: keep this entry without it and open it again on a new entry above, so closing it
       // stays on this view. Those older versions put it over an entry for the same view, so it is
       // marked `twin`: Back that reaches an entry showing exactly the same steps over it.
-      try { history.replaceState(merge(merge(plain(st), here), { twin: true }), "", "#" + view); } catch (e) {}
+      try { history.replaceState(merge(merge(plain(st), here), { twin: true, n: Date.now() }), "", "#" + view); } catch (e) {}
       here = null;
       reopen(st);
     } else if (same && st.overlay) {
@@ -1439,6 +1584,7 @@
     }
     curTwin = !!state().twin;
     curUnder = !!state().twinUnder;
+    curN = state().n;
   } catch (err) {
     console.error("[menu] Could not build the menu:", err);
     fatal();
