@@ -626,11 +626,18 @@
     return open.length ? open[0] : m.length;
   }
   function nums(s) {
-    var out = "", last = 0, m, re = new RegExp(NUM_RUN.source, "g");
-    while ((m = re.exec(s))) {
+    // A bracket with no partner anywhere is hidden from the search first, so no run reaches past it.
+    var open = [], mask = s.split(""), k;
+    for (k = 0; k < s.length; k++) {
+      if (mask[k] === "(") open.push(k);
+      else if (mask[k] === ")") { if (open.length) open.pop(); else mask[k] = "\u0000"; }
+    }
+    open.forEach(function (o) { mask[o] = "\u0000"; });
+    var t = mask.join(""), out = "", last = 0, m, re = new RegExp(NUM_RUN.source, "g");
+    while ((m = re.exec(t))) {
       var i = m.index, end = pairedEnd(m[0]);
       if (end === 0) { re.lastIndex = i + 1; continue; } // an opening bracket of the words: look after it
-      var r = m[0].slice(0, end).replace(NUM_END, "");
+      var r = s.slice(i, i + end).replace(NUM_END, "");
       out += esc(s.slice(last, i)) + '<bdi dir="ltr">' + esc(r) + "</bdi>";
       last = re.lastIndex = i + r.length;
     }
@@ -671,7 +678,7 @@
   // dials the keypad digits.
   var KEYPAD = "22233344455566677778889999";
   var EXT = /(^|[^A-Za-z\s])\s*(?:[(\[]\s*)?(?:ext\.?|extension|x|доб\.?)\s*:?\s*\d{1,5}(?!\s*[-–—]?\s*\d)\s*[)\]]?|\s*(?:[(\[]\s*)?שלוחה\s*:?\s*\d{1,5}(?!\s*[-–—]?\s*\d)\s*[)\]]?/gi;
-  var VANITY = /(\+?\d[\d ().-]*?)([ -]?)([A-Za-z][A-Za-z-]*[A-Za-z])/g;
+  var VANITY = /(\+?\d[\d ().-]{0,16}?)([ -]?)([A-Za-z][A-Za-z-]{0,14}[A-Za-z])/g;
   var AREA_SLASH = /(^|[^\d\/])(0\d{1,4}|\+\d{1,3}[\s.-]?\d{1,4})\/(?=\d{3})/g; // "030/1234567", "+49 30/1234567"
   function digits(s) { return s.replace(/\D/g, "").length; }
   function blank(n) { return new Array(n + 1).join(" "); }
@@ -686,7 +693,7 @@
     n = n.replace(/\(\s*(\+\d{1,4})\s*\)/g, function (m, cc) { return " " + cc + blank(m.length - cc.length - 1); });
     n = n.replace(/(\+\d{1,4}|\b00\d{1,4})([\s.-]*\(0\))/g, function (m, cc, z) { return cc + blank(z.length); }); // the 0 is only dialled from inside the country
     n = n.replace(/\b\d{1,2}[.:]\d{2}\s*[-–—]\s*\d{1,2}[.:]\d{2}\b|\d{1,2}:\d{2}|\b\d{1,2}\/\d{1,2}\b/g, blankAll); // hours, "24/7"
-    n = n.replace(/[₪$€£]\s*\d[\d,.]*|\d[\d,.]*\s*(?:₪|\$|€|£|NIS|ILS|ש["״]ח|שקל)/g, blankAll); // prices
+    n = n.replace(/[₪$€£]\s*\d[\d,.]{0,12}|\d[\d,.]{0,12}\s*(?:₪|\$|€|£|NIS|ILS|ש["״]ח|שקל)/g, blankAll); // prices
     n = n.replace(/((?:since|est\.?|established|founded|מאז|משנת)\s*)((?:19|20)\d\d)\b/gi, function (m, a, y) { return a + blank(y.length); });
     return n.replace(VANITY, function (m, d, sep, w) {
       var dd = digits(d), all = dd + w.replace(/-/g, "").length;
@@ -705,12 +712,13 @@
     var re = /\+?\d+|\(\d+\)/g, m, runs = [], cur = null;
     while ((m = re.exec(n))) {
       var g = m[0], j = m.index + g.length, sep = cur ? n.slice(cur.j, m.index) : "";
-      if (cur && joins(cur, g, sep, n.slice(m.index))) { cur.j = j; cur.d += digits(g); cur.sep = sep; cur.last = digits(g); }
+      if (cur && joins(cur, g, sep, n, m.index)) { cur.j = j; cur.d += digits(g); cur.sep = sep; cur.last = digits(g); }
       else runs.push(cur = { i: m.index, j: j, d: digits(g), first: g, sep: null, last: digits(g) });
     }
     return runs;
   }
-  function joins(run, g, sep, rest) {
+  var WHOLE = /0\d*(?:(?:\s?[.\-–]\s?|\s+)\d+){0,8}/g; // a number from a 0-group on
+  function joins(run, g, sep, n, at) {
     var dash = /^\s?[.\-–]\s?$/.test(sep), spaced = /\s/.test(sep), gd = digits(g), intl = /^(\+|00)/.test(run.first);
     if (!(sep === "" || dash || /^\s+$/.test(sep))) return false;
     if (g.charAt(0) === "+") return false; // a new number
@@ -718,8 +726,10 @@
     if (run.d >= (intl ? 11 : 9) && !(sep === run.sep && gd <= 2 && run.last <= 3 &&
         run.d + gd <= (/^\+/.test(run.first) ? 13 : intl ? 15 : 11))) return false; // the number is already whole
     if (spaced && run.d >= 7 && (dash || (gd <= 2 && sep !== run.sep))) return false; // "555-1234 - 24 hours", "5551234 24 hours"
-    return !(spaced && g.charAt(0) === "0" && /^\d/.test(run.first) && !intl &&
-      digits(/^0\d*(?:(?:\s?[.\-–]\s?|\s+)\d+)*/.exec(rest)[0]) >= 9);
+    if (!(spaced && g.charAt(0) === "0" && /^\d/.test(run.first) && !intl)) return true;
+    WHOLE.lastIndex = at;
+    var w = WHOLE.exec(n);
+    return !(w && w.index === at && digits(w[0]) >= 9);
   }
   function dialOf(p) {
     var n = dialText(p), star = /\*\d{2,6}#?(?![A-Za-z\d])/.exec(n), first = null, best = null;
@@ -765,7 +775,7 @@
     out.forEach(function (pc) {
       var p = pc.s, at = 0, big = phoneRuns(dialText(p)).filter(function (r) { return r.d >= 7; });
       for (var k = 1; k < big.length; k++) {
-        var cut = big[k - 1].j, note = /^\s*\([^()]*\)/.exec(p.slice(cut));
+        var cut = big[k - 1].j, note = p.slice(cut, cut + 200).match(/^\s*\([^()]*\)/);
         if (note) cut += note[0].length; // "(office)" after a number stays with it
         if (cut > big[k].i) continue;
         res.push(p.slice(at, cut));
