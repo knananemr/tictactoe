@@ -613,6 +613,7 @@
     // The last category shown gets room below it, so a tap on it can bring its title to the top.
     if (last) last.classList.add("is-last");
     $("noResults").hidden = any;
+    fixStrip(); // fewer chips: no gap where the hidden ones were
     unlockSpy();
     activeCat = undefined;
     spy();
@@ -1174,7 +1175,7 @@
     var chip = id ? document.querySelector('#chips [data-cat="' + id + '"]') : null, strip = $("chips");
     if (chip && strip.offsetParent) {
       var cr = chip.getBoundingClientRect(), sr = strip.getBoundingClientRect();
-      strip.scrollBy({ left: cr.left + cr.width / 2 - (sr.left + sr.width / 2), behavior: motion() });
+      stripScroll(cr.left + cr.width / 2 - (sr.left + sr.width / 2), motion());
     }
     var side = id ? document.querySelector('#sideCats [data-cat="' + id + '"]') : null, list = $("sideCats");
     if (side && list.offsetParent && list.scrollHeight > list.clientHeight + 1) {
@@ -1183,6 +1184,27 @@
         list.scrollBy({ top: br.top + br.height / 2 - (lr.top + lr.height / 2), behavior: motion() });
       }
     }
+  }
+  // Scrolls the chip strip sideways by dx, but never past its first or last chip. Safari, in a
+  // right-to-left strip, scrolls past the first chip when asked to centre it and leaves an empty
+  // gap before it, so the reachable range is measured from the chips themselves (that works
+  // however the browser counts scrollLeft). dx = 0 only closes such a gap.
+  function stripScroll(dx, behavior) {
+    var strip = $("chips"), chips = strip.querySelectorAll(".chip:not([hidden])");
+    if (!strip.offsetParent || !chips.length) return;
+    var a = chips[0].getBoundingClientRect(), b = chips[chips.length - 1].getBoundingClientRect();
+    var sr = strip.getBoundingClientRect(), cs = getComputedStyle(strip);
+    // How far the content reaches past the strip's left and right edges (with the strip's padding).
+    var lo = Math.min(a.left, b.left) - parseFloat(cs.paddingLeft) - sr.left;
+    var hi = Math.max(a.right, b.right) + parseFloat(cs.paddingRight) - sr.right;
+    if (lo > hi) dx = document.documentElement.dir === "rtl" ? hi : lo; // all chips fit: line them up at the start
+    else dx = Math.max(lo, Math.min(hi, dx));
+    if (Math.abs(dx) >= 1) strip.scrollBy({ left: dx, behavior: behavior });
+  }
+  var stripTimer = 0, stripTouch = false;
+  function fixStrip() {
+    clearTimeout(stripTimer);
+    stripTimer = setTimeout(function () { if (!stripTouch) stripScroll(0, "instant"); }, 150);
   }
   // Highlights the category currently on screen.
   function spy() {
@@ -1520,6 +1542,13 @@
     window.addEventListener("touchstart", function () { unpin(); unlockSpy(); }, { passive: true });
     ["pointerdown", "keydown", "focusin"].forEach(function (type) { window.addEventListener(type, unpin, true); });
     window.addEventListener("resize", onResize);
+    window.addEventListener("resize", fixStrip);
+    var strip = $("chips");
+    strip.addEventListener("scroll", fixStrip, { passive: true });
+    strip.addEventListener("touchstart", function () { stripTouch = true; }, { passive: true });
+    ["touchend", "touchcancel"].forEach(function (type) {
+      strip.addEventListener(type, function () { stripTouch = false; fixStrip(); }, { passive: true });
+    });
     window.addEventListener("popstate", settlePop);
     bindSwipe();
   }

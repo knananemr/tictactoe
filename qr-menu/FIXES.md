@@ -130,6 +130,10 @@
 >   - Back during a category tap's scroll keeps the reading place for later.
 >   - Entries from an older version can no longer start an endless Back/Forward loop.
 >   - Phone and hours parsing stays linear on any text.
+> - **From the owner's iPhone:** an empty gap could appear before the first
+>   category chip (Hebrew, mostly when the menu opens). Safari scrolled the chip
+>   strip past its start when asked to centre the first chip. The strip now
+>   never scrolls past its first or last chip, and closes any gap once it stops.
 >
 > Known limit:
 > - If the browser blocks sessionStorage, the scroll position from the last
