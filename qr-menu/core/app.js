@@ -648,7 +648,7 @@
   // ("12:00"), so in "24/7: 050-…" the colon stays with the words. Latin letters stuck to a digit
   // ("24h", "24x7", "9am") read with it.
   var NUM_TOK = "\\d(?:[A-Za-z]{1,3}(?![A-Za-z]))?";
-  var NUM_RUN = new RegExp("(?:\\(\\+|[+*#(])?" + NUM_TOK + "(?:(?:" + NUM_TOK + "|[\\s().*#\\/‐-―−-]|:(?=\\d)){0,48}(?:" +
+  var NUM_RUN = new RegExp("(?:\\(\\+|[+*#(₪$€£])?" + NUM_TOK + "(?:(?:" + NUM_TOK + "|[\\s().*#\\/‐-―−-]|:(?=\\d)){0,48}(?:" +
     NUM_TOK + "|[)#]))?", "g");
   var NUM_END = /[\s.:\/‐-―−-]+$/;
   function count(s, ch) { return s.split(ch).length - 1; }
@@ -675,8 +675,10 @@
     while ((m = re.exec(t))) {
       var i = m.index, end = pairedEnd(m[0]);
       if (end === 0) { re.lastIndex = i + 1; continue; } // an opening bracket of the words: look after it
-      var r = s.slice(i, i + end).replace(NUM_END, "");
-      out += esc(s.slice(last, i)) + '<bdi dir="ltr">' + esc(r) + "</bdi>";
+      var r = s.slice(i, i + end).replace(NUM_END, ""), pre = /(^|\s)([ובמלהשכ][-־])$/.exec(s.slice(Math.max(last, i - 3), i));
+      if (pre) { // a Hebrew prefix stays with its number: "ו-18:00", "מ-12:00"
+        out += esc(s.slice(last, i - 2)) + '<span class="nw">' + esc(pre[2]) + '<bdi dir="ltr">' + esc(r) + "</bdi></span>";
+      } else out += esc(s.slice(last, i)) + '<bdi dir="ltr">' + esc(r) + "</bdi>";
       last = re.lastIndex = i + r.length;
     }
     return out + esc(s.slice(last));
