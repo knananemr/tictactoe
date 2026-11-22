@@ -73,7 +73,7 @@
 >   - Turning the phone deep inside a category keeps the same dishes on screen.
 >   - Back during a very long fling still returns Home to the top.
 >   - Reloading on a drawer or dish opened by an older version of the page, then
->     closing it, stays on the menu.
+>     closing it, stays on the menu, and the next Back is not a dead press.
 >
 > Known limit:
 > - If the browser blocks sessionStorage, the scroll position and search text

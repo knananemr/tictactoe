@@ -785,7 +785,7 @@
   // sessionStorage (which, unlike history, a reload cannot drop), and also on the entry itself.
   // The entry also keeps the search text, so its position matches the list it was taken on.
   var POS_KEY = "menu-pos:" + location.pathname, Q_KEY = "menu-q:" + location.pathname;
-  var curId = null, curOv = false, pinTok = 0;
+  var curId = null, curOv = false, curTwin = false, pinTok = 0;
   function readStore(key) {
     try {
       var o = JSON.parse(sessionStorage.getItem(key) || "{}");
@@ -1069,7 +1069,7 @@
     clearTimeout(popTimer);
     clearTimeout(saveTimer); // a pending save belongs to the entry we just left
     // scrollRestoration is "manual", so the page has not moved yet: this is the position of the entry left.
-    var y = Math.round(window.scrollY), leftOv = curOv;
+    var y = Math.round(window.scrollY), leftOv = curOv, leftTwin = curTwin;
     if (curId) pos[curId] = y;
     var st = state(), v = viewFromHash(), fresh = !st.id;
     if (fresh) { // an entry the page did not make, such as a #about typed into the address bar
@@ -1078,6 +1078,7 @@
     }
     curId = st.id;
     curOv = !!st.overlay;
+    curTwin = !!st.twin;
     closeAll();
     if (v !== view) {
       if (v === "menu") setSearch(qOf(st));
@@ -1085,6 +1086,11 @@
       scrollNow(posOf(st));
     } else if (fresh || leftOv || st.overlay) {
       pos[curId] = y; // an overlay opened or closed, or a new entry: the page stays where it is
+    } else if (!ours && leftTwin && Math.abs(posOf(st) - y) <= 2 && (v !== "menu" || (qOf(st) || "") === $("search").value)) {
+      // Back from an entry made from an older version's open drawer or dish (see the start-up code)
+      // reached the entry it was made over, which shows exactly the same: step over it.
+      history.back();
+      return;
     } else {
       // Two entries of the same view (#menu typed in the address bar while on the menu).
       if (v === "menu") setSearch(qOf(st));
@@ -1277,8 +1283,9 @@
       // An open drawer or dish the page did not put on an entry of its own (older versions wrote
       // these). What is under it is unknown, maybe another site, so going back to close it is not
       // safe: keep this entry without it and open it again on a new entry above, so closing it
-      // stays on this view.
-      try { history.replaceState(merge(plain(st), here), "", "#" + view); } catch (e) {}
+      // stays on this view. Those older versions put it over an entry for the same view, so it is
+      // marked `twin`: Back that reaches an entry showing exactly the same steps over it.
+      try { history.replaceState(merge(merge(plain(st), here), { twin: true }), "", "#" + view); } catch (e) {}
       here = null;
       reopen(st);
     } else if (same && st.overlay) {
@@ -1297,6 +1304,7 @@
     if (here) {
       try { history.replaceState(here, "", "#" + view); } catch (e) {}
     }
+    curTwin = !!state().twin;
   } catch (err) {
     console.error("[menu] Could not build the menu:", err);
     fatal();
