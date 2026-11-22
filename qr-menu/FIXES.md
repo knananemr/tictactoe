@@ -65,7 +65,7 @@
 >     right order, and a phone number no longer breaks across two lines.
 >   - Opening hours can be written per language or as one text, tags as a list
 >     per language, and an emoji per language. A tag written twice shows once.
->   - "Best seller" stays readable on any accent colour.
+>   - "Best seller" in the dish sheet stays readable on any accent colour.
 >   - Search text is no longer written to the browser history on every key
 >     (Safari refuses history writes after 100 in a short time, which broke Back).
 >   - Tapping the logo or the drawer link for the page already shown no longer
@@ -74,10 +74,37 @@
 >   - Back during a very long fling still returns Home to the top.
 >   - Reloading on a drawer or dish opened by an older version of the page, then
 >     closing it, stays on the menu, and the next Back is not a dead press.
+> - **Round 7:**
+>   - Phone numbers written in pairs ("030 12 34 56 78", "8-800-555-35-35"),
+>     with a 00 or Russian 8 prefix, in French, German, Austrian and Italian
+>     formats, and with an area-code slash ("030/1234567") dial in full.
+>   - Dates, prices, years ("since 1998"), hour ranges ("9-17") and counts
+>     ("120 guests") in phone text get no call link, and an extension or room
+>     number before a number is not dialled with it. When a note holds a second
+>     number ("(fax 03-…)"), the main number is the one dialled.
+>   - Phone numbers inside Hebrew text read in the right order, with "24h",
+>     "24x7", "*6060#" and "1-800-FLOWERS" kept whole.
+>   - About page: a long English address no longer pushes its label down, and
+>     every label lines up with the first line of its value.
+>   - Opening hours: "12:00–15:00/18:00–23:00" breaks between the two ranges,
+>     a comma never starts a line, and hours written as day → time pairs
+>     ({ "Sun–Thu": "12:00–23:00" }) or with day/hours/open/close are shown.
+>   - "Best seller" on the card and in the sheet reads on any accent colour,
+>     written in any CSS colour syntax. A theme colour that is not a colour is
+>     ignored, with a warning in the console.
+>   - Prices written as "NaN", "undefined" or "null" are hidden.
+>   - A tag written per language as a text next to a list, or as nested lists,
+>     is shown right.
+>   - Without sessionStorage, the latest search text survives a reload again.
+>   - Turning the phone on Home or About, then going back to the menu, returns
+>     to the same category.
+>   - Entries from an older version: Forward and a reload no longer give a
+>     press that does nothing.
+>   - Phone parsing stays fast on very long texts.
 >
 > Known limit:
-> - If the browser blocks sessionStorage, the scroll position and search text
->   from the last 0.3 s before a reload can be lost.
+> - If the browser blocks sessionStorage, the scroll position from the last
+>   0.3 s before a reload can be lost.
 >
 > The **Owner decisions** at the end are still open: nothing there has been built.
 

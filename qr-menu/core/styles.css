@@ -284,7 +284,7 @@ a { color: inherit; text-decoration: none; }
   margin: 4px 4px 0; height: 16px; font-size: 11px; line-height: 16px; font-weight: 600; color: var(--muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.card-tag.hot { color: var(--accent); }
+.card-tag.hot { color: var(--accent-text, var(--accent)); } /* set by app.js so it reads on the card */
 /* A one-line tag or name in the other script carries its own direction (so its "…" falls at its end),
    but still lines up with the page like the others. */
 html[dir="rtl"] .card-tag, html[dir="rtl"] .drawer-brand { text-align: right; }
@@ -351,7 +351,8 @@ html[dir="ltr"] .card-tag, html[dir="ltr"] .drawer-brand { text-align: left; }
 .info-card { margin: var(--pad); padding: 20px; border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); }
 .info-card h2 { font-size: 17px; font-weight: 800; margin-bottom: 8px; }
 .info-card p { color: var(--muted); overflow-wrap: anywhere; }
-.info-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+/* Key and value have the same font size and line height, so they line up on their first line. */
+.info-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .info-row:last-child { border-bottom: 0; }
 .info-key { flex: 0 0 auto; max-width: 50%; }
 .info-val { min-width: 0; font-weight: 600; text-align: end; overflow-wrap: anywhere; }
@@ -359,7 +360,7 @@ html[dir="ltr"] .card-tag, html[dir="ltr"] .drawer-brand { text-align: left; }
    breaks inside when it is wider than the whole line. */
 .nw { display: inline-block; max-width: 100%; }
 /* A phone number or time inside a longer text also moves to the next line whole. */
-.info-val bdi[dir="ltr"] { display: inline-block; max-width: 100%; }
+.info-val .nw bdi[dir="ltr"] { display: inline-block; max-width: 100%; }
 
 /* ---------- Animations ---------- */
 @keyframes fade { from { opacity: 0; } }
