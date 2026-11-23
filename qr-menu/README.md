@@ -7,11 +7,13 @@ Phone first, Hebrew + English (right-to-left and left-to-right), no ordering.
 
 ```
 qr-menu/
-  core/app.js            shared logic: builds the whole page
-  core/styles.css        shared look
-  clients/_default/      the black-and-white default; copy this for each new client
-    index.html           page title, link-preview tags, icon (no menu content)
-    config.js            name, colors, hours, categories, dishes
+  core/app.js            shared logic: builds the whole menu
+  core/styles.css        shared look of the menu
+  core/tap.js, tap.css   the main page (what the NFC tag, card or Instagram link opens)
+  clients/_default/      the default; copy this for each new client
+    index.html           main page: title, link-preview tags, icon (no content)
+    menu.html            the menu: title, link-preview tags, icon (no content)
+    config.js            name, colors, hours, categories, dishes, main-page links
   clients/<restaurant>/  one folder per client, same files plus images/
 ```
 
@@ -30,11 +32,15 @@ Never copy `core/` into a client folder.
    - `hours` is a list of `{ days, time }` rows. A row can also be one text (`"Sun–Thu 12:00–23:00"`), the list can be written per language (`{ he: [...], en: [...] }`), and `{ "Sun–Thu": "12:00–23:00", "Fri": "9:00–14:00" }` works too.
    - `theme` colours can be any CSS colour. Text on the accent colour is made readable automatically.
    - `tags` can also hold the client's own tags, as text or per language (`{ he: "ללא גלוטן", en: "Gluten free" }`).
-3. In `index.html`: set `<title>`, `description`, `og:title`, `og:description` and the icon. Once hosted, add `og:image` with the full web address of a cover photo. These control what WhatsApp shows when the link is shared.
+   - `tap` is the main page: social links (Instagram, TikTok, Facebook, Google review, website), the WhatsApp number, and the Waze spot (empty = the address). Call uses the first number in `info.phone`. **Set `demo: false` for a real client**, so links not filled in are hidden instead of shown dashed.
+3. In `index.html` and `menu.html`: set `<title>`, `description`, `og:title`, `og:description` and the icon. Once hosted, add `og:image` with the full web address of a cover photo. These control what WhatsApp shows when the link is shared.
 4. Put photos in `clients/<restaurant-name>/images/` and set `image: "images/name.jpg"` on each dish. Use 4:3 photos, about 800 px wide, JPEG or WebP under 150 KB each. On a phone held sideways the menu shows them a little wider (16:9), so keep the dish near the middle of the photo. A missing photo falls back to the dish's emoji.
-5. Open `clients/<restaurant-name>/index.html` and check every category on a phone.
-6. Host the whole `qr-menu` folder (any static hosting) and make the QR code point at `https://YOUR-DOMAIN/clients/<restaurant-name>/`. On GitHub Pages, add an empty `.nojekyll` file at the site root, or the `_default` folder is not published.
+5. Open `clients/<restaurant-name>/index.html`, tap every button, then check every category of the menu on a phone.
+6. Host the whole `qr-menu` folder (any static hosting).
+   - NFC tag, card and Instagram bio: `https://YOUR-DOMAIN/clients/<restaurant-name>/` (the main page; its Menu button opens the menu).
+   - QR code on the tables: the same link, or `https://YOUR-DOMAIN/clients/<restaurant-name>/menu.html` to open the menu directly.
+ On GitHub Pages, add an empty `.nojekyll` file at the site root, or the `_default` folder is not published.
 
-Add `?lang=en` or `?lang=he` to the link to choose the starting language for customers who have not picked one yet. Once a customer switches language themselves, their choice is remembered and wins over the link.
+Both pages use the same language: the main page opens the menu in its language, and a language picked in the menu is used by the main page too. Add `?lang=en` or `?lang=he` to the link to choose the starting language for customers who have not picked one yet. Once a customer switches language themselves, their choice is remembered and wins over the link.
 
 If `config.js` has a mistake, the page shows "The menu is unavailable right now" instead of going blank. Open the browser console to see what went wrong.

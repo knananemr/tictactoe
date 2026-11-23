@@ -1,0 +1,152 @@
+/*
+ * QR Menu — shared styles for the main page (index.html: what an NFC tag, card or link opens).
+ * Do not edit per client: the accent colour comes from each client's config.js (theme.accent).
+ */
+/* One screen, no scroll: short warm header, big accent Menu button, social tiles, contact pills, footer. */
+:root{
+  --bg:#0f0f12;
+  --surface:#1c1c21;
+  --surface-hi:#24242a;
+  --ink:#f5f3f1;
+  --muted:#a9a6a3;
+  --line:#2e2e35;
+  --accent:#e2706f;        /* the rest of the accent set is computed in JS from config.accent */
+  --accent-a:#e57e7d;
+  --accent-b:#e2706f;
+  --accent-ink:#181214;
+  --accent-glow:rgba(226,112,111,.32);
+  --accent-fg:#e2706f;     /* accent for icons on the dark background */
+  --font:"Outfit","Heebo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg);color:var(--ink);font-family:var(--font);
+  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;
+  display:flex;flex-direction:column;
+  min-height:100vh;min-height:100dvh;
+}
+[lang="he"] body{font-family:"Heebo","Outfit",system-ui,sans-serif}
+[lang="ar"] body{font-family:"Outfit",system-ui,"Geeza Pro","Segoe UI",sans-serif}
+
+/* ---------- Header ---------- */
+.hero{
+  position:relative;flex:1 1 auto;overflow:hidden;
+  min-height:150px;max-height:60vh;max-height:60dvh;
+  display:flex;flex-direction:column;justify-content:flex-end;
+}
+.hero-bg,.hero-img{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,15,18,.1) 0%,rgba(15,15,18,.4) 50%,var(--bg) 100%)}
+.hero-inner{position:relative;z-index:1;max-width:480px;width:100%;margin:0 auto;padding:0 20px 4px;display:flex;align-items:flex-end;gap:14px}
+.logo{
+  flex:none;width:56px;height:56px;border-radius:15px;overflow:hidden;
+  background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;
+  font-weight:800;font-size:28px;box-shadow:0 8px 24px rgba(0,0,0,.35);
+}
+.logo img{width:100%;height:100%;object-fit:cover}
+.titles{min-width:0;display:flex;flex-direction:column;gap:2px}
+h1{
+  margin:0;padding-bottom:.08em;font-size:clamp(26px,7.5vw,34px);font-weight:700;line-height:1.1;letter-spacing:-.02em;text-wrap:balance;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;
+}
+h1.long{font-size:clamp(21px,6vw,27px)}
+h1.xlong{font-size:clamp(18px,5vw,22px)}
+[dir="rtl"] h1{letter-spacing:0}
+.tagline{margin:0;font-size:15px;color:#e4e1de;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+
+/* ---------- Buttons ---------- */
+main{flex:0 0 auto;width:100%;max-width:480px;margin:auto auto 0;padding:16px 16px 8px;display:flex;flex-direction:column;gap:12px}
+
+.primary{
+  display:flex;align-items:center;gap:14px;min-height:82px;padding:14px 16px;border-radius:22px;
+  color:var(--accent-ink);text-decoration:none;font:inherit;text-align:start;cursor:pointer;border:0;
+  background:var(--accent);
+  background:linear-gradient(135deg,var(--accent-a),var(--accent-b));
+  box-shadow:0 10px 26px rgba(0,0,0,.35);
+  box-shadow:0 10px 26px var(--accent-glow);
+  transition:transform .14s ease,filter .14s ease;
+}
+.primary:hover{filter:brightness(1.05)}
+.primary .ico{flex:none;width:52px;height:52px;border-radius:15px;background:rgba(255,255,255,.8);color:#2a2a2a;display:grid;place-items:center}
+.primary .ico svg{width:26px;height:26px}
+.primary .txt{flex:1;min-width:0;display:flex;flex-direction:column}
+.primary .txt b{font-size:28px;font-weight:700;line-height:1.1}
+.primary .txt span{font-size:15px;font-weight:500}
+.primary .go{flex:none;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.85);color:#2a2a2a;display:grid;place-items:center}
+.primary .go svg{width:18px;height:18px}
+[dir="rtl"] .go svg{transform:scaleX(-1)}
+
+.grid{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));gap:10px}
+.tile{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:80px;padding:10px 6px;
+  background:var(--surface);border:1px solid var(--line);border-radius:18px;color:var(--ink);text-decoration:none;
+  font:inherit;font-size:14px;font-weight:500;text-align:center;line-height:1.15;cursor:pointer;
+  transition:transform .14s ease,background .14s ease;
+}
+.tile:hover{background:var(--surface-hi)}
+.tile svg{flex:none;width:26px;height:26px}
+.grid.multi .tile{min-height:58px;flex-direction:row;gap:8px}
+.grid.multi .tile svg{width:22px;height:22px}
+.grid.five{grid-template-columns:repeat(6,minmax(0,1fr))}
+.grid.five>*{grid-column:span 2}
+.grid.five>:nth-child(n+4){grid-column:span 3}
+.contact .tile{min-height:66px;flex-direction:row;gap:8px}
+.contact .tile svg{width:22px;height:22px;color:var(--accent-fg)}
+@media (max-width:380px){.contact .tile{flex-direction:column;gap:4px}}
+.pending{border-style:dashed}
+.primary.pending{outline:2px dashed rgba(255,255,255,.6);outline-offset:-6px}
+.primary:active,.tile:active{transform:scale(.97)}
+.primary:focus-visible,.tile:focus-visible{outline:3px solid var(--accent-fg);outline-offset:3px}
+
+footer{
+  flex:0 0 auto;max-width:480px;width:100%;margin:0 auto;
+  padding:6px 20px calc(14px + env(safe-area-inset-bottom,0px));
+  display:flex;justify-content:center;align-items:center;gap:6px;color:#cfccc9;font-size:14px;text-align:center;
+}
+footer svg{flex:none;width:16px;height:16px;color:var(--accent-fg)}
+footer bdi{white-space:nowrap}
+
+.toast{
+  position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:10;
+  max-width:calc(100% - 32px);padding:12px 16px;border-radius:14px;
+  background:#f5f3f1;color:#141416;font-size:14px;font-weight:500;text-align:center;
+  opacity:0;pointer-events:none;transform:translate(-50%,16px);transition:opacity .2s ease,transform .2s ease;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* iPhone-style call prompt (centered card: number, Cancel | Call). Used where phone links are blocked or there is no dialer. */
+.sheet-bg{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.45);opacity:0;transition:opacity .2s ease}
+.sheet-bg.open{opacity:1}
+.sheet{
+  position:fixed;left:50%;top:50%;z-index:21;
+  width:min(319px,calc(100% - 48px));padding:24px 15px 15px;border-radius:38px;
+  background:rgba(44,46,54,.94);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);
+  border:1px solid rgba(255,255,255,.10);box-shadow:0 20px 60px rgba(0,0,0,.5);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",var(--font);
+  opacity:0;transform:translate(-50%,-50%) scale(1.08);transition:opacity .2s ease,transform .2s ease;
+}
+.sheet.open{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.sheet[hidden],.sheet-bg[hidden],.sheet-hint[hidden],.sheet-copy[hidden]{display:none}
+.sheet-num{
+  margin:0 0 24px;text-align:center;color:#fff;font-size:17px;font-weight:400;
+  direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums;user-select:all;-webkit-user-select:all;
+}
+.sheet-row{display:flex;gap:8px}
+.sheet-btn{
+  flex:1 1 0;min-width:0;height:47px;padding:0 12px;border:0;border-radius:999px;
+  display:flex;align-items:center;justify-content:center;
+  font:inherit;font-size:17px;font-weight:600;color:#fff;text-decoration:none;cursor:pointer;
+}
+.sheet-cancel{background:rgba(120,120,128,.36)}
+.sheet-call{background:#0071e3}                 /* Apple blue; white text on it reads at 4.7:1 */
+.sheet-btn:active{filter:brightness(.85)}
+.sheet-btn:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.sheet-hint{margin:14px 4px 0;text-align:center;color:#ffd60a;font-size:14px;line-height:1.4}
+.sheet-copy{flex:none;width:100%;margin-top:10px;background:rgba(120,120,128,.36)}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* Shown instead of the page when config.js is missing or broken. */
+.fatal{min-height:100vh;min-height:100dvh;display:grid;place-content:center;gap:8px;padding:24px;text-align:center;color:var(--muted);font-size:17px}
+.fatal p{margin:0}

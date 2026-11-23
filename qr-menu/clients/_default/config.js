@@ -1,6 +1,9 @@
 /*
- * CLIENT CONFIG — all the menu content for this client.
- * (Also edit index.html in this folder: page title and link-preview tags.)
+ * CLIENT CONFIG — one file per client, read by BOTH pages in this folder:
+ *   index.html = the main page (what the NFC tag, card or Instagram link opens)
+ *   menu.html  = the menu
+ * (Also edit the page title and link-preview tags at the top of index.html and menu.html.)
+ * Both pages share brand (name, logo), theme.accent, languages and info (address, phone, hours).
  * Every text is written as { en: "...", he: "..." }.
  * To add a photo to an item, set  image: "images/my-photo.jpg".
  * Items without a photo show their emoji on a neutral tile.
@@ -25,6 +28,30 @@ window.MENU_CONFIG = {
   languages: ["he", "en"],
   defaultLang: "he",
   currency: "₪",
+
+  // ---------- Main page (index.html). The menu ignores this section. ----------
+  tap: {
+    menuUrl: "menu.html",
+    tagline: "",           // empty = default line; e.g. { en: "Tap what you need.", he: "בחרו מה שאתם צריכים" }
+    footer: "",            // empty = the address + first opening hours from "info" below
+    heroImage: "",         // header photo, e.g. "images/hero.jpg"; empty = warm lights animation
+    // true  = links not set yet stay visible (dashed) and show a hint when tapped. Use for demos.
+    // false = links not set yet are hidden. Use for real clients.
+    demo: true,
+    // Tiles under the Menu button, in this order. Types: instagram, tiktok, facebook, google, web.
+    // A tile can have its own label: { type: "web", url: "...", label: { en: "Order online", he: "הזמנה אונליין" } }
+    socials: [
+      { type: "instagram", url: "https://instagram.com/YOUR_PAGE" },
+      { type: "tiktok",    url: "https://www.tiktok.com/@YOUR_PAGE" },
+      { type: "google",    url: "https://g.page/r/YOUR_PLACE_ID/review" }
+    ],
+    contact: {
+      whatsapp: "972500000000", // the WhatsApp number: 972 + the number without its first 0 (054-... also works)
+      lat: null, lon: null,     // exact spot for Waze, e.g. lat: 32.9461, lon: 35.1478
+      place: ""                 // what Waze searches when lat/lon are empty; empty = the address from "info" below
+      // Call uses the first number in info.phone; set phone: "..." here to use another one.
+    }
+  },
 
   home: {
     headline: { en: "Hungry?", he: "רעבים?" },
