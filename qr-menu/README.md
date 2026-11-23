@@ -1,16 +1,46 @@
-# QR Menu — core template
+# QR Menu
 
 A view-only digital menu that opens when a customer scans a QR code.
 Phone first, Hebrew + English (right-to-left and left-to-right), no ordering.
 
-## Files
-- `config.js` — **the only file to change per client**: name, logo, colors, hours, categories, items.
-- `index.html`, `styles.css`, `app.js` — the shared template. Do not edit per client.
+## Layout
+
+```
+qr-menu/
+  core/app.js            shared logic: builds the whole menu
+  core/styles.css        shared look of the menu
+  core/tap.js, tap.css   the main page (what the NFC tag, card or Instagram link opens)
+  clients/_default/      the default; copy this for each new client
+    index.html           main page: title, link-preview tags, icon (no content)
+    menu.html            the menu: title, link-preview tags, icon (no content)
+    config.js            name, colors, hours, categories, dishes, main-page links
+  clients/<restaurant>/  one folder per client, same files plus images/
+```
+
+Fix a bug or improve the design **once**, in `core/`, and every client gets it.
+Never copy `core/` into a client folder.
 
 ## New client checklist
-1. Copy the `qr-menu` folder and rename it for the client.
-2. In `config.js`: set `brand`, `theme` colors, `info`, then the `categories` and items in the order the client wants.
-3. Put photos in an `images/` folder and set `image: "images/name.jpg"` on each item (4:3 photos fit best).
-4. Host the folder (any static hosting) and generate a QR code pointing at its URL.
 
-Add `?lang=en` or `?lang=he` to the URL to force a starting language.
+1. Copy `clients/_default` to `clients/<restaurant-name>` (lowercase, dashes, no spaces).
+2. In `config.js`: set `brand`, `theme` colors, `languages`, `defaultLang`, `currency`, the home page `headline` and `subtitle`, `info`, then the `categories` and dishes in the order the client wants.
+   - Every text is `{ he: "...", en: "..." }`. If one language is missing, the other is shown.
+   - Each dish needs its own `id`. Empty categories are hidden automatically.
+   - If `info` has no about text, hours, address or phone, the About page is left out of the menu.
+   - `price` can be a number (`32` or `32.5`) or free text (`{ he: "מחיר שוק", en: "Market price" }`).
+   - `phone` can hold several numbers separated by commas (or as a list). Star numbers (`*6060`) and numbers with letters (`1-800-FLOWERS`) work, and an extension (`ext. 5`, `(ext. 5)`, `שלוחה 5`) is shown but not dialled. Words and notes around a number (`Delivery 24/7: 050-123-4567`, `03-555-1234 (9:00–17:00)`) are shown too; only the number is dialled.
+   - `hours` is a list of `{ days, time }` rows. A row can also be one text (`"Sun–Thu 12:00–23:00"`), the list can be written per language (`{ he: [...], en: [...] }`), and `{ "Sun–Thu": "12:00–23:00", "Fri": "9:00–14:00" }` works too.
+   - `theme` colours can be any CSS colour. Text on the accent colour is made readable automatically.
+   - `tags` can also hold the client's own tags, as text or per language (`{ he: "ללא גלוטן", en: "Gluten free" }`).
+   - `tap` is the main page: social links (Instagram, TikTok, Facebook, Google review, website), the WhatsApp number, and the Waze spot (empty = the address). Call uses the first number in `info.phone`. **Set `demo: false` for a real client**, so links not filled in are hidden instead of shown dashed.
+3. In `index.html` and `menu.html`: set `<title>`, `description`, `og:title`, `og:description` and the icon. Once hosted, add `og:image` with the full web address of a cover photo. These control what WhatsApp shows when the link is shared.
+4. Put photos in `clients/<restaurant-name>/images/` and set `image: "images/name.jpg"` on each dish. Use 4:3 photos, about 800 px wide, JPEG or WebP under 150 KB each. On a phone held sideways the menu shows them a little wider (16:9), so keep the dish near the middle of the photo. A missing photo falls back to the dish's emoji.
+5. Open `clients/<restaurant-name>/index.html`, tap every button, then check every category of the menu on a phone.
+6. Host the whole `qr-menu` folder (any static hosting).
+   - NFC tag, card and Instagram bio: `https://YOUR-DOMAIN/clients/<restaurant-name>/` (the main page; its Menu button opens the menu).
+   - QR code on the tables: the same link, or `https://YOUR-DOMAIN/clients/<restaurant-name>/menu.html` to open the menu directly.
+ On GitHub Pages, add an empty `.nojekyll` file at the site root, or the `_default` folder is not published.
+
+Both pages use the same language: the main page opens the menu in its language, and a language picked in the menu is used by the main page too. Add `?lang=en` or `?lang=he` to the link to choose the starting language for customers who have not picked one yet. Once a customer switches language themselves, their choice is remembered and wins over the link.
+
+If `config.js` has a mistake, the page shows "The menu is unavailable right now" instead of going blank. Open the browser console to see what went wrong.
